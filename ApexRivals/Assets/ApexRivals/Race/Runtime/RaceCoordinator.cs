@@ -18,6 +18,9 @@ namespace ApexRivals.Race.Runtime
         [SerializeField]
         private DrivingInputGate[] drivingGates = Array.Empty<DrivingInputGate>();
 
+        [SerializeField]
+        private RaceParticipant raceCompletionParticipant;
+
         [SerializeField, Min(0.05f)]
         private float positionUpdateInterval = 0.25f;
 
@@ -179,7 +182,7 @@ namespace ApexRivals.Race.Runtime
                 _results.Add(raceResult);
                 RacerFinished?.Invoke(new RacerFinishedEvent(raceResult));
 
-                if (!_raceFinishedRaised)
+                if (ShouldFinishRace(participant))
                 {
                     _raceFinishedRaised = true;
                     state = RaceState.Finished;
@@ -190,6 +193,16 @@ namespace ApexRivals.Race.Runtime
 
             RecalculatePositions();
             return result;
+        }
+
+        private bool ShouldFinishRace(RaceParticipant participant)
+        {
+            if (_raceFinishedRaised)
+            {
+                return false;
+            }
+
+            return raceCompletionParticipant == null || raceCompletionParticipant == participant;
         }
 
         public bool TryGetProgress(RaceParticipant participant, out RacerProgress progress)
