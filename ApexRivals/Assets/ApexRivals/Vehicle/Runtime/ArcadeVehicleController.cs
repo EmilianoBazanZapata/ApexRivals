@@ -108,27 +108,27 @@ namespace ApexRivals.Vehicle.Runtime
 
         private void ApplySteering(DrivingInput input)
         {
-            float speedMagnitude = Mathf.Abs(CurrentSpeed);
-            float maximumSpeed = CurrentSpeed >= 0f ? configuration.maximumForwardSpeed : configuration.maximumReverseSpeed;
-            float steeringResponse = VehicleDriveRules.CalculateSteeringResponse(speedMagnitude, maximumSpeed, configuration.minimumSteeringResponse);
-            float driftMultiplier = input.Drift ? configuration.driftSteeringMultiplier : 1f;
-            float steering = input.Steering * configuration.steeringStrength * steeringResponse * driftMultiplier;
+            var speedMagnitude = Mathf.Abs(CurrentSpeed);
+            var maximumSpeed = CurrentSpeed >= 0f ? configuration.maximumForwardSpeed : configuration.maximumReverseSpeed;
+            var steeringResponse = VehicleDriveRules.CalculateSteeringResponse(speedMagnitude, maximumSpeed, configuration.minimumSteeringResponse);
+            var driftMultiplier = input.Drift ? configuration.driftSteeringMultiplier : 1f;
+            var steering = input.Steering * configuration.steeringStrength * steeringResponse * driftMultiplier;
 
             if (speedMagnitude < 0.05f || Mathf.Abs(steering) < 0.001f)
             {
                 return;
             }
 
-            float reverseSign = CurrentSpeed >= 0f ? 1f : -1f;
+            var reverseSign = CurrentSpeed >= 0f ? 1f : -1f;
             _rigidbody.AddTorque(transform.up * (steering * reverseSign), ForceMode.Acceleration);
         }
 
         private void ApplyLateralGrip(DrivingInput input)
         {
-            Vector3 velocity = _rigidbody.linearVelocity;
-            Vector3 lateralVelocity = Vector3.Project(velocity, transform.right);
-            float grip = VehicleDriveRules.SelectLateralGrip(configuration.normalLateralGrip, configuration.driftLateralGrip, input.Drift);
-            Vector3 gripCorrection = -lateralVelocity * Mathf.Clamp01(grip);
+            var velocity = _rigidbody.linearVelocity;
+            var lateralVelocity = Vector3.Project(velocity, transform.right);
+            var grip = VehicleDriveRules.SelectLateralGrip(configuration.normalLateralGrip, configuration.driftLateralGrip, input.Drift);
+            var gripCorrection = -lateralVelocity * Mathf.Clamp01(grip);
             _rigidbody.AddForce(gripCorrection, ForceMode.VelocityChange);
         }
 
@@ -139,18 +139,18 @@ namespace ApexRivals.Vehicle.Runtime
 
         private void ClampForwardSpeed()
         {
-            Vector3 velocity = _rigidbody.linearVelocity;
-            float forwardSpeed = Vector3.Dot(velocity, transform.forward);
-            float maximumSpeed = forwardSpeed >= 0f ? configuration.maximumForwardSpeed : configuration.maximumReverseSpeed;
+            var velocity = _rigidbody.linearVelocity;
+            var forwardSpeed = Vector3.Dot(velocity, transform.forward);
+            var maximumSpeed = forwardSpeed >= 0f ? configuration.maximumForwardSpeed : configuration.maximumReverseSpeed;
 
             if (maximumSpeed <= 0f || Mathf.Abs(forwardSpeed) <= maximumSpeed)
             {
                 return;
             }
 
-            Vector3 forwardVelocity = transform.forward * (Mathf.Sign(forwardSpeed) * maximumSpeed);
-            Vector3 lateralVelocity = Vector3.Project(velocity, transform.right);
-            Vector3 verticalVelocity = Vector3.Project(velocity, transform.up);
+            var forwardVelocity = transform.forward * (Mathf.Sign(forwardSpeed) * maximumSpeed);
+            var lateralVelocity = Vector3.Project(velocity, transform.right);
+            var verticalVelocity = Vector3.Project(velocity, transform.up);
             _rigidbody.linearVelocity = forwardVelocity + lateralVelocity + verticalVelocity;
             CurrentSpeed = Mathf.Sign(forwardSpeed) * maximumSpeed;
         }

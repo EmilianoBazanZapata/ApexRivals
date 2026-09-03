@@ -40,7 +40,7 @@ namespace ApexRivals.Input.Runtime
 
         private void Update()
         {
-            float steering = _steeringAction.ReadValue<float>();
+            var steering = _steeringAction.ReadValue<float>();
             if (Mathf.Abs(steering) < steeringDeadZone)
             {
                 steering = 0f;

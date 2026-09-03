@@ -64,7 +64,7 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
-            float heightOffset = configuration != null ? configuration.resetHeightOffset : 0.75f;
+            var heightOffset = configuration != null ? configuration.resetHeightOffset : 0.75f;
             vehicleRigidbody.position = _latestValidPosition + Vector3.up * heightOffset;
             vehicleRigidbody.rotation = _latestValidRotation;
             vehicleRigidbody.linearVelocity = Vector3.zero;
