@@ -1,4 +1,5 @@
 using System.Collections;
+using ApexRivals.Garage.Configuration;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.SaveSystem.Runtime;
@@ -15,6 +16,8 @@ namespace ApexRivals.Bootstrap.Runtime
     {
         [SerializeField] private SceneFlowConfiguration sceneFlowConfiguration;
         [SerializeField] private VehicleCatalogDefinition vehicleCatalogDefinition;
+        [SerializeField] private UpgradeDefinition engineUpgradeDefinition;
+        [SerializeField] private UpgradeDefinition handlingUpgradeDefinition;
         [SerializeField] private UnityContentSceneLoader sceneLoader;
         [SerializeField] private string[] knownVehicleIds = { SelectedVehicleState.DefaultVehicleId };
 
@@ -75,6 +78,7 @@ namespace ApexRivals.Bootstrap.Runtime
             var settingsService = new SettingsService(new PlayerPrefsSettingsStorage(), new UnityDisplaySettingsAdapter());
             var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
             var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
+            var garageService = CreateGarageService(vehicleCatalog, progressionState);
             var sceneFlowService = new SceneFlowService(
                 sceneFlowConfiguration.CreateSceneMap(),
                 sceneLoader,
@@ -87,7 +91,7 @@ namespace ApexRivals.Bootstrap.Runtime
                 saveService,
                 vehicleCatalog,
                 vehicleSelectionService,
-                null,
+                garageService,
                 settingsService);
 
             var bootstrapService = new ApplicationBootstrapService(saveService, sceneFlowService, settingsService);
@@ -130,6 +134,26 @@ namespace ApexRivals.Bootstrap.Runtime
             }
 
             return ids.Length > 0 ? ids : knownVehicleIds;
+        }
+
+        private GarageService CreateGarageService(VehicleCatalog vehicleCatalog, PlayerProgressionState progressionState)
+        {
+            if (engineUpgradeDefinition == null || handlingUpgradeDefinition == null)
+            {
+                return null;
+            }
+
+            var defaultVehicle = vehicleCatalog.ResolveSavedOrDefault(SelectedVehicleState.DefaultVehicleId);
+            if (defaultVehicle == null || defaultVehicle.BaseConfiguration == null)
+            {
+                return null;
+            }
+
+            return new GarageService(
+                progressionState,
+                engineUpgradeDefinition.CreateData(),
+                handlingUpgradeDefinition.CreateData(),
+                defaultVehicle.BaseStats);
         }
     }
 }
