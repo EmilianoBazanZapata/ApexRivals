@@ -14,6 +14,21 @@ namespace ApexRivals.RaceSetup.Runtime
         }
 
         public IReadOnlyList<RaceRosterEntry> Entries => _entries;
+        public string PlayerParticipantId
+        {
+            get
+            {
+                for (var index = 0; index < _entries.Count; index++)
+                {
+                    if (_entries[index].IsPlayer)
+                    {
+                        return _entries[index].ParticipantId;
+                    }
+                }
+
+                return string.Empty;
+            }
+        }
 
         public RaceRosterValidationResult Validate(VehicleCatalog vehicleCatalog, int? availableSpawnPointCount = null)
         {

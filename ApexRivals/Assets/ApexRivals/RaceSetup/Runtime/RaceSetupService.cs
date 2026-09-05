@@ -18,6 +18,7 @@ namespace ApexRivals.RaceSetup.Runtime
         private readonly UpgradeDefinitionData _handlingDefinition;
         private readonly IRaceVehicleFactory _vehicleFactory;
         private readonly Dictionary<string, AiDriverConfiguration> _aiConfigurationsById;
+        private readonly List<RaceVehicleComposition> _currentSpawned = new List<RaceVehicleComposition>();
         private bool _setupComplete;
 
         public RaceSetupService(
@@ -98,6 +99,8 @@ namespace ApexRivals.RaceSetup.Runtime
                 }
             }
 
+            _currentSpawned.Clear();
+            _currentSpawned.AddRange(spawned);
             _setupComplete = true;
             var output = new RaceSetupOutput(player, opponents, participants, player.CameraTarget, gates);
             return new RaceSetupResult(RaceSetupStatus.Succeeded, output, string.Empty);
@@ -106,6 +109,13 @@ namespace ApexRivals.RaceSetup.Runtime
         public void Clear()
         {
             _setupComplete = false;
+        }
+
+        public void CleanupCurrentSetup()
+        {
+            Cleanup(_currentSpawned);
+            _currentSpawned.Clear();
+            Clear();
         }
 
         private RaceSetupResult SetupEntry(

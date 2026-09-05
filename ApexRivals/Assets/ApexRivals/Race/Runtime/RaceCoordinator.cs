@@ -64,7 +64,7 @@ namespace ApexRivals.Race.Runtime
         public float ElapsedRaceTime => elapsedRaceTime;
         public IReadOnlyList<RaceResult> Results => _results;
 
-        private int TotalLaps => raceDefinition != null ? raceDefinition.TotalLaps : 3;
+        public int TotalLaps => raceDefinition != null ? raceDefinition.TotalLaps : 3;
         private float CountdownDuration => raceDefinition != null ? raceDefinition.CountdownDuration : 3f;
 
         private void Awake()
@@ -105,11 +105,11 @@ namespace ApexRivals.Race.Runtime
             }
         }
 
-        public void StartCountdown()
+        public bool StartCountdown()
         {
             if (state != RaceState.NotStarted || !ValidateCheckpointSequence())
             {
-                return;
+                return false;
             }
 
             state = RaceState.Countdown;
@@ -118,6 +118,51 @@ namespace ApexRivals.Race.Runtime
             _positionUpdateTimer = 0f;
             SetDrivingAllowed(false);
             CountdownChanged?.Invoke(new CountdownChangedEvent(countdownRemaining));
+            return true;
+        }
+
+        public void ConfigureSession(
+            IReadOnlyList<RaceParticipant> participants,
+            IReadOnlyList<DrivingInputGate> gates,
+            RaceParticipant completionParticipant)
+        {
+            ResetSessionState();
+            raceCompletionParticipant = completionParticipant;
+            drivingGates = CopyGates(gates);
+            SetDrivingAllowed(false);
+
+            if (participants == null)
+            {
+                return;
+            }
+
+            for (var index = 0; index < participants.Count; index++)
+            {
+                RegisterRacer(participants[index]);
+            }
+        }
+
+        public void ResetSessionState()
+        {
+            state = RaceState.NotStarted;
+            countdownRemaining = CountdownDuration;
+            elapsedRaceTime = 0f;
+            leaderRacerId = string.Empty;
+            _positionUpdateTimer = 0f;
+            _raceStartedRaised = false;
+            _raceFinishedRaised = false;
+            _progressByParticipant.Clear();
+            _participants.Clear();
+            _positionSnapshots.Clear();
+            _livePositionsByRacerId.Clear();
+            _results.Clear();
+            CacheCheckpointPositions();
+            SetDrivingAllowed(false);
+        }
+
+        public void SetSessionDrivingAllowed(bool isAllowed)
+        {
+            SetDrivingAllowed(isAllowed);
         }
 
         public void RegisterRacer(RaceParticipant participant)
@@ -308,6 +353,22 @@ namespace ApexRivals.Race.Runtime
                     drivingGates[index].SetDrivingAllowed(isAllowed);
                 }
             }
+        }
+
+        private static DrivingInputGate[] CopyGates(IReadOnlyList<DrivingInputGate> gates)
+        {
+            if (gates == null)
+            {
+                return Array.Empty<DrivingInputGate>();
+            }
+
+            var copiedGates = new DrivingInputGate[gates.Count];
+            for (var index = 0; index < gates.Count; index++)
+            {
+                copiedGates[index] = gates[index];
+            }
+
+            return copiedGates;
         }
     }
 }
