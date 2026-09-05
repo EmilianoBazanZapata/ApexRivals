@@ -40,6 +40,22 @@ namespace ApexRivals.Progression.Runtime
             return new CurrencyTransactionResult(CurrencyTransactionStatus.Succeeded, Currency);
         }
 
+        public void SetCurrency(int currency)
+        {
+            if (currency < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(currency), "Currency cannot be negative.");
+            }
+
+            if (Currency == currency)
+            {
+                return;
+            }
+
+            Currency = currency;
+            RaiseChanged();
+        }
+
         public bool CanAfford(int amount)
         {
             return amount >= 0 && Currency >= amount;

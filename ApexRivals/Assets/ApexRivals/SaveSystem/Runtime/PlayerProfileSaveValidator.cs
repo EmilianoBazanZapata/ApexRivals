@@ -1,0 +1,73 @@
+using System;
+using System.Collections.Generic;
+using ApexRivals.Garage.Runtime;
+
+namespace ApexRivals.SaveSystem.Runtime
+{
+    public sealed class PlayerProfileSaveValidator
+    {
+        private readonly HashSet<string> _knownVehicleIds;
+        private readonly string _fallbackVehicleId;
+
+        public PlayerProfileSaveValidator(string fallbackVehicleId = SelectedVehicleState.DefaultVehicleId, IEnumerable<string> knownVehicleIds = null)
+        {
+            _fallbackVehicleId = string.IsNullOrWhiteSpace(fallbackVehicleId)
+                ? SelectedVehicleState.DefaultVehicleId
+                : fallbackVehicleId.Trim();
+            _knownVehicleIds = knownVehicleIds != null
+                ? new HashSet<string>(knownVehicleIds, StringComparer.Ordinal)
+                : new HashSet<string>(StringComparer.Ordinal);
+
+            if (_knownVehicleIds.Count > 0)
+            {
+                _knownVehicleIds.Add(_fallbackVehicleId);
+            }
+        }
+
+        public SaveDataValidationResult Validate(PlayerProfileSaveData saveData)
+        {
+            if (saveData == null)
+            {
+                return new SaveDataValidationResult(false, null, "Save data is missing.");
+            }
+
+            if (saveData.schemaVersion != PlayerProfileSaveData.CurrentSchemaVersion)
+            {
+                return new SaveDataValidationResult(false, null, "Save schema version is unsupported.");
+            }
+
+            if (saveData.currency < 0)
+            {
+                return new SaveDataValidationResult(false, null, "Currency cannot be negative.");
+            }
+
+            if (saveData.engineUpgradeLevel < 0 || saveData.handlingUpgradeLevel < 0)
+            {
+                return new SaveDataValidationResult(false, null, "Upgrade levels cannot be negative.");
+            }
+
+            var selectedVehicleId = ResolveVehicleId(saveData.selectedVehicleId);
+            var validated = new PlayerProfileSaveData
+            {
+                schemaVersion = PlayerProfileSaveData.CurrentSchemaVersion,
+                currency = saveData.currency,
+                engineUpgradeLevel = saveData.engineUpgradeLevel,
+                handlingUpgradeLevel = saveData.handlingUpgradeLevel,
+                selectedVehicleId = selectedVehicleId
+            };
+
+            return new SaveDataValidationResult(true, validated, string.Empty);
+        }
+
+        private string ResolveVehicleId(string vehicleId)
+        {
+            var normalizedVehicleId = string.IsNullOrWhiteSpace(vehicleId) ? _fallbackVehicleId : vehicleId.Trim();
+            if (_knownVehicleIds.Count == 0 || _knownVehicleIds.Contains(normalizedVehicleId))
+            {
+                return normalizedVehicleId;
+            }
+
+            return _fallbackVehicleId;
+        }
+    }
+}

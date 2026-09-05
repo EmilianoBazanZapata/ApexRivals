@@ -34,3 +34,9 @@ crashlytics-build.properties
 
 # Optional package caches
 Packages/packages-lock.json
+
+# Local analysis tooling
+graphify-out/
+.graphify_version
+.copilot/
+artifacts/
