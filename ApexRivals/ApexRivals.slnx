@@ -1,3 +1,4 @@
 ﻿<Solution>
-  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="ApexRivals.Runtime.csproj" />
+  <Project Path="ApexRivals.Tests.EditMode.csproj" />
 </Solution>

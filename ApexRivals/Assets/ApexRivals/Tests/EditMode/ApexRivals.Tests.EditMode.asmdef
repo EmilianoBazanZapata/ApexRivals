@@ -1,0 +1,23 @@
+{
+    "name": "ApexRivals.Tests.EditMode",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "noEngineReferences": false
+}
