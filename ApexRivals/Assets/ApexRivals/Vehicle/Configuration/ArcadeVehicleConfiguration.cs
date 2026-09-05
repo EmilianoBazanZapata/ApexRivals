@@ -1,4 +1,5 @@
 using UnityEngine;
+using ApexRivals.Vehicle.Runtime;
 
 namespace ApexRivals.Vehicle.Configuration
 {
@@ -53,5 +54,25 @@ namespace ApexRivals.Vehicle.Configuration
 
         [Min(0f)]
         public float reverseEntrySpeed = 0.5f;
+
+        public ArcadeVehicleStats CreateStats()
+        {
+            return new ArcadeVehicleStats(
+                forwardAcceleration,
+                reverseAcceleration,
+                brakeForce,
+                maximumForwardSpeed,
+                maximumReverseSpeed,
+                steeringStrength,
+                minimumSteeringResponse,
+                driftSteeringMultiplier,
+                normalLateralGrip,
+                driftLateralGrip,
+                downforce,
+                groundCheckDistance,
+                groundLayerMask.value,
+                resetHeightOffset,
+                reverseEntrySpeed);
+        }
     }
 }

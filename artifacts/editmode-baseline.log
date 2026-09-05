@@ -1,0 +1,30 @@
+[CoreBusinessMetrics] System persistent data directory not found: 
+[CoreBusinessMetrics] Unable to configure cache. Connection string was invalid or not specified.
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/respin/6000.3.5f1-a1ec4b2f2d19' branch; Version is '6000.3.5f2 (3fa8bc678cb0) revision 4171964'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Connection to channel LicenseClient-Emiliano refused
+OS: 'Windows 11  (10.0.26200) Enterprise' Language: 'en' Physical Memory: 64813 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-09-05T18:32:08Z
+[Licensing::Module] Successfully launched the LicensingClient (PId: 14844)
+Assertion failed on expression: 'SUCCEEDED(hr)'
+Assertion failed on expression: 'SUCCEEDED(hr)'
+Assertion failed on expression: 'ERROR_SUCCESS == status'
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.3.5f2\Editor\Unity.exe
+-batchmode
+-projectPath
+F:/ApexRivals/ApexRivals/ApexRivals
+-runTests
+-testPlatform
+EditMode
+-testResults
+F:/ApexRivals/ApexRivals/artifacts/editmode-baseline-results.xml
+-logFile
+F:/ApexRivals/ApexRivals/artifacts/editmode-baseline.log
+Successfully changed project path to: F:/ApexRivals/ApexRivals/ApexRivals
+F:/ApexRivals/ApexRivals/ApexRivals
+Exiting without the bug reporter. Application will terminate with return code 1

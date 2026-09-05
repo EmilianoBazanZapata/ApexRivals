@@ -21,9 +21,12 @@ namespace ApexRivals.Vehicle.Runtime
 
         private Rigidbody _rigidbody;
         private IDrivingInputProvider _inputProvider;
+        private ArcadeVehicleStats _effectiveStats;
+        private bool _hasEffectiveStats;
 
         public float CurrentSpeed { get; private set; }
         public bool IsGrounded { get; private set; }
+        public ArcadeVehicleStats EffectiveStats => GetEffectiveStats();
 
         private void Awake()
         {
@@ -44,6 +47,26 @@ namespace ApexRivals.Vehicle.Runtime
             {
                 groundCheckOrigin = transform;
             }
+
+            RefreshBaseStats();
+        }
+
+        public void RefreshBaseStats()
+        {
+            if (configuration == null)
+            {
+                _hasEffectiveStats = false;
+                return;
+            }
+
+            _effectiveStats = configuration.CreateStats();
+            _hasEffectiveStats = true;
+        }
+
+        public void ApplyEffectiveStats(ArcadeVehicleStats stats)
+        {
+            _effectiveStats = stats;
+            _hasEffectiveStats = true;
         }
 
         private void FixedUpdate()
@@ -53,6 +76,7 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
+            var stats = GetEffectiveStats();
             var input = _inputProvider != null ? _inputProvider.CurrentInput : DrivingInput.Neutral;
             if (input.ResetRequested)
             {
@@ -66,8 +90,8 @@ namespace ApexRivals.Vehicle.Runtime
             IsGrounded = Physics.Raycast(
                 groundCheckOrigin.position,
                 -transform.up,
-                configuration.groundCheckDistance,
-                configuration.groundLayerMask,
+                stats.GroundCheckDistance,
+                stats.GroundLayerMask,
                 QueryTriggerInteraction.Ignore);
 
             if (!IsGrounded)
@@ -75,44 +99,44 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
-            ApplyDriveForces(input);
-            ApplySteering(input);
-            ApplyLateralGrip(input);
-            ApplyDownforce();
-            ClampForwardSpeed();
+            ApplyDriveForces(input, stats);
+            ApplySteering(input, stats);
+            ApplyLateralGrip(input, stats);
+            ApplyDownforce(stats);
+            ClampForwardSpeed(stats);
         }
 
-        private void ApplyDriveForces(DrivingInput input)
+        private void ApplyDriveForces(DrivingInput input, ArcadeVehicleStats stats)
         {
             var driveMode = VehicleDriveRules.ResolveDriveMode(
                 CurrentSpeed,
                 input.Throttle,
                 input.Brake,
-                configuration.reverseEntrySpeed);
+                stats.ReverseEntrySpeed);
 
             switch (driveMode)
             {
                 case VehicleDriveMode.Forward:
-                    _rigidbody.AddForce(transform.forward * (input.Throttle * configuration.forwardAcceleration), ForceMode.Acceleration);
+                    _rigidbody.AddForce(transform.forward * (input.Throttle * stats.ForwardAcceleration), ForceMode.Acceleration);
                     break;
                 case VehicleDriveMode.Brake:
                     var brakeDirection = CurrentSpeed >= 0f ? -1f : 1f;
                     var brakeInput = Mathf.Max(input.Brake, input.Throttle);
-                    _rigidbody.AddForce(transform.forward * (brakeDirection * brakeInput * configuration.brakeForce), ForceMode.Acceleration);
+                    _rigidbody.AddForce(transform.forward * (brakeDirection * brakeInput * stats.BrakeForce), ForceMode.Acceleration);
                     break;
                 case VehicleDriveMode.Reverse:
-                    _rigidbody.AddForce(-transform.forward * (input.Brake * configuration.reverseAcceleration), ForceMode.Acceleration);
+                    _rigidbody.AddForce(-transform.forward * (input.Brake * stats.ReverseAcceleration), ForceMode.Acceleration);
                     break;
             }
         }
 
-        private void ApplySteering(DrivingInput input)
+        private void ApplySteering(DrivingInput input, ArcadeVehicleStats stats)
         {
             var speedMagnitude = Mathf.Abs(CurrentSpeed);
-            var maximumSpeed = CurrentSpeed >= 0f ? configuration.maximumForwardSpeed : configuration.maximumReverseSpeed;
-            var steeringResponse = VehicleDriveRules.CalculateSteeringResponse(speedMagnitude, maximumSpeed, configuration.minimumSteeringResponse);
-            var driftMultiplier = input.Drift ? configuration.driftSteeringMultiplier : 1f;
-            var steering = input.Steering * configuration.steeringStrength * steeringResponse * driftMultiplier;
+            var maximumSpeed = CurrentSpeed >= 0f ? stats.MaximumForwardSpeed : stats.MaximumReverseSpeed;
+            var steeringResponse = VehicleDriveRules.CalculateSteeringResponse(speedMagnitude, maximumSpeed, stats.MinimumSteeringResponse);
+            var driftMultiplier = input.Drift ? stats.DriftSteeringMultiplier : 1f;
+            var steering = input.Steering * stats.SteeringStrength * steeringResponse * driftMultiplier;
 
             if (speedMagnitude < 0.05f || Mathf.Abs(steering) < 0.001f)
             {
@@ -123,25 +147,25 @@ namespace ApexRivals.Vehicle.Runtime
             _rigidbody.AddTorque(transform.up * (steering * reverseSign), ForceMode.Acceleration);
         }
 
-        private void ApplyLateralGrip(DrivingInput input)
+        private void ApplyLateralGrip(DrivingInput input, ArcadeVehicleStats stats)
         {
             var velocity = _rigidbody.linearVelocity;
             var lateralVelocity = Vector3.Project(velocity, transform.right);
-            var grip = VehicleDriveRules.SelectLateralGrip(configuration.normalLateralGrip, configuration.driftLateralGrip, input.Drift);
+            var grip = VehicleDriveRules.SelectLateralGrip(stats.NormalLateralGrip, stats.DriftLateralGrip, input.Drift);
             var gripCorrection = -lateralVelocity * Mathf.Clamp01(grip);
             _rigidbody.AddForce(gripCorrection, ForceMode.VelocityChange);
         }
 
-        private void ApplyDownforce()
+        private void ApplyDownforce(ArcadeVehicleStats stats)
         {
-            _rigidbody.AddForce(-transform.up * configuration.downforce, ForceMode.Acceleration);
+            _rigidbody.AddForce(-transform.up * stats.Downforce, ForceMode.Acceleration);
         }
 
-        private void ClampForwardSpeed()
+        private void ClampForwardSpeed(ArcadeVehicleStats stats)
         {
             var velocity = _rigidbody.linearVelocity;
             var forwardSpeed = Vector3.Dot(velocity, transform.forward);
-            var maximumSpeed = forwardSpeed >= 0f ? configuration.maximumForwardSpeed : configuration.maximumReverseSpeed;
+            var maximumSpeed = forwardSpeed >= 0f ? stats.MaximumForwardSpeed : stats.MaximumReverseSpeed;
 
             if (maximumSpeed <= 0f || Mathf.Abs(forwardSpeed) <= maximumSpeed)
             {
@@ -153,6 +177,16 @@ namespace ApexRivals.Vehicle.Runtime
             var verticalVelocity = Vector3.Project(velocity, transform.up);
             _rigidbody.linearVelocity = forwardVelocity + lateralVelocity + verticalVelocity;
             CurrentSpeed = Mathf.Sign(forwardSpeed) * maximumSpeed;
+        }
+
+        private ArcadeVehicleStats GetEffectiveStats()
+        {
+            if (!_hasEffectiveStats)
+            {
+                RefreshBaseStats();
+            }
+
+            return _effectiveStats;
         }
     }
 }
