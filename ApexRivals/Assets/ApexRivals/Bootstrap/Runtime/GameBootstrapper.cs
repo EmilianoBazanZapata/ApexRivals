@@ -4,6 +4,8 @@ using ApexRivals.Progression.Runtime;
 using ApexRivals.SaveSystem.Runtime;
 using ApexRivals.SceneFlow.Configuration;
 using ApexRivals.SceneFlow.Runtime;
+using ApexRivals.VehicleSelection.Configuration;
+using ApexRivals.VehicleSelection.Runtime;
 using UnityEngine;
 
 namespace ApexRivals.Bootstrap.Runtime
@@ -11,6 +13,7 @@ namespace ApexRivals.Bootstrap.Runtime
     public sealed class GameBootstrapper : MonoBehaviour
     {
         [SerializeField] private SceneFlowConfiguration sceneFlowConfiguration;
+        [SerializeField] private VehicleCatalogDefinition vehicleCatalogDefinition;
         [SerializeField] private UnityContentSceneLoader sceneLoader;
         [SerializeField] private string[] knownVehicleIds = { SelectedVehicleState.DefaultVehicleId };
 
@@ -40,6 +43,20 @@ namespace ApexRivals.Bootstrap.Runtime
                 return System.Threading.Tasks.Task.FromResult(new BootstrapStartupResult(BootstrapStartupStatus.Failed, "Scene flow configuration is not assigned."));
             }
 
+            if (vehicleCatalogDefinition == null)
+            {
+                StartupStatus = BootstrapStartupStatus.Failed;
+                return System.Threading.Tasks.Task.FromResult(new BootstrapStartupResult(BootstrapStartupStatus.Failed, "Vehicle catalog configuration is not assigned."));
+            }
+
+            var vehicleCatalog = vehicleCatalogDefinition.CreateCatalog();
+            var catalogValidation = vehicleCatalog.Validate();
+            if (!catalogValidation.Succeeded)
+            {
+                StartupStatus = BootstrapStartupStatus.Failed;
+                return System.Threading.Tasks.Task.FromResult(new BootstrapStartupResult(BootstrapStartupStatus.Failed, catalogValidation.Message));
+            }
+
             if (sceneLoader == null)
             {
                 sceneLoader = GetComponent<UnityContentSceneLoader>();
@@ -53,22 +70,25 @@ namespace ApexRivals.Bootstrap.Runtime
             var progressionState = new PlayerProgressionState();
             var selectedVehicleState = new SelectedVehicleState();
             var storage = new PlayerProfileFileStorage(Application.persistentDataPath);
-            var saveService = new PlayerProfileSaveService(progressionState, selectedVehicleState, storage, knownVehicleIds);
+            var saveService = new PlayerProfileSaveService(progressionState, selectedVehicleState, storage, CreateKnownVehicleIds(vehicleCatalog));
+            var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
+            var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
             var sceneFlowService = new SceneFlowService(
                 sceneFlowConfiguration.CreateSceneMap(),
                 sceneLoader,
-                new PlayerProfileSaveCheckpoint(saveService));
+                saveCheckpoint);
 
-            Context = new ApplicationContext(sceneFlowService, progressionState, selectedVehicleState, saveService);
+            Context = new ApplicationContext(sceneFlowService, progressionState, selectedVehicleState, saveService, vehicleCatalog, vehicleSelectionService);
 
             var bootstrapService = new ApplicationBootstrapService(saveService, sceneFlowService);
             var startTask = bootstrapService.StartAsync();
-            return CompleteStartupAsync(startTask, bootstrapService);
+            return CompleteStartupAsync(startTask, bootstrapService, vehicleSelectionService);
         }
 
         private async System.Threading.Tasks.Task<BootstrapStartupResult> CompleteStartupAsync(
             System.Threading.Tasks.Task<BootstrapStartupResult> startTask,
-            ApplicationBootstrapService bootstrapService)
+            ApplicationBootstrapService bootstrapService,
+            VehicleSelectionService vehicleSelectionService)
         {
             var result = await startTask;
             StartupStatus = bootstrapService.StartupStatus;
@@ -76,8 +96,30 @@ namespace ApexRivals.Bootstrap.Runtime
             {
                 Debug.LogError(result.Message);
             }
+            else
+            {
+                var selectionResult = vehicleSelectionService.EnsurePersistedSelectionIsValid();
+                if (!selectionResult.Succeeded)
+                {
+                    StartupStatus = BootstrapStartupStatus.Failed;
+                    Context.Navigation.MarkFailed();
+                    return new BootstrapStartupResult(BootstrapStartupStatus.Failed, selectionResult.Message);
+                }
+            }
 
             return result;
+        }
+
+        private string[] CreateKnownVehicleIds(VehicleCatalog vehicleCatalog)
+        {
+            var vehicles = vehicleCatalog.Vehicles;
+            var ids = new string[vehicles.Count];
+            for (var index = 0; index < vehicles.Count; index++)
+            {
+                ids[index] = vehicles[index].StableId;
+            }
+
+            return ids.Length > 0 ? ids : knownVehicleIds;
         }
     }
 }

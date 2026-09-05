@@ -69,6 +69,20 @@ namespace ApexRivals.Vehicle.Runtime
             _hasEffectiveStats = true;
         }
 
+        public void Configure(
+            ArcadeVehicleConfiguration vehicleConfiguration,
+            IDrivingInputProvider inputProvider,
+            VehicleResetter vehicleResetter,
+            Transform groundOrigin)
+        {
+            configuration = vehicleConfiguration;
+            inputProviderComponent = inputProvider as MonoBehaviour;
+            _inputProvider = inputProvider;
+            resetter = vehicleResetter;
+            groundCheckOrigin = groundOrigin != null ? groundOrigin : transform;
+            RefreshBaseStats();
+        }
+
         private void FixedUpdate()
         {
             if (configuration == null)

@@ -44,6 +44,13 @@ namespace ApexRivals.Input.Runtime
             }
         }
 
+        public void Configure(IDrivingInputProvider inputProvider, bool isDrivingAllowed)
+        {
+            sourceInputProvider = inputProvider as MonoBehaviour;
+            _source = inputProvider;
+            SetDrivingAllowed(isDrivingAllowed);
+        }
+
         public void ConsumeResetRequest()
         {
             _source?.ConsumeResetRequest();

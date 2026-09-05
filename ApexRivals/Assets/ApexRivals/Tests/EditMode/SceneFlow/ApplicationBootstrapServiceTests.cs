@@ -133,9 +133,10 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
                 return new SaveStorageWriteResult(true, string.Empty);
             }
 
-            public void DeleteSave()
+            public SaveStorageWriteResult DeleteSave()
             {
                 _savePayload = null;
+                return new SaveStorageWriteResult(true, string.Empty);
             }
         }
     }

@@ -46,6 +46,28 @@ namespace ApexRivals.AI.Runtime
 
         public DrivingInput CurrentInput => _currentInput;
 
+        public void Configure(
+            AiDriverConfiguration driverConfiguration,
+            RacingLine route,
+            ArcadeVehicleController controller,
+            VehicleResetter resetBoundary,
+            RaceCoordinator coordinator,
+            RaceParticipant participant,
+            Transform controlledTransform,
+            Transform recoveryTransform)
+        {
+            configuration = driverConfiguration;
+            racingLine = route;
+            vehicleController = controller;
+            vehicleResetter = resetBoundary;
+            raceCoordinator = coordinator;
+            raceParticipant = participant;
+            vehicleTransform = controlledTransform != null ? controlledTransform : transform;
+            recoveryPose = recoveryTransform;
+            _racingLineValid = racingLine != null && racingLine.IsValid;
+            ResetDecisionState();
+        }
+
         private void Awake()
         {
             if (vehicleTransform == null)
