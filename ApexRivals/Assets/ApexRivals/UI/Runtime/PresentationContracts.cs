@@ -35,6 +35,11 @@ namespace ApexRivals.UI.Runtime
         void Render(PauseViewModel viewModel);
     }
 
+    public interface ISettingsView
+    {
+        void Render(SettingsViewModel viewModel);
+    }
+
     public interface IApplicationExit
     {
         void Quit();

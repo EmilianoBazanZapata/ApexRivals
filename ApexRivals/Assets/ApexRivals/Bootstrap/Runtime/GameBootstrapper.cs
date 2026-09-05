@@ -4,6 +4,7 @@ using ApexRivals.Progression.Runtime;
 using ApexRivals.SaveSystem.Runtime;
 using ApexRivals.SceneFlow.Configuration;
 using ApexRivals.SceneFlow.Runtime;
+using ApexRivals.Settings.Runtime;
 using ApexRivals.VehicleSelection.Configuration;
 using ApexRivals.VehicleSelection.Runtime;
 using UnityEngine;
@@ -71,6 +72,7 @@ namespace ApexRivals.Bootstrap.Runtime
             var selectedVehicleState = new SelectedVehicleState();
             var storage = new PlayerProfileFileStorage(Application.persistentDataPath);
             var saveService = new PlayerProfileSaveService(progressionState, selectedVehicleState, storage, CreateKnownVehicleIds(vehicleCatalog));
+            var settingsService = new SettingsService(new PlayerPrefsSettingsStorage(), new UnityDisplaySettingsAdapter());
             var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
             var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
             var sceneFlowService = new SceneFlowService(
@@ -78,9 +80,17 @@ namespace ApexRivals.Bootstrap.Runtime
                 sceneLoader,
                 saveCheckpoint);
 
-            Context = new ApplicationContext(sceneFlowService, progressionState, selectedVehicleState, saveService, vehicleCatalog, vehicleSelectionService);
+            Context = new ApplicationContext(
+                sceneFlowService,
+                progressionState,
+                selectedVehicleState,
+                saveService,
+                vehicleCatalog,
+                vehicleSelectionService,
+                null,
+                settingsService);
 
-            var bootstrapService = new ApplicationBootstrapService(saveService, sceneFlowService);
+            var bootstrapService = new ApplicationBootstrapService(saveService, sceneFlowService, settingsService);
             var startTask = bootstrapService.StartAsync();
             return CompleteStartupAsync(startTask, bootstrapService, vehicleSelectionService);
         }

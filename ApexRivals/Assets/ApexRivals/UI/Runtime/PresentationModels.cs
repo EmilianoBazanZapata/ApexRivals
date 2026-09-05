@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
+using ApexRivals.Settings.Runtime;
 using ApexRivals.Vehicle.Runtime;
+using UnityEngine;
 
 namespace ApexRivals.UI.Runtime
 {
@@ -24,7 +26,8 @@ namespace ApexRivals.UI.Runtime
         InvalidVehicleSelection,
         UpgradePurchaseFailed,
         RaceSetupFailed,
-        RetryFailed
+        RetryFailed,
+        SettingsApplyFailed
     }
 
     public enum PresentationStatus
@@ -47,6 +50,59 @@ namespace ApexRivals.UI.Runtime
         Hidden,
         CountingDown,
         Go
+    }
+
+    public readonly struct SettingsResolutionViewModel
+    {
+        public SettingsResolutionViewModel(SettingsResolution resolution, bool isSelected)
+        {
+            Resolution = resolution;
+            IsSelected = isSelected;
+        }
+
+        public SettingsResolution Resolution { get; }
+        public int Width => Resolution.Width;
+        public int Height => Resolution.Height;
+        public int RefreshRate => Resolution.RefreshRate;
+        public bool IsSelected { get; }
+    }
+
+    public readonly struct SettingsViewModel
+    {
+        public SettingsViewModel(
+            IReadOnlyList<SettingsResolutionViewModel> availableResolutions,
+            SettingsResolution selectedResolution,
+            FullScreenMode fullScreenMode,
+            float masterVolume,
+            float musicVolume,
+            float sfxVolume,
+            bool hasUnsavedChanges,
+            bool canApply,
+            PresentationFailure failure,
+            string messageKey)
+        {
+            AvailableResolutions = availableResolutions;
+            SelectedResolution = selectedResolution;
+            FullScreenMode = fullScreenMode;
+            MasterVolume = masterVolume;
+            MusicVolume = musicVolume;
+            SfxVolume = sfxVolume;
+            HasUnsavedChanges = hasUnsavedChanges;
+            CanApply = canApply;
+            Failure = failure;
+            MessageKey = messageKey;
+        }
+
+        public IReadOnlyList<SettingsResolutionViewModel> AvailableResolutions { get; }
+        public SettingsResolution SelectedResolution { get; }
+        public FullScreenMode FullScreenMode { get; }
+        public float MasterVolume { get; }
+        public float MusicVolume { get; }
+        public float SfxVolume { get; }
+        public bool HasUnsavedChanges { get; }
+        public bool CanApply { get; }
+        public PresentationFailure Failure { get; }
+        public string MessageKey { get; }
     }
 
     public readonly struct MainMenuViewModel
