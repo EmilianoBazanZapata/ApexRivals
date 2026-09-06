@@ -11,6 +11,7 @@ namespace ApexRivals.UI.Runtime
     {
         Main,
         VehicleSelection,
+        Settings,
         Garage,
         Racing,
         Paused,

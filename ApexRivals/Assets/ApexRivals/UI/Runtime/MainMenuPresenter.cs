@@ -71,7 +71,8 @@ namespace ApexRivals.UI.Runtime
             }
 
             _failure = PresentationFailure.None;
-            _messageKey = "ui.settings.deferred";
+            _messageKey = string.Empty;
+            _screenNavigator.Show(PresentationScreenState.Settings);
             Present();
         }
 

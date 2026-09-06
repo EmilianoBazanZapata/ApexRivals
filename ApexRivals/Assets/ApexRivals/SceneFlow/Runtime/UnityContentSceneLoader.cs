@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -9,6 +10,9 @@ namespace ApexRivals.SceneFlow.Runtime
     public sealed class UnityContentSceneLoader : MonoBehaviour, IContentSceneLoader
     {
         private Scene _currentContentScene;
+
+        public event Action<Scene> ContentSceneLoaded;
+        public event Action<Scene> ContentSceneUnloading;
 
         public float Progress { get; private set; }
         public bool IsLoading { get; private set; }
@@ -86,6 +90,7 @@ namespace ApexRivals.SceneFlow.Runtime
             var unloadedSceneName = string.Empty;
             if (previousContentScene.IsValid() && previousContentScene.isLoaded && previousContentScene.name != BootstrapSceneName)
             {
+                ContentSceneUnloading?.Invoke(previousContentScene);
                 var unloadOperation = SceneManager.UnloadSceneAsync(previousContentScene);
                 if (unloadOperation != null)
                 {
@@ -100,6 +105,7 @@ namespace ApexRivals.SceneFlow.Runtime
             }
 
             _currentContentScene = loadedScene;
+            ContentSceneLoaded?.Invoke(loadedScene);
             Progress = 1f;
             IsLoading = false;
             completion.SetResult(ContentSceneLoadResult.Success(sceneId, sceneName, unloadedSceneName));

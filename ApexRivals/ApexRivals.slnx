@@ -2,4 +2,5 @@
   <Project Path="ApexRivals.Runtime.csproj" />
   <Project Path="ApexRivals.Tests.EditMode.csproj" />
   <Project Path="ApexRivals.Editor.csproj" />
+  <Project Path="ApexRivals.Tests.PlayMode.csproj" />
 </Solution>

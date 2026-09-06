@@ -9,6 +9,7 @@ using ApexRivals.Settings.Runtime;
 using ApexRivals.VehicleSelection.Configuration;
 using ApexRivals.VehicleSelection.Runtime;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace ApexRivals.Bootstrap.Runtime
 {
@@ -20,6 +21,8 @@ namespace ApexRivals.Bootstrap.Runtime
         [SerializeField] private UpgradeDefinition handlingUpgradeDefinition;
         [SerializeField] private UnityContentSceneLoader sceneLoader;
         [SerializeField] private string[] knownVehicleIds = { SelectedVehicleState.DefaultVehicleId };
+
+        private IContentSceneInstaller[] _activeSceneInstallers = System.Array.Empty<IContentSceneInstaller>();
 
         public ApplicationContext Context { get; private set; }
         public BootstrapStartupStatus StartupStatus { get; private set; } = BootstrapStartupStatus.NotStarted;
@@ -94,9 +97,23 @@ namespace ApexRivals.Bootstrap.Runtime
                 garageService,
                 settingsService);
 
+            sceneLoader.ContentSceneUnloading += OnContentSceneUnloading;
+            sceneLoader.ContentSceneLoaded += OnContentSceneLoaded;
+
             var bootstrapService = new ApplicationBootstrapService(saveService, sceneFlowService, settingsService);
             var startTask = bootstrapService.StartAsync();
             return CompleteStartupAsync(startTask, bootstrapService, vehicleSelectionService);
+        }
+
+        private void OnDestroy()
+        {
+            if (sceneLoader != null)
+            {
+                sceneLoader.ContentSceneUnloading -= OnContentSceneUnloading;
+                sceneLoader.ContentSceneLoaded -= OnContentSceneLoaded;
+            }
+
+            UninstallActiveContentScene();
         }
 
         private async System.Threading.Tasks.Task<BootstrapStartupResult> CompleteStartupAsync(
@@ -154,6 +171,62 @@ namespace ApexRivals.Bootstrap.Runtime
                 engineUpgradeDefinition.CreateData(),
                 handlingUpgradeDefinition.CreateData(),
                 defaultVehicle.BaseStats);
+        }
+
+        private void OnContentSceneUnloading(Scene scene)
+        {
+            UninstallActiveContentScene();
+        }
+
+        private void OnContentSceneLoaded(Scene scene)
+        {
+            if (Context == null || !scene.IsValid() || !scene.isLoaded)
+            {
+                return;
+            }
+
+            var roots = scene.GetRootGameObjects();
+            var installers = new System.Collections.Generic.List<IContentSceneInstaller>();
+            var behaviours = new System.Collections.Generic.List<MonoBehaviour>();
+            for (var rootIndex = 0; rootIndex < roots.Length; rootIndex++)
+            {
+                behaviours.Clear();
+                roots[rootIndex].GetComponentsInChildren(true, behaviours);
+                for (var behaviourIndex = 0; behaviourIndex < behaviours.Count; behaviourIndex++)
+                {
+                    if (behaviours[behaviourIndex] is IContentSceneInstaller installer)
+                    {
+                        installers.Add(installer);
+                    }
+                }
+            }
+
+            installers.Sort(CompareInstallers);
+            _activeSceneInstallers = installers.ToArray();
+            for (var index = 0; index < _activeSceneInstallers.Length; index++)
+            {
+                _activeSceneInstallers[index].Install(Context);
+            }
+        }
+
+        private void UninstallActiveContentScene()
+        {
+            for (var index = _activeSceneInstallers.Length - 1; index >= 0; index--)
+            {
+                _activeSceneInstallers[index]?.Uninstall();
+            }
+
+            _activeSceneInstallers = System.Array.Empty<IContentSceneInstaller>();
+        }
+
+        private static int CompareInstallers(IContentSceneInstaller left, IContentSceneInstaller right)
+        {
+            return GetInstallerPriority(left).CompareTo(GetInstallerPriority(right));
+        }
+
+        private static int GetInstallerPriority(IContentSceneInstaller installer)
+        {
+            return installer is RaceSessionSceneInstaller ? 0 : 10;
         }
     }
 }
