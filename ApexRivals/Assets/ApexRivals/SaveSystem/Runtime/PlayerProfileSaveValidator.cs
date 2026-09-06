@@ -7,11 +7,10 @@ namespace ApexRivals.SaveSystem.Runtime
     public sealed class PlayerProfileSaveValidator
     {
         private readonly HashSet<string> _knownVehicleIds;
-        private readonly string _fallbackVehicleId;
 
         public PlayerProfileSaveValidator(string fallbackVehicleId = SelectedVehicleState.DefaultVehicleId, IEnumerable<string> knownVehicleIds = null)
         {
-            _fallbackVehicleId = string.IsNullOrWhiteSpace(fallbackVehicleId)
+            var normalizedFallbackVehicleId = string.IsNullOrWhiteSpace(fallbackVehicleId)
                 ? SelectedVehicleState.DefaultVehicleId
                 : fallbackVehicleId.Trim();
             _knownVehicleIds = knownVehicleIds != null
@@ -20,7 +19,7 @@ namespace ApexRivals.SaveSystem.Runtime
 
             if (_knownVehicleIds.Count > 0)
             {
-                _knownVehicleIds.Add(_fallbackVehicleId);
+                _knownVehicleIds.Add(normalizedFallbackVehicleId);
             }
         }
 
@@ -51,7 +50,7 @@ namespace ApexRivals.SaveSystem.Runtime
                 return new SaveDataValidationResult(false, null, "Completed race count cannot be negative.");
             }
 
-            var selectedVehicleId = ResolveVehicleId(saveData.selectedVehicleId);
+            var selectedVehicleId = ResolveVehicleId(saveData.selectedVehicleId, saveData.vehicleSelectionCommitted, out var vehicleSelectionCommitted);
             var validated = new PlayerProfileSaveData
             {
                 schemaVersion = PlayerProfileSaveData.CurrentSchemaVersion,
@@ -59,21 +58,29 @@ namespace ApexRivals.SaveSystem.Runtime
                 engineUpgradeLevel = saveData.engineUpgradeLevel,
                 handlingUpgradeLevel = saveData.handlingUpgradeLevel,
                 completedRaceCount = saveData.completedRaceCount,
-                selectedVehicleId = selectedVehicleId
+                selectedVehicleId = selectedVehicleId,
+                vehicleSelectionCommitted = vehicleSelectionCommitted
             };
 
             return new SaveDataValidationResult(true, validated, string.Empty);
         }
 
-        private string ResolveVehicleId(string vehicleId)
+        private string ResolveVehicleId(string vehicleId, bool vehicleSelectionCommitted, out bool resolvedCommitted)
         {
-            var normalizedVehicleId = string.IsNullOrWhiteSpace(vehicleId) ? _fallbackVehicleId : vehicleId.Trim();
-            if (_knownVehicleIds.Count == 0 || _knownVehicleIds.Contains(normalizedVehicleId))
+            resolvedCommitted = false;
+            if (!vehicleSelectionCommitted || string.IsNullOrWhiteSpace(vehicleId))
             {
-                return normalizedVehicleId;
+                return string.Empty;
             }
 
-            return _fallbackVehicleId;
+            var normalizedVehicleId = vehicleId.Trim();
+            if (_knownVehicleIds.Count > 0 && !_knownVehicleIds.Contains(normalizedVehicleId))
+            {
+                return string.Empty;
+            }
+
+            resolvedCommitted = true;
+            return normalizedVehicleId;
         }
     }
 }

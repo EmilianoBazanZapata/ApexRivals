@@ -22,6 +22,8 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
             Assert.That(result.Status, Is.EqualTo(BootstrapStartupStatus.LoadedProfile));
             Assert.That(context.Navigation.State, Is.EqualTo(ApplicationState.MainMenu));
             Assert.That(context.ProgressionState.Currency, Is.EqualTo(50));
+            Assert.That(context.SelectedVehicleState.HasCommittedVehicleSelection, Is.True);
+            Assert.That(context.SelectedVehicleState.SelectedVehicleId, Is.EqualTo(SelectedVehicleState.DefaultVehicleId));
         }
 
         [Test]
@@ -34,7 +36,8 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
             Assert.That(result.Status, Is.EqualTo(BootstrapStartupStatus.CreatedDefaultProfile));
             Assert.That(context.Navigation.State, Is.EqualTo(ApplicationState.MainMenu));
             Assert.That(context.ProgressionState.Currency, Is.EqualTo(0));
-            Assert.That(context.SelectedVehicleState.SelectedVehicleId, Is.EqualTo(SelectedVehicleState.DefaultVehicleId));
+            Assert.That(context.SelectedVehicleState.HasCommittedVehicleSelection, Is.False);
+            Assert.That(context.SelectedVehicleState.SelectedVehicleId, Is.Empty);
         }
 
         [Test]

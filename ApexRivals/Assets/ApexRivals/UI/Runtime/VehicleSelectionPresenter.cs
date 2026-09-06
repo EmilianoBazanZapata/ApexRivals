@@ -12,7 +12,6 @@ namespace ApexRivals.UI.Runtime
         private readonly VehicleSelectionService _selectionService;
         private readonly SceneFlowService _sceneFlow;
         private bool _saving;
-        private bool _confirmed;
         private PresentationFailure _failure;
         private string _messageKey = string.Empty;
 
@@ -23,7 +22,7 @@ namespace ApexRivals.UI.Runtime
             _sceneFlow = sceneFlow ?? throw new ArgumentNullException(nameof(sceneFlow));
         }
 
-        public bool HasCommittedVehicleSelection => _confirmed;
+        public bool HasCommittedVehicleSelection => _selectionService.HasCommittedVehicleSelection;
         public VehicleSelectionViewModel Current { get; private set; }
 
         public void Present()
@@ -80,7 +79,7 @@ namespace ApexRivals.UI.Runtime
 
         public void ConfirmSelection()
         {
-            if (_saving || string.IsNullOrWhiteSpace(_selectionService.CurrentSelectedVehicleId))
+            if (_saving || string.IsNullOrWhiteSpace(_selectionService.CurrentCandidateVehicleId))
             {
                 _failure = PresentationFailure.InvalidVehicleSelection;
                 _messageKey = "ui.vehicleSelection.invalidSelection";
@@ -88,15 +87,28 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            _confirmed = true;
-            _failure = PresentationFailure.None;
-            _messageKey = "ui.vehicleSelection.confirmed";
+            var result = _selectionService.ConfirmSelection();
+            if (result.Succeeded)
+            {
+                _failure = PresentationFailure.None;
+                _messageKey = "ui.vehicleSelection.confirmed";
+            }
+            else
+            {
+                _failure = result.Status == VehicleSelectionStatus.SaveFailed
+                    ? PresentationFailure.SaveFailed
+                    : PresentationFailure.InvalidVehicleSelection;
+                _messageKey = result.Status == VehicleSelectionStatus.SaveFailed
+                    ? "ui.vehicleSelection.saveFailed"
+                    : "ui.vehicleSelection.invalidSelection";
+            }
+
             Present();
         }
 
         public async Task Continue()
         {
-            if (_saving || !_confirmed)
+            if (_saving || !_selectionService.HasCommittedVehicleSelection)
             {
                 return;
             }
@@ -150,7 +162,8 @@ namespace ApexRivals.UI.Runtime
                 selectedIndex > 0 && !_saving,
                 selectedIndex >= 0 && selectedIndex < vehicles.Count - 1 && !_saving,
                 selectedIndex >= 0 && !_saving,
-                _confirmed && !_saving,
+                _selectionService.HasCommittedVehicleSelection && !_saving,
+                state.HasCommittedVehicleSelection,
                 _saving,
                 _failure,
                 _messageKey);

@@ -6,28 +6,55 @@ namespace ApexRivals.Garage.Runtime
     {
         public const string DefaultVehicleId = "starter";
 
-        public SelectedVehicleState(string selectedVehicleId = DefaultVehicleId)
+        public SelectedVehicleState(string selectedVehicleId = "", bool isCommitted = false)
         {
-            SetSelectedVehicleId(selectedVehicleId);
+            Restore(selectedVehicleId, isCommitted);
         }
 
         public event Action<string> Changed;
 
-        public string SelectedVehicleId { get; private set; } = DefaultVehicleId;
+        public string SelectedVehicleId { get; private set; } = string.Empty;
+        public bool HasCommittedVehicleSelection { get; private set; }
 
-        public void SetSelectedVehicleId(string selectedVehicleId)
+        public bool Commit(string selectedVehicleId)
         {
-            var validVehicleId = string.IsNullOrWhiteSpace(selectedVehicleId)
-                ? DefaultVehicleId
-                : selectedVehicleId.Trim();
+            if (string.IsNullOrWhiteSpace(selectedVehicleId))
+            {
+                return false;
+            }
 
-            if (SelectedVehicleId == validVehicleId)
+            var committedVehicleId = selectedVehicleId.Trim();
+            if (HasCommittedVehicleSelection && SelectedVehicleId == committedVehicleId)
+            {
+                return false;
+            }
+
+            SelectedVehicleId = committedVehicleId;
+            HasCommittedVehicleSelection = true;
+            Changed?.Invoke(SelectedVehicleId);
+            return true;
+        }
+
+        public void Restore(string selectedVehicleId, bool isCommitted)
+        {
+            var restoredVehicleId = isCommitted && !string.IsNullOrWhiteSpace(selectedVehicleId)
+                ? selectedVehicleId.Trim()
+                : string.Empty;
+            var restoredCommitted = !string.IsNullOrWhiteSpace(restoredVehicleId);
+
+            if (SelectedVehicleId == restoredVehicleId && HasCommittedVehicleSelection == restoredCommitted)
             {
                 return;
             }
 
-            SelectedVehicleId = validVehicleId;
+            SelectedVehicleId = restoredVehicleId;
+            HasCommittedVehicleSelection = restoredCommitted;
             Changed?.Invoke(SelectedVehicleId);
+        }
+
+        public void ClearCommitment()
+        {
+            Restore(string.Empty, false);
         }
     }
 }

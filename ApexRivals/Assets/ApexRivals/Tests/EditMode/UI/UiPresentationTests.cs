@@ -130,7 +130,7 @@ namespace ApexRivals.Tests.EditMode.UI
         [Test]
         public void Garage_MapsCurrencyUpgradeLevelsAndMaximum()
         {
-            var context = CreateUiContext(startingCurrency: 100);
+            var context = CreateUiContext(startingCurrency: 100, vehicleCommitted: true);
             var presenter = new GaragePresenter(new FakeGarageView(), context.Garage, context.VehicleSelection, context.SceneFlow);
 
             presenter.Present();
@@ -145,7 +145,7 @@ namespace ApexRivals.Tests.EditMode.UI
         [Test]
         public void Garage_SuccessfulPurchaseRefreshesModel()
         {
-            var context = CreateUiContext(startingCurrency: 200);
+            var context = CreateUiContext(startingCurrency: 200, vehicleCommitted: true);
             var presenter = new GaragePresenter(new FakeGarageView(), context.Garage, context.VehicleSelection, context.SceneFlow);
 
             presenter.PurchaseEngine();
@@ -159,7 +159,7 @@ namespace ApexRivals.Tests.EditMode.UI
         [Test]
         public void Garage_InsufficientCurrencyIsPresented()
         {
-            var context = CreateUiContext(startingCurrency: 50);
+            var context = CreateUiContext(startingCurrency: 50, vehicleCommitted: true);
             var presenter = new GaragePresenter(new FakeGarageView(), context.Garage, context.VehicleSelection, context.SceneFlow);
 
             presenter.PurchaseEngine();
@@ -171,7 +171,7 @@ namespace ApexRivals.Tests.EditMode.UI
         [Test]
         public void Garage_DuplicatePurchaseInputIsRejectedWhileActive()
         {
-            var context = CreateUiContext(startingCurrency: 200);
+            var context = CreateUiContext(startingCurrency: 200, vehicleCommitted: true);
             var view = new ReentrantGarageView();
             var presenter = new GaragePresenter(view, context.Garage, context.VehicleSelection, context.SceneFlow);
             view.PurchaseAgain = presenter.PurchaseEngine;
@@ -339,12 +339,12 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(store.RestoreCount, Is.Zero);
         }
 
-        private static UiContext CreateUiContext(FakeSceneLoader loader = null, int startingCurrency = 0)
+        private static UiContext CreateUiContext(FakeSceneLoader loader = null, int startingCurrency = 0, bool vehicleCommitted = false)
         {
             var activeLoader = loader ?? new FakeSceneLoader();
             var sceneFlow = new SceneFlowService(new SceneFlowSceneMap("MainMenu", "Garage", "Race"), activeLoader);
             var progression = new PlayerProgressionState(startingCurrency);
-            var selected = new SelectedVehicleState("starter");
+            var selected = new SelectedVehicleState("starter", vehicleCommitted);
             var vehicleSelection = new VehicleSelectionService(CreateCatalog(), selected, new FakeSelectionSaveCheckpoint(), progression, CreateEngineDefinition(), CreateHandlingDefinition());
             var garage = new GarageService(progression, CreateEngineDefinition(), CreateHandlingDefinition(), CreateBaseStats());
             return new UiContext(sceneFlow, activeLoader, new PresentationScreenNavigator(), progression, vehicleSelection, garage);

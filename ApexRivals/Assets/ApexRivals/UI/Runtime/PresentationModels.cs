@@ -110,6 +110,7 @@ namespace ApexRivals.UI.Runtime
     {
         public MainMenuViewModel(
             MainMenuStartTarget startTarget,
+            bool isVehicleSelectionRequired,
             bool canStartOrContinue,
             bool canOpenGarage,
             bool canOpenSettings,
@@ -119,6 +120,7 @@ namespace ApexRivals.UI.Runtime
             string messageKey)
         {
             StartTarget = startTarget;
+            IsVehicleSelectionRequired = isVehicleSelectionRequired;
             CanStartOrContinue = canStartOrContinue;
             CanOpenGarage = canOpenGarage;
             CanOpenSettings = canOpenSettings;
@@ -129,6 +131,7 @@ namespace ApexRivals.UI.Runtime
         }
 
         public MainMenuStartTarget StartTarget { get; }
+        public bool IsVehicleSelectionRequired { get; }
         public bool CanStartOrContinue { get; }
         public bool CanOpenGarage { get; }
         public bool CanOpenSettings { get; }
@@ -174,6 +177,7 @@ namespace ApexRivals.UI.Runtime
             bool canSelectNext,
             bool canConfirm,
             bool canContinue,
+            bool hasCommittedVehicleSelection,
             bool isSaving,
             PresentationFailure failure,
             string messageKey)
@@ -185,6 +189,7 @@ namespace ApexRivals.UI.Runtime
             CanSelectNext = canSelectNext;
             CanConfirm = canConfirm;
             CanContinue = canContinue;
+            HasCommittedVehicleSelection = hasCommittedVehicleSelection;
             IsSaving = isSaving;
             Failure = failure;
             MessageKey = messageKey;
@@ -197,6 +202,7 @@ namespace ApexRivals.UI.Runtime
         public bool CanSelectNext { get; }
         public bool CanConfirm { get; }
         public bool CanContinue { get; }
+        public bool HasCommittedVehicleSelection { get; }
         public bool IsSaving { get; }
         public PresentationFailure Failure { get; }
         public string MessageKey { get; }

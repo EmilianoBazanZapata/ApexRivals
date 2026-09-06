@@ -79,8 +79,25 @@ namespace ApexRivals.SaveSystem.Runtime
                 engineUpgradeLevel = _progressionState.GetUpgradeLevel(UpgradeType.Engine),
                 handlingUpgradeLevel = _progressionState.GetUpgradeLevel(UpgradeType.Handling),
                 completedRaceCount = _progressionState.CompletedRaceCount,
-                selectedVehicleId = _selectedVehicleState.SelectedVehicleId
+                selectedVehicleId = _selectedVehicleState.SelectedVehicleId,
+                vehicleSelectionCommitted = _selectedVehicleState.HasCommittedVehicleSelection
             };
+        }
+
+        public PlayerProfileSaveResult ResetProfile()
+        {
+            var deleteResult = _storage.DeleteSave();
+            if (!deleteResult.Succeeded)
+            {
+                return new PlayerProfileSaveResult(PlayerProfileSaveStatus.StorageFailed, deleteResult.Error);
+            }
+
+            _progressionState.SetCurrency(0);
+            _progressionState.SetUpgradeLevel(UpgradeType.Engine, 0);
+            _progressionState.SetUpgradeLevel(UpgradeType.Handling, 0);
+            _progressionState.SetCompletedRaceCount(0);
+            _selectedVehicleState.ClearCommitment();
+            return new PlayerProfileSaveResult(PlayerProfileSaveStatus.Deleted, string.Empty);
         }
 
         private PlayerProfileLoadResult TryLoadFromStorage(SaveStorageReadResult readResult)
@@ -111,7 +128,7 @@ namespace ApexRivals.SaveSystem.Runtime
             _progressionState.SetUpgradeLevel(UpgradeType.Engine, saveData.engineUpgradeLevel);
             _progressionState.SetUpgradeLevel(UpgradeType.Handling, saveData.handlingUpgradeLevel);
             _progressionState.SetCompletedRaceCount(saveData.completedRaceCount);
-            _selectedVehicleState.SetSelectedVehicleId(saveData.selectedVehicleId);
+            _selectedVehicleState.Restore(saveData.selectedVehicleId, saveData.vehicleSelectionCommitted);
         }
     }
 }

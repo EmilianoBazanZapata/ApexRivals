@@ -46,6 +46,11 @@ namespace ApexRivals.RaceSession.Runtime
                 return RaceSessionSetupResult.Failure("Race coordinator is missing.");
             }
 
+            if (!_selectedVehicleState.HasCommittedVehicleSelection)
+            {
+                return RaceSessionSetupResult.Failure("A committed player vehicle is required before race setup.");
+            }
+
             var roster = _raceSetupDefinition.CreateRoster(_selectedVehicleState.SelectedVehicleId);
             var setupResult = _raceSetupService.SetupRace(roster, _startingGrid, _raceCoordinator, _racingLine);
             if (!setupResult.Succeeded)

@@ -12,7 +12,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         public void LoadOrCreateDefault_WhenSaveDoesNotExist_CreatesNewProfileDefaults()
         {
             var progression = new PlayerProgressionState(50);
-            var selectedVehicle = new SelectedVehicleState("sport");
+            var selectedVehicle = new SelectedVehicleState("sport", true);
             var storage = new MemoryProfileSaveStorage();
             var service = CreateService(progression, selectedVehicle, storage);
 
@@ -23,7 +23,8 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(0));
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(0));
             Assert.That(progression.CompletedRaceCount, Is.Zero);
-            Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo(SelectedVehicleState.DefaultVehicleId));
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicle.SelectedVehicleId, Is.Empty);
         }
 
         [Test]
@@ -31,7 +32,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         {
             var storage = new MemoryProfileSaveStorage();
             var progression = CreateProgression(275, 1, 2, 4);
-            var selectedVehicle = new SelectedVehicleState("sport");
+            var selectedVehicle = new SelectedVehicleState("sport", true);
             var service = CreateService(progression, selectedVehicle, storage);
             service.Save();
 
@@ -46,6 +47,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             Assert.That(restoredProgression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(1));
             Assert.That(restoredProgression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(2));
             Assert.That(restoredProgression.CompletedRaceCount, Is.EqualTo(4));
+            Assert.That(restoredVehicle.HasCommittedVehicleSelection, Is.True);
             Assert.That(restoredVehicle.SelectedVehicleId, Is.EqualTo("sport"));
         }
 
@@ -61,11 +63,12 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     engineUpgradeLevel = 1,
                     handlingUpgradeLevel = 1,
                     completedRaceCount = 1,
-                    selectedVehicleId = "sport"
+                    selectedVehicleId = "sport",
+                    vehicleSelectionCommitted = true
                 })
             };
             var progression = CreateProgression(25, 0, 0);
-            var selectedVehicle = new SelectedVehicleState("starter");
+            var selectedVehicle = new SelectedVehicleState("starter", true);
             var service = CreateService(progression, selectedVehicle, storage);
 
             var result = service.LoadOrCreateDefault();
@@ -88,11 +91,12 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     engineUpgradeLevel = -1,
                     handlingUpgradeLevel = 0,
                     completedRaceCount = 1,
-                    selectedVehicleId = "sport"
+                    selectedVehicleId = "sport",
+                    vehicleSelectionCommitted = true
                 })
             };
             var progression = CreateProgression(25, 1, 1);
-            var selectedVehicle = new SelectedVehicleState("starter");
+            var selectedVehicle = new SelectedVehicleState("starter", true);
             var service = CreateService(progression, selectedVehicle, storage);
 
             var result = service.LoadOrCreateDefault();
@@ -104,7 +108,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         }
 
         [Test]
-        public void LoadOrCreateDefault_UnknownVehicleId_FallsBackSafely()
+        public void LoadOrCreateDefault_UnknownCommittedVehicleId_RequiresSelection()
         {
             var storage = new MemoryProfileSaveStorage
             {
@@ -115,7 +119,8 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     engineUpgradeLevel = 0,
                     handlingUpgradeLevel = 0,
                     completedRaceCount = 0,
-                    selectedVehicleId = "missing"
+                    selectedVehicleId = "missing",
+                    vehicleSelectionCommitted = true
                 })
             };
             var progression = new PlayerProgressionState();
@@ -125,7 +130,8 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             var result = service.LoadOrCreateDefault();
 
             Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Loaded));
-            Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo(SelectedVehicleState.DefaultVehicleId));
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicle.SelectedVehicleId, Is.Empty);
         }
 
         [Test]
@@ -163,7 +169,8 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     engineUpgradeLevel = 1,
                     handlingUpgradeLevel = 0,
                     completedRaceCount = 3,
-                    selectedVehicleId = "sport"
+                    selectedVehicleId = "sport",
+                    vehicleSelectionCommitted = true
                 })
             };
             var progression = new PlayerProgressionState();
@@ -176,6 +183,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             Assert.That(progression.Currency, Is.EqualTo(90));
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(1));
             Assert.That(progression.CompletedRaceCount, Is.EqualTo(3));
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.True);
             Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("sport"));
             Assert.That(storage.SavePayload, Is.EqualTo("{ invalid json"));
         }
@@ -234,6 +242,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(2));
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(1));
             Assert.That(progression.CompletedRaceCount, Is.Zero);
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.True);
             Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("sport"));
         }
 
@@ -256,6 +265,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(2));
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(1));
             Assert.That(progression.CompletedRaceCount, Is.Zero);
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.True);
             Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("sport"));
         }
 
@@ -271,11 +281,12 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     engineUpgradeLevel = 0,
                     handlingUpgradeLevel = 0,
                     completedRaceCount = -1,
-                    selectedVehicleId = "sport"
+                    selectedVehicleId = "sport",
+                    vehicleSelectionCommitted = true
                 })
             };
             var progression = CreateProgression(25, 1, 1, 3);
-            var selectedVehicle = new SelectedVehicleState("starter");
+            var selectedVehicle = new SelectedVehicleState("starter", true);
             var service = CreateService(progression, selectedVehicle, storage);
 
             var result = service.LoadOrCreateDefault();
@@ -296,7 +307,8 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                 engineUpgradeLevel = 0,
                 handlingUpgradeLevel = 0,
                 completedRaceCount = 1,
-                selectedVehicleId = "starter"
+                selectedVehicleId = "starter",
+                vehicleSelectionCommitted = true
             });
             var storage = new MemoryProfileSaveStorage
             {
@@ -304,7 +316,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                 FailWrites = true
             };
             var progression = CreateProgression(100, 1, 1);
-            var service = CreateService(progression, new SelectedVehicleState("sport"), storage);
+            var service = CreateService(progression, new SelectedVehicleState("sport", true), storage);
 
             var result = service.Save();
 
@@ -324,7 +336,8 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     engineUpgradeLevel = 2,
                     handlingUpgradeLevel = 2,
                     completedRaceCount = 2,
-                    selectedVehicleId = "sport"
+                    selectedVehicleId = "sport",
+                    vehicleSelectionCommitted = true
                 }),
                 BackupPayload = Serialize(new PlayerProfileSaveData
                 {
@@ -333,11 +346,12 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     engineUpgradeLevel = 0,
                     handlingUpgradeLevel = 1,
                     completedRaceCount = 5,
-                    selectedVehicleId = "starter"
+                    selectedVehicleId = "starter",
+                    vehicleSelectionCommitted = true
                 })
             };
             var progression = CreateProgression(5, 0, 0);
-            var selectedVehicle = new SelectedVehicleState("starter");
+            var selectedVehicle = new SelectedVehicleState("starter", true);
             var service = CreateService(progression, selectedVehicle, storage);
 
             var result = service.LoadOrCreateDefault();
@@ -347,7 +361,53 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(0));
             Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(1));
             Assert.That(progression.CompletedRaceCount, Is.EqualTo(5));
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.True);
             Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("starter"));
+        }
+
+        [Test]
+        public void LoadOrCreateDefault_PreviousSchemaWithMissingVehicleId_MigratesAsUncommitted()
+        {
+            var storage = new MemoryProfileSaveStorage
+            {
+                SavePayload = "{ \"schemaVersion\": 2, \"currency\": 210, \"engineUpgradeLevel\": 2, \"handlingUpgradeLevel\": 1, \"completedRaceCount\": 3, \"selectedVehicleId\": \"\" }"
+            };
+            var progression = new PlayerProgressionState();
+            var selectedVehicle = new SelectedVehicleState();
+            var service = CreateService(progression, selectedVehicle, storage);
+
+            var result = service.LoadOrCreateDefault();
+
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Loaded));
+            Assert.That(result.SaveData.schemaVersion, Is.EqualTo(PlayerProfileSaveData.CurrentSchemaVersion));
+            Assert.That(progression.Currency, Is.EqualTo(210));
+            Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(2));
+            Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(1));
+            Assert.That(progression.CompletedRaceCount, Is.EqualTo(3));
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicle.SelectedVehicleId, Is.Empty);
+        }
+
+        [Test]
+        public void ResetProfile_ClearsProgressionAndCommitment()
+        {
+            var storage = new MemoryProfileSaveStorage { SavePayload = "{}" };
+            var progression = CreateProgression(275, 1, 2, 4);
+            var selectedVehicle = new SelectedVehicleState("sport", true);
+            var service = CreateService(progression, selectedVehicle, storage);
+            var resetService = new PlayerProfileResetService(service);
+
+            var result = resetService.ResetPlayerProfile();
+
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileSaveStatus.Deleted));
+            Assert.That(storage.SaveExists(), Is.False);
+            Assert.That(storage.BackupExists(), Is.False);
+            Assert.That(progression.Currency, Is.EqualTo(0));
+            Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(0));
+            Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(0));
+            Assert.That(progression.CompletedRaceCount, Is.EqualTo(0));
+            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicle.SelectedVehicleId, Is.Empty);
         }
 
         private static PlayerProfileSaveService CreateService(

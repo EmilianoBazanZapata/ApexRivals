@@ -115,6 +115,7 @@ namespace ApexRivals.UI.Runtime
             var hasSelection = _selectionProgress.HasCommittedVehicleSelection;
             return new MainMenuViewModel(
                 hasSelection ? MainMenuStartTarget.Race : MainMenuStartTarget.InitialVehicleSelection,
+                !hasSelection,
                 !_transitioning,
                 hasSelection && !_transitioning,
                 !_transitioning,

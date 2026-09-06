@@ -9,18 +9,27 @@ namespace ApexRivals.Garage.Runtime
         private readonly PlayerProgressionState _progressionState;
         private readonly UpgradeDefinitionData _engineDefinition;
         private readonly UpgradeDefinitionData _handlingDefinition;
-        private readonly ArcadeVehicleStats _baseStats;
+        private readonly Func<ArcadeVehicleStats> _baseStatsProvider;
 
         public GarageService(
             PlayerProgressionState progressionState,
             UpgradeDefinitionData engineDefinition,
             UpgradeDefinitionData handlingDefinition,
             ArcadeVehicleStats baseStats)
+            : this(progressionState, engineDefinition, handlingDefinition, () => baseStats)
+        {
+        }
+
+        public GarageService(
+            PlayerProgressionState progressionState,
+            UpgradeDefinitionData engineDefinition,
+            UpgradeDefinitionData handlingDefinition,
+            Func<ArcadeVehicleStats> baseStatsProvider)
         {
             _progressionState = progressionState ?? throw new ArgumentNullException(nameof(progressionState));
             _engineDefinition = engineDefinition ?? throw new ArgumentNullException(nameof(engineDefinition));
             _handlingDefinition = handlingDefinition ?? throw new ArgumentNullException(nameof(handlingDefinition));
-            _baseStats = baseStats;
+            _baseStatsProvider = baseStatsProvider ?? throw new ArgumentNullException(nameof(baseStatsProvider));
         }
 
         public GarageState GetState()
@@ -73,7 +82,7 @@ namespace ApexRivals.Garage.Runtime
 
         public ArcadeVehicleStats CalculateEffectiveStats()
         {
-            return VehicleUpgradeStatCalculator.Calculate(_baseStats, _progressionState, _engineDefinition, _handlingDefinition);
+            return VehicleUpgradeStatCalculator.Calculate(_baseStatsProvider(), _progressionState, _engineDefinition, _handlingDefinition);
         }
 
         private GarageUpgradeState CreateUpgradeState(UpgradeDefinitionData definition)

@@ -18,7 +18,8 @@ namespace ApexRivals.Bootstrap.Runtime
             VehicleSelectionService vehicleSelectionService = null,
             GarageService garageService = null,
             SettingsService settingsService = null,
-            RaceProgressionService raceProgressionService = null)
+            RaceProgressionService raceProgressionService = null,
+            PlayerProfileResetService profileResetService = null)
         {
             Navigation = navigation;
             ProgressionState = progressionState;
@@ -29,6 +30,7 @@ namespace ApexRivals.Bootstrap.Runtime
             VehicleSelectionService = vehicleSelectionService;
             GarageService = garageService;
             RaceProgressionService = raceProgressionService;
+            ProfileResetService = profileResetService;
         }
 
         public SceneFlowService Navigation { get; }
@@ -40,5 +42,6 @@ namespace ApexRivals.Bootstrap.Runtime
         public VehicleSelectionService VehicleSelectionService { get; }
         public GarageService GarageService { get; }
         public RaceProgressionService RaceProgressionService { get; }
+        public PlayerProfileResetService ProfileResetService { get; }
     }
 }

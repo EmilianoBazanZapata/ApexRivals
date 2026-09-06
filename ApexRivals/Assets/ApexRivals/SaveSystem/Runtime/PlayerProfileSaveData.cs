@@ -6,14 +6,15 @@ namespace ApexRivals.SaveSystem.Runtime
     [Serializable]
     public sealed class PlayerProfileSaveData
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
 
         public int schemaVersion = CurrentSchemaVersion;
         public int currency;
         public int engineUpgradeLevel;
         public int handlingUpgradeLevel;
         public int completedRaceCount;
-        public string selectedVehicleId = SelectedVehicleState.DefaultVehicleId;
+        public string selectedVehicleId = string.Empty;
+        public bool vehicleSelectionCommitted;
 
         public static PlayerProfileSaveData CreateDefault()
         {
@@ -24,7 +25,8 @@ namespace ApexRivals.SaveSystem.Runtime
                 engineUpgradeLevel = 0,
                 handlingUpgradeLevel = 0,
                 completedRaceCount = 0,
-                selectedVehicleId = SelectedVehicleState.DefaultVehicleId
+                selectedVehicleId = string.Empty,
+                vehicleSelectionCommitted = false
             };
         }
     }

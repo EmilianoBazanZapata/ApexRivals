@@ -26,7 +26,7 @@ namespace ApexRivals.RaceSetup.Configuration
                 new RaceRosterEntry(
                     playerParticipantId,
                     RaceEntryType.Player,
-                    string.IsNullOrWhiteSpace(selectedPlayerVehicleId) ? playerVehicleId : selectedPlayerVehicleId,
+                    string.IsNullOrWhiteSpace(selectedPlayerVehicleId) ? string.Empty : selectedPlayerVehicleId.Trim(),
                     playerStartingGridIndex,
                     string.Empty)
             };

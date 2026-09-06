@@ -43,6 +43,7 @@ namespace ApexRivals.SaveSystem.Runtime
                 var saveData = versionProbe.schemaVersion switch
                 {
                     PlayerProfileSaveData.CurrentSchemaVersion => JsonUtility.FromJson<PlayerProfileSaveData>(json),
+                    2 => MigrateFromVersion2(JsonUtility.FromJson<PlayerProfileSaveData>(json)),
                     1 => MigrateFromVersion1(JsonUtility.FromJson<PlayerProfileSaveData>(json)),
                     0 => MigrateFromVersion0(JsonUtility.FromJson<PlayerProfileSaveDataV0>(json)),
                     _ => null
@@ -72,7 +73,8 @@ namespace ApexRivals.SaveSystem.Runtime
                 engineUpgradeLevel = oldData.engineUpgradeLevel,
                 handlingUpgradeLevel = oldData.handlingUpgradeLevel,
                 completedRaceCount = 0,
-                selectedVehicleId = oldData.selectedVehicleStableId
+                selectedVehicleId = oldData.selectedVehicleStableId,
+                vehicleSelectionCommitted = !string.IsNullOrWhiteSpace(oldData.selectedVehicleStableId)
             };
         }
 
@@ -90,7 +92,27 @@ namespace ApexRivals.SaveSystem.Runtime
                 engineUpgradeLevel = oldData.engineUpgradeLevel,
                 handlingUpgradeLevel = oldData.handlingUpgradeLevel,
                 completedRaceCount = 0,
-                selectedVehicleId = oldData.selectedVehicleId
+                selectedVehicleId = oldData.selectedVehicleId,
+                vehicleSelectionCommitted = !string.IsNullOrWhiteSpace(oldData.selectedVehicleId)
+            };
+        }
+
+        private static PlayerProfileSaveData MigrateFromVersion2(PlayerProfileSaveData oldData)
+        {
+            if (oldData == null)
+            {
+                return null;
+            }
+
+            return new PlayerProfileSaveData
+            {
+                schemaVersion = PlayerProfileSaveData.CurrentSchemaVersion,
+                currency = oldData.currency,
+                engineUpgradeLevel = oldData.engineUpgradeLevel,
+                handlingUpgradeLevel = oldData.handlingUpgradeLevel,
+                completedRaceCount = oldData.completedRaceCount,
+                selectedVehicleId = oldData.selectedVehicleId,
+                vehicleSelectionCommitted = !string.IsNullOrWhiteSpace(oldData.selectedVehicleId)
             };
         }
     }

@@ -45,6 +45,14 @@ namespace ApexRivals.UI.Runtime
 
         public async Task StartRace()
         {
+            if (!_vehicleSelectionService.HasCommittedVehicleSelection)
+            {
+                _purchaseStatus = PresentationStatus.Invalid;
+                _messageKey = "ui.garage.vehicleSelectionRequired";
+                Present();
+                return;
+            }
+
             await RunNavigation(_sceneFlow.StartRace, "ui.garage.startRaceFailed");
         }
 
@@ -95,7 +103,9 @@ namespace ApexRivals.UI.Runtime
         private GarageViewModel CreateModel()
         {
             var state = _garageService.GetState();
-            var selectedVehicleName = _vehicleSelectionService.CurrentSelectedDefinition?.DisplayName ?? string.Empty;
+            var selectedVehicleName = _vehicleSelectionService.HasCommittedVehicleSelection
+                ? _vehicleSelectionService.CurrentSelectedDefinition?.DisplayName ?? string.Empty
+                : string.Empty;
             return new GarageViewModel(
                 state.Currency,
                 selectedVehicleName,

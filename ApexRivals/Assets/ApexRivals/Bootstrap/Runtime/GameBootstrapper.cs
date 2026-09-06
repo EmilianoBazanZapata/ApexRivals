@@ -83,8 +83,9 @@ namespace ApexRivals.Bootstrap.Runtime
             var settingsService = new SettingsService(new PlayerPrefsSettingsStorage(), new UnityDisplaySettingsAdapter());
             var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
             var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
-            var garageService = CreateGarageService(vehicleCatalog, progressionState);
+            var garageService = CreateGarageService(vehicleCatalog, vehicleSelectionService, progressionState);
             var raceProgressionService = CreateRaceProgressionService(progressionState);
+            var profileResetService = new PlayerProfileResetService(saveService);
             if (raceProgressionService == null)
             {
                 StartupStatus = BootstrapStartupStatus.Failed;
@@ -112,7 +113,8 @@ namespace ApexRivals.Bootstrap.Runtime
                 vehicleSelectionService,
                 garageService,
                 settingsService,
-                raceProgressionService);
+                raceProgressionService,
+                profileResetService);
 
             sceneLoader.ContentSceneUnloading += OnContentSceneUnloading;
             sceneLoader.ContentSceneLoaded += OnContentSceneLoaded;
@@ -170,7 +172,10 @@ namespace ApexRivals.Bootstrap.Runtime
             return ids.Length > 0 ? ids : knownVehicleIds;
         }
 
-        private GarageService CreateGarageService(VehicleCatalog vehicleCatalog, PlayerProgressionState progressionState)
+        private GarageService CreateGarageService(
+            VehicleCatalog vehicleCatalog,
+            VehicleSelectionService vehicleSelectionService,
+            PlayerProgressionState progressionState)
         {
             if (engineUpgradeDefinition == null || handlingUpgradeDefinition == null)
             {
@@ -187,7 +192,7 @@ namespace ApexRivals.Bootstrap.Runtime
                 progressionState,
                 engineUpgradeDefinition.CreateData(),
                 handlingUpgradeDefinition.CreateData(),
-                defaultVehicle.BaseStats);
+                () => vehicleSelectionService.CurrentSelectedDefinition?.BaseStats ?? defaultVehicle.BaseStats);
         }
 
         private RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progressionState)

@@ -10,6 +10,6 @@ namespace ApexRivals.SaveSystem.Runtime
 
         public PlayerProfileSaveStatus Status { get; }
         public string Message { get; }
-        public bool Succeeded => Status == PlayerProfileSaveStatus.Saved;
+        public bool Succeeded => Status == PlayerProfileSaveStatus.Saved || Status == PlayerProfileSaveStatus.Deleted;
     }
 }

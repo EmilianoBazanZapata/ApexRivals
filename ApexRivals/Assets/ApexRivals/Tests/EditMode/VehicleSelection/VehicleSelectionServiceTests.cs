@@ -11,10 +11,19 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
     public sealed class VehicleSelectionServiceTests
     {
         [Test]
-        public void Select_ValidVehicle_ChangesSelectionAndSaves()
+        public void NewState_IsUncommitted()
+        {
+            var selectedVehicleState = new SelectedVehicleState();
+
+            Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
+        }
+
+        [Test]
+        public void Select_ValidVehicle_UpdatesPreviewWithoutSaving()
         {
             var saveCheckpoint = new FakeSelectionSaveCheckpoint();
-            var selectedVehicleState = new SelectedVehicleState("starter");
+            var selectedVehicleState = new SelectedVehicleState();
             var service = CreateService(selectedVehicleState, saveCheckpoint);
             var eventCount = 0;
             service.SelectionChanged += _ => eventCount++;
@@ -22,22 +31,38 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var result = service.Select("sport");
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("sport"));
-            Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(1));
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("sport"));
+            Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
+            Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(0));
             Assert.That(eventCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void CancelPreview_DoesNotCommitSelection()
+        {
+            var selectedVehicleState = new SelectedVehicleState();
+            var service = CreateService(selectedVehicleState, new FakeSelectionSaveCheckpoint());
+
+            service.Select("sport");
+            service.CancelPreview();
+
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("starter"));
+            Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
         }
 
         [Test]
         public void Select_UnknownVehicle_IsRejectedWithoutSaving()
         {
             var saveCheckpoint = new FakeSelectionSaveCheckpoint();
-            var selectedVehicleState = new SelectedVehicleState("starter");
+            var selectedVehicleState = new SelectedVehicleState();
             var service = CreateService(selectedVehicleState, saveCheckpoint);
 
             var result = service.Select("missing");
 
             Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.UnknownVehicle));
-            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("starter"));
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
             Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(0));
         }
 
@@ -45,13 +70,13 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
         public void Select_UnavailableVehicle_IsRejectedWithoutSaving()
         {
             var saveCheckpoint = new FakeSelectionSaveCheckpoint();
-            var selectedVehicleState = new SelectedVehicleState("starter");
+            var selectedVehicleState = new SelectedVehicleState();
             var service = CreateService(selectedVehicleState, saveCheckpoint);
 
             var result = service.Select("locked");
 
             Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.UnavailableVehicle));
-            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("starter"));
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
             Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(0));
         }
 
@@ -59,7 +84,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
         public void Select_AlreadySelectedVehicle_DoesNotEmitDuplicateEvent()
         {
             var saveCheckpoint = new FakeSelectionSaveCheckpoint();
-            var selectedVehicleState = new SelectedVehicleState("starter");
+            var selectedVehicleState = new SelectedVehicleState();
             var service = CreateService(selectedVehicleState, saveCheckpoint);
             var eventCount = 0;
             service.SelectionChanged += _ => eventCount++;
@@ -72,20 +97,71 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
         }
 
         [Test]
-        public void Select_SaveFailure_RollsBackSelection()
+        public void ConfirmSelection_ValidVehicle_CommitsOnceAndSavesOnce()
+        {
+            var saveCheckpoint = new FakeSelectionSaveCheckpoint();
+            var selectedVehicleState = new SelectedVehicleState();
+            var service = CreateService(selectedVehicleState, saveCheckpoint);
+            var committedCount = 0;
+            service.VehicleSelectionCommitted += _ => committedCount++;
+
+            service.Select("sport");
+            var result = service.ConfirmSelection();
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.True);
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(1));
+            Assert.That(committedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ConfirmSelection_SaveFailure_RollsBackCommitment()
         {
             var saveCheckpoint = new FakeSelectionSaveCheckpoint { ShouldFail = true };
-            var selectedVehicleState = new SelectedVehicleState("starter");
+            var selectedVehicleState = new SelectedVehicleState();
             var service = CreateService(selectedVehicleState, saveCheckpoint);
-            var eventCount = 0;
-            service.SelectionChanged += _ => eventCount++;
+
+            service.Select("sport");
+            var result = service.ConfirmSelection();
+
+            Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.SaveFailed));
+            Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
+            Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ConfirmSelection_ReconfirmingSameVehicle_IsIdempotent()
+        {
+            var saveCheckpoint = new FakeSelectionSaveCheckpoint();
+            var selectedVehicleState = new SelectedVehicleState();
+            var service = CreateService(selectedVehicleState, saveCheckpoint);
+            var committedCount = 0;
+            service.VehicleSelectionCommitted += _ => committedCount++;
+
+            service.Select("sport");
+            service.ConfirmSelection();
+            var result = service.ConfirmSelection();
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(1));
+            Assert.That(committedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Select_DifferentVehicleAfterCommitment_IsRejectedWithoutSaving()
+        {
+            var saveCheckpoint = new FakeSelectionSaveCheckpoint();
+            var selectedVehicleState = new SelectedVehicleState("starter", true);
+            var service = CreateService(selectedVehicleState, saveCheckpoint);
 
             var result = service.Select("sport");
 
-            Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.SaveFailed));
+            Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.SelectionLocked));
             Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("starter"));
-            Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(1));
-            Assert.That(eventCount, Is.EqualTo(0));
+            Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(0));
         }
 
         [Test]
@@ -94,7 +170,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var progression = new PlayerProgressionState();
             progression.SetUpgradeLevel(UpgradeType.Engine, 1);
             progression.SetUpgradeLevel(UpgradeType.Handling, 1);
-            var selectedVehicleState = new SelectedVehicleState("starter");
+            var selectedVehicleState = new SelectedVehicleState("starter", true);
             var service = CreateService(selectedVehicleState, new FakeSelectionSaveCheckpoint(), progression);
 
             var state = service.GetState();
@@ -105,15 +181,17 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
         }
 
         [Test]
-        public void EnsurePersistedSelectionIsValid_InvalidSavedId_FallsBackToDefault()
+        public void EnsurePersistedSelectionIsValid_InvalidCommittedId_ClearsCommitment()
         {
-            var selectedVehicleState = new SelectedVehicleState("missing");
+            var selectedVehicleState = new SelectedVehicleState("missing", true);
             var service = CreateService(selectedVehicleState, new FakeSelectionSaveCheckpoint());
 
             var result = service.EnsurePersistedSelectionIsValid();
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("starter"));
+            Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("starter"));
         }
 
         private static VehicleSelectionService CreateService(
