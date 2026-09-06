@@ -11,6 +11,7 @@ namespace ApexRivals.RaceSession.Runtime
         MissingDrivingGate,
         StartFailed,
         RewardFailed,
+        ProgressionFailed,
         SaveFailedAfterReward,
         NavigationFailed,
         AlreadyProcessed,

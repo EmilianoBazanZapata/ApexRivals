@@ -125,7 +125,7 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
 
             var result = await service.OpenGarage();
 
-            Assert.That(result.Status, Is.EqualTo(SceneTransitionStatus.DuplicateTransition));
+            Assert.That(result.Status, Is.EqualTo(SceneTransitionStatus.InvalidTransition));
             Assert.That(service.State, Is.EqualTo(ApplicationState.Bootstrapping));
         }
 
@@ -137,7 +137,7 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
 
             var result = await service.OpenMainMenu();
 
-            Assert.That(result.Status, Is.EqualTo(SceneTransitionStatus.InvalidTransition));
+            Assert.That(result.Status, Is.EqualTo(SceneTransitionStatus.DuplicateTransition));
             Assert.That(service.State, Is.EqualTo(ApplicationState.MainMenu));
         }
 

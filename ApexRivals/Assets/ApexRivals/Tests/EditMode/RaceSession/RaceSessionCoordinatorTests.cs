@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using ApexRivals.AI.Configuration;
 using ApexRivals.Input.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.Race.Runtime;
@@ -116,6 +117,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 65f));
 
             Assert.That(context.Progression.Currency, Is.EqualTo(500));
+            Assert.That(context.Progression.CompletedRaceCount, Is.EqualTo(1));
             Assert.That(context.Save.SaveCount, Is.EqualTo(1));
             Assert.That(context.ResultsEventCount, Is.EqualTo(1));
             Assert.That(context.Navigation.ShowResultsCount, Is.EqualTo(1));
@@ -136,6 +138,8 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             Assert.That(result.EarnedReward, Is.EqualTo(300));
             Assert.That(result.TotalParticipants, Is.EqualTo(2));
             Assert.That(result.UpdatedCurrency, Is.EqualTo(300));
+            Assert.That(result.CompletedRaceCount, Is.EqualTo(1));
+            Assert.That(result.CurrentTier.TierId, Is.EqualTo("rookie"));
             Assert.That(context.SceneRaceState.HasResult, Is.True);
         }
 
@@ -148,6 +152,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             context.RaceController.RaiseRacerFinished(new RaceResult("AI_01", 1, 60f));
 
             Assert.That(context.Progression.Currency, Is.Zero);
+            Assert.That(context.Progression.CompletedRaceCount, Is.Zero);
             Assert.That(context.Save.SaveCount, Is.Zero);
             Assert.That(context.Navigation.ShowResultsCount, Is.Zero);
             Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
@@ -163,6 +168,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 65f));
 
             Assert.That(context.Progression.Currency, Is.EqualTo(500));
+            Assert.That(context.Progression.CompletedRaceCount, Is.EqualTo(1));
             Assert.That(context.Navigation.LastResult.SaveSucceeded, Is.False);
             Assert.That(context.Navigation.LastResult.SaveMessage, Is.EqualTo("Save failed."));
             Assert.That(context.Session.LastCommandResult.Status, Is.EqualTo(RaceSessionCommandStatus.SaveFailedAfterReward));
@@ -185,6 +191,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             Assert.That(context.Setup.PrepareCount, Is.EqualTo(2));
             Assert.That(context.RaceController.StartCountdownCount, Is.EqualTo(2));
             Assert.That(context.Progression.Currency, Is.EqualTo(500));
+            Assert.That(context.Progression.CompletedRaceCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -226,6 +233,19 @@ namespace ApexRivals.Tests.EditMode.RaceSession
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(context.Navigation.ReturnToGarageCount, Is.EqualTo(1));
+            Assert.That(context.Progression.CompletedRaceCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task RetryBeforeFinishDoesNotIncrementProgression()
+        {
+            var context = CreateContext();
+            StartRace(context);
+
+            var result = await context.Session.Retry();
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(context.Progression.CompletedRaceCount, Is.Zero);
         }
 
         [Test]
@@ -359,11 +379,28 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             var navigation = new FakeRaceSessionNavigation();
             var raceState = new RaceSessionState();
             var timeScale = new FakeTimeScaleController();
-            var session = new RaceSessionCoordinator(setup, raceController, rewardService, progression, save, navigation, raceState, timeScale);
+            var raceProgression = CreateRaceProgressionService(progression);
+            var session = new RaceSessionCoordinator(setup, raceController, rewardService, progression, save, navigation, raceState, timeScale, raceProgression);
 
             var context = new TestContext(session, setup, raceController, progression, save, navigation, raceState, timeScale);
             session.ResultsReady += _ => context.ResultsEventCount++;
             return context;
+        }
+
+        private static RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progression)
+        {
+            return new RaceProgressionService(
+                progression,
+                new RaceProgressionTable(new[]
+                {
+                    new RaceProgressionTier("rookie", "Rookie", 0, "rookie"),
+                    new RaceProgressionTier("amateur", "Amateur", 2, "amateur")
+                }),
+                new System.Collections.Generic.Dictionary<string, AiDriverConfiguration>
+                {
+                    ["rookie"] = ScriptableObject.CreateInstance<AiDriverConfiguration>(),
+                    ["amateur"] = ScriptableObject.CreateInstance<AiDriverConfiguration>()
+                });
         }
 
         private sealed class TestContext

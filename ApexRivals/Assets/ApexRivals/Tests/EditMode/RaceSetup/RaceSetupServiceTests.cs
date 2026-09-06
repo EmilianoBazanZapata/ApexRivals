@@ -26,9 +26,9 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.Output.Player, Is.Not.Null);
-            Assert.That(result.Output.Opponents, Has.Count.EqualTo(1));
-            Assert.That(result.Output.Participants, Has.Count.EqualTo(2));
-            Assert.That(result.Output.DrivingGates, Has.Count.EqualTo(2));
+            Assert.That(result.Output.Opponents.Count, Is.EqualTo(1));
+            Assert.That(result.Output.Participants.Count, Is.EqualTo(2));
+            Assert.That(result.Output.DrivingGates.Count, Is.EqualTo(2));
             Assert.That(result.Output.PlayerCameraTarget, Is.Not.Null);
         }
 
@@ -106,6 +106,44 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
         }
 
         [Test]
+        public void SetupRace_UsesResolvedProgressionDifficultyForOpponents()
+        {
+            var resolvedConfiguration = ScriptableObject.CreateInstance<AiDriverConfiguration>();
+            var context = CreateContext(raceDifficultyProvider: new FakeDifficultyProvider(resolvedConfiguration));
+
+            var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.Output.Opponents[0].AiInputProvider.Configuration, Is.SameAs(resolvedConfiguration));
+        }
+
+        [Test]
+        public void SetupRace_AppliesResolvedProgressionDifficultyToMultipleOpponents()
+        {
+            var resolvedConfiguration = ScriptableObject.CreateInstance<AiDriverConfiguration>();
+            var context = CreateContext(raceDifficultyProvider: new FakeDifficultyProvider(resolvedConfiguration), opponentCount: 2);
+
+            var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.Output.Opponents.Count, Is.EqualTo(2));
+            Assert.That(result.Output.Opponents[0].AiInputProvider.Configuration, Is.SameAs(resolvedConfiguration));
+            Assert.That(result.Output.Opponents[1].AiInputProvider.Configuration, Is.SameAs(resolvedConfiguration));
+            Assert.That(result.Output.Opponents[0].RaceParticipant.RacerId, Is.Not.EqualTo(result.Output.Opponents[1].RaceParticipant.RacerId));
+        }
+
+        [Test]
+        public void SetupRace_FailedDifficultyResolutionPreventsIncompleteSetup()
+        {
+            var context = CreateContext(raceDifficultyProvider: new FakeDifficultyProvider(null, "Difficulty failed."));
+
+            var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
+
+            Assert.That(result.Status, Is.EqualTo(RaceSetupStatus.DifficultyResolutionFailed));
+            Assert.That(context.Factory.DestroyedCount, Is.EqualTo(2));
+        }
+
+        [Test]
         public void SetupRace_DoesNotAffectSceneFlowNavigation()
         {
             var context = CreateContext();
@@ -116,7 +154,11 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             Assert.That(sceneFlow.State, Is.EqualTo(ApplicationState.Bootstrapping));
         }
 
-        private static TestContext CreateContext(int engineLevel = 0, int handlingLevel = 0)
+        private static TestContext CreateContext(
+            int engineLevel = 0,
+            int handlingLevel = 0,
+            IRaceDifficultyProvider raceDifficultyProvider = null,
+            int opponentCount = 1)
         {
             var progression = new PlayerProgressionState();
             progression.SetUpgradeLevel(UpgradeType.Engine, engineLevel);
@@ -140,21 +182,32 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 CreateEngineDefinition(),
                 CreateHandlingDefinition(),
                 factory,
-                new Dictionary<string, AiDriverConfiguration> { { "standard", ScriptableObject.CreateInstance<AiDriverConfiguration>() } });
+                new Dictionary<string, AiDriverConfiguration> { { "standard", ScriptableObject.CreateInstance<AiDriverConfiguration>() } },
+                raceDifficultyProvider);
 
             var startingGridObject = new GameObject("StartingGrid");
             var startingGrid = startingGridObject.AddComponent<StartingGrid>();
-            var spawn0 = new GameObject("Spawn0").transform;
-            var spawn1 = new GameObject("Spawn1").transform;
-            startingGrid.Configure(new[] { spawn0, spawn1 });
+            var spawnPoints = new Transform[opponentCount + 1];
+            for (var i = 0; i < spawnPoints.Length; i++)
+            {
+                spawnPoints[i] = new GameObject($"Spawn{i}").transform;
+            }
+
+            startingGrid.Configure(spawnPoints);
 
             var raceCoordinator = new GameObject("RaceCoordinator").AddComponent<RaceCoordinator>();
             var racingLine = new GameObject("RacingLine").AddComponent<RacingLine>();
-            var roster = new RaceRoster(new[]
+            var entries = new List<RaceRosterEntry>
             {
-                new RaceRosterEntry("Player", RaceEntryType.Player, "starter", 0, string.Empty),
-                new RaceRosterEntry("AI_01", RaceEntryType.AI, "starter", 1, "standard")
-            });
+                new RaceRosterEntry("Player", RaceEntryType.Player, "starter", 0, string.Empty)
+            };
+
+            for (var i = 0; i < opponentCount; i++)
+            {
+                entries.Add(new RaceRosterEntry($"AI_{i + 1:00}", RaceEntryType.AI, "starter", i + 1, "standard"));
+            }
+
+            var roster = new RaceRoster(entries);
 
             return new TestContext(service, factory, roster, startingGrid, raceCoordinator, racingLine);
         }
@@ -268,6 +321,30 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 System.Threading.CancellationToken cancellationToken = default)
             {
                 return System.Threading.Tasks.Task.FromResult(ContentSceneLoadResult.Success(sceneId, sceneName, string.Empty));
+            }
+        }
+
+        private sealed class FakeDifficultyProvider : IRaceDifficultyProvider
+        {
+            private readonly AiDriverConfiguration _configuration;
+            private readonly string _message;
+
+            public FakeDifficultyProvider(AiDriverConfiguration configuration, string message = "")
+            {
+                _configuration = configuration;
+                _message = message;
+            }
+
+            public DifficultyTierResolutionResult ResolveCurrentTier()
+            {
+                return new DifficultyTierResolutionResult(true, new RaceProgressionTier("test", "Test", 0, "test"), string.Empty);
+            }
+
+            public bool TryGetCurrentAiConfiguration(out AiDriverConfiguration aiConfiguration, out string message)
+            {
+                aiConfiguration = _configuration;
+                message = _message;
+                return aiConfiguration != null;
             }
         }
     }

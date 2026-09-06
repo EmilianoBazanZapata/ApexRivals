@@ -22,8 +22,8 @@ namespace ApexRivals.UI.Runtime
                 stats.ForwardAcceleration,
                 stats.MaximumForwardSpeed,
                 stats.SteeringStrength,
-                stats.NormalGrip,
-                stats.DriftGrip);
+                stats.NormalLateralGrip,
+                stats.DriftLateralGrip);
         }
 
         public static string FormatTime(float seconds)

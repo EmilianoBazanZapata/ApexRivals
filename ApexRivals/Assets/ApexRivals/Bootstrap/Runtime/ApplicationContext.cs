@@ -17,7 +17,8 @@ namespace ApexRivals.Bootstrap.Runtime
             VehicleCatalog vehicleCatalog = null,
             VehicleSelectionService vehicleSelectionService = null,
             GarageService garageService = null,
-            SettingsService settingsService = null)
+            SettingsService settingsService = null,
+            RaceProgressionService raceProgressionService = null)
         {
             Navigation = navigation;
             ProgressionState = progressionState;
@@ -27,6 +28,7 @@ namespace ApexRivals.Bootstrap.Runtime
             VehicleCatalog = vehicleCatalog;
             VehicleSelectionService = vehicleSelectionService;
             GarageService = garageService;
+            RaceProgressionService = raceProgressionService;
         }
 
         public SceneFlowService Navigation { get; }
@@ -37,5 +39,6 @@ namespace ApexRivals.Bootstrap.Runtime
         public VehicleCatalog VehicleCatalog { get; }
         public VehicleSelectionService VehicleSelectionService { get; }
         public GarageService GarageService { get; }
+        public RaceProgressionService RaceProgressionService { get; }
     }
 }

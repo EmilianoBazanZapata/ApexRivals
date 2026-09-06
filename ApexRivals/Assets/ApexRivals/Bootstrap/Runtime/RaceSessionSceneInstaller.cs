@@ -45,7 +45,8 @@ namespace ApexRivals.Bootstrap.Runtime
                 engineUpgradeDefinition.CreateData(),
                 handlingUpgradeDefinition.CreateData(),
                 new UnityRaceVehicleFactory(),
-                raceSetupDefinition.CreateAiConfigurationMap());
+                raceSetupDefinition.CreateAiConfigurationMap(),
+                context.RaceProgressionService);
             var setup = new RaceSetupSessionAdapter(
                 setupService,
                 raceSetupDefinition,
@@ -64,7 +65,8 @@ namespace ApexRivals.Bootstrap.Runtime
                 saveCheckpoint,
                 navigation,
                 context.Navigation.RaceSession,
-                new UnityTimeScaleController());
+                new UnityTimeScaleController(),
+                context.RaceProgressionService);
 
             LastInstallResult = Session.Prepare();
             if (LastInstallResult.Succeeded)
@@ -89,6 +91,17 @@ namespace ApexRivals.Bootstrap.Runtime
             if (context.ProgressionState == null || context.SelectedVehicleState == null || context.SaveService == null || context.Navigation == null)
             {
                 return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.MissingConfiguration, "Required runtime services are missing.");
+            }
+
+            if (context.RaceProgressionService == null)
+            {
+                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.MissingConfiguration, "Race progression service is missing.");
+            }
+
+            var progressionValidation = context.RaceProgressionService.Validate();
+            if (!progressionValidation.Succeeded)
+            {
+                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.MissingConfiguration, progressionValidation.Message);
             }
 
             if (raceSetupDefinition == null || raceRewardDefinition == null || engineUpgradeDefinition == null || handlingUpgradeDefinition == null)

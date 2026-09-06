@@ -2,7 +2,8 @@
     "name": "ApexRivals.Editor",
     "rootNamespace": "",
     "references": [
-        "ApexRivals.Runtime"
+        "ApexRivals.Runtime",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

@@ -9,6 +9,7 @@ using ApexRivals.Race.Configuration;
 using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSetup.Configuration;
 using ApexRivals.RaceSetup.Runtime;
+using ApexRivals.SaveSystem.Runtime;
 using ApexRivals.SceneFlow.Configuration;
 using ApexRivals.SceneFlow.Runtime;
 using ApexRivals.Vehicle.Configuration;
@@ -37,9 +38,14 @@ namespace ApexRivals.Editor
         private const string EngineUpgradePath = ConfigRoot + "/Garage/EngineUpgradeDefinition.asset";
         private const string HandlingUpgradePath = ConfigRoot + "/Garage/HandlingUpgradeDefinition.asset";
         private const string RewardPath = ConfigRoot + "/Progression/RaceRewardDefinition.asset";
+        private const string RaceProgressionPath = ConfigRoot + "/Progression/RaceProgressionDefinition.asset";
         private const string RaceDefinitionPath = ConfigRoot + "/Race/DemoRaceDefinition.asset";
         private const string RaceSetupPath = ConfigRoot + "/Race/DemoRaceSetupDefinition.asset";
         private const string AiDriverPath = ConfigRoot + "/AI/StandardAiDriverConfiguration.asset";
+        private const string RookieAiDriverPath = ConfigRoot + "/AI/RookieAiDriverConfiguration.asset";
+        private const string AmateurAiDriverPath = ConfigRoot + "/AI/AmateurAiDriverConfiguration.asset";
+        private const string ProfessionalAiDriverPath = ConfigRoot + "/AI/ProfessionalAiDriverConfiguration.asset";
+        private const string ExpertAiDriverPath = ConfigRoot + "/AI/ExpertAiDriverConfiguration.asset";
 
         [MenuItem("Apex Rivals/Integration Phase 1/Setup Scene Skeletons")]
         public static void SetupSceneSkeletons()
@@ -52,17 +58,27 @@ namespace ApexRivals.Editor
             var engineUpgrade = EnsureAsset<UpgradeDefinition>(EngineUpgradePath);
             var handlingUpgrade = EnsureAsset<UpgradeDefinition>(HandlingUpgradePath);
             var rewardDefinition = EnsureAsset<RaceRewardDefinition>(RewardPath);
+            var raceProgressionDefinition = EnsureAsset<RaceProgressionDefinition>(RaceProgressionPath);
             var raceDefinition = EnsureAsset<RaceDefinition>(RaceDefinitionPath);
             var raceSetup = EnsureAsset<RaceSetupDefinition>(RaceSetupPath);
             EnsureAsset<AiDriverConfiguration>(AiDriverPath);
+            var rookieAi = EnsureAsset<AiDriverConfiguration>(RookieAiDriverPath);
+            var amateurAi = EnsureAsset<AiDriverConfiguration>(AmateurAiDriverPath);
+            var professionalAi = EnsureAsset<AiDriverConfiguration>(ProfessionalAiDriverPath);
+            var expertAi = EnsureAsset<AiDriverConfiguration>(ExpertAiDriverPath);
 
             ConfigureVehicleDefinition(vehicleDefinition, vehicleConfiguration);
             ConfigureVehicleCatalog(vehicleCatalog, vehicleDefinition);
             ConfigureUpgrade(engineUpgrade, UpgradeType.Engine, CreateEngineLevels());
             ConfigureUpgrade(handlingUpgrade, UpgradeType.Handling, CreateHandlingLevels());
+            ConfigureAiDriver(rookieAi, "Rookie", 0.85f, 20f, 7f, 1f, 1.25f, 0.7f, 2);
+            ConfigureAiDriver(amateurAi, "Amateur", 1f, 22f, 8f, 1.08f, 1.18f, 0.65f, 2);
+            ConfigureAiDriver(professionalAi, "Professional", 1.15f, 24f, 9f, 1.14f, 1.12f, 0.6f, 3);
+            ConfigureAiDriver(expertAi, "Expert", 1.3f, 26f, 10f, 1.2f, 1.08f, 0.58f, 3);
+            ConfigureRaceProgression(raceProgressionDefinition, rookieAi, amateurAi, professionalAi, expertAi);
             ConfigureRaceSetup(raceSetup, raceDefinition);
 
-            CreateBootstrapScene(sceneFlowConfiguration, vehicleCatalog, engineUpgrade, handlingUpgrade);
+            CreateBootstrapScene(sceneFlowConfiguration, vehicleCatalog, engineUpgrade, handlingUpgrade, raceProgressionDefinition);
             CreateSimpleScene(MainMenuScenePath, "MainMenuSceneRoot");
             CreateSimpleScene(GarageScenePath, "GarageSceneRoot");
             CreateRaceScene(raceDefinition, raceSetup, rewardDefinition, engineUpgrade, handlingUpgrade);
@@ -108,6 +124,7 @@ namespace ApexRivals.Editor
             RequireAsset<UpgradeDefinition>(EngineUpgradePath, report);
             RequireAsset<UpgradeDefinition>(HandlingUpgradePath, report);
             RequireAsset<RaceRewardDefinition>(RewardPath, report);
+            RequireAsset<RaceProgressionDefinition>(RaceProgressionPath, report);
             RequireAsset<RaceDefinition>(RaceDefinitionPath, report);
             RequireAsset<RaceSetupDefinition>(RaceSetupPath, report);
 
@@ -129,8 +146,12 @@ namespace ApexRivals.Editor
                 ValidateSerializedReference(bootstrapper, "vehicleCatalogDefinition", report);
                 ValidateSerializedReference(bootstrapper, "engineUpgradeDefinition", report);
                 ValidateSerializedReference(bootstrapper, "handlingUpgradeDefinition", report);
+                ValidateSerializedReference(bootstrapper, "raceProgressionDefinition", report);
                 ValidateSerializedReference(bootstrapper, "sceneLoader", report);
             }
+
+            ValidateRaceProgression(report);
+            ValidateSaveSchema(report);
 
             var raceScene = EditorSceneManager.OpenScene(RaceScenePath, OpenSceneMode.Single);
             var raceInstaller = FindComponentInScene<RaceSessionSceneInstaller>(raceScene);
@@ -294,11 +315,77 @@ namespace ApexRivals.Editor
             EditorUtility.SetDirty(raceSetup);
         }
 
+        private static void ConfigureAiDriver(
+            AiDriverConfiguration aiDriver,
+            string difficultyName,
+            float difficultyMultiplier,
+            float targetSpeed,
+            float minimumCornerSpeed,
+            float steeringSensitivity,
+            float brakingSensitivity,
+            float driftCornerThreshold,
+            int lookAheadWaypointCount)
+        {
+            var serialized = new SerializedObject(aiDriver);
+            serialized.FindProperty("difficultyName").stringValue = difficultyName;
+            serialized.FindProperty("difficultyMultiplier").floatValue = difficultyMultiplier;
+            serialized.FindProperty("targetSpeed").floatValue = targetSpeed;
+            serialized.FindProperty("minimumCornerSpeed").floatValue = minimumCornerSpeed;
+            serialized.FindProperty("steeringSensitivity").floatValue = steeringSensitivity;
+            serialized.FindProperty("brakingSensitivity").floatValue = brakingSensitivity;
+            serialized.FindProperty("driftCornerThreshold").floatValue = driftCornerThreshold;
+            serialized.FindProperty("driftMinimumSpeed").floatValue = 12f;
+            serialized.FindProperty("stuckSpeedThreshold").floatValue = 1.5f;
+            serialized.FindProperty("stuckDetectionDuration").floatValue = 2.5f;
+            serialized.FindProperty("recoveryCooldown").floatValue = 5f;
+            serialized.FindProperty("steeringSmoothing").floatValue = 8f;
+            serialized.FindProperty("throttleSmoothing").floatValue = 6f;
+            serialized.FindProperty("brakeSmoothing").floatValue = 10f;
+            serialized.FindProperty("lookAheadWaypointCount").intValue = lookAheadWaypointCount;
+            serialized.FindProperty("waypointReachDistance").floatValue = 5f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(aiDriver);
+        }
+
+        private static void ConfigureRaceProgression(
+            RaceProgressionDefinition raceProgression,
+            AiDriverConfiguration rookieAi,
+            AiDriverConfiguration amateurAi,
+            AiDriverConfiguration professionalAi,
+            AiDriverConfiguration expertAi)
+        {
+            var serialized = new SerializedObject(raceProgression);
+            var tiers = serialized.FindProperty("tiers");
+            tiers.arraySize = 4;
+            SetRaceProgressionTier(tiers.GetArrayElementAtIndex(0), "rookie", "Rookie", 0, "rookie", rookieAi);
+            SetRaceProgressionTier(tiers.GetArrayElementAtIndex(1), "amateur", "Amateur", 2, "amateur", amateurAi);
+            SetRaceProgressionTier(tiers.GetArrayElementAtIndex(2), "professional", "Professional", 5, "professional", professionalAi);
+            SetRaceProgressionTier(tiers.GetArrayElementAtIndex(3), "expert", "Expert", 8, "expert", expertAi);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(raceProgression);
+        }
+
+        private static void SetRaceProgressionTier(
+            SerializedProperty tier,
+            string tierId,
+            string displayName,
+            int requiredCompletedRaceCount,
+            string aiConfigurationId,
+            AiDriverConfiguration aiConfiguration)
+        {
+            tier.FindPropertyRelative("tierId").stringValue = tierId;
+            tier.FindPropertyRelative("displayName").stringValue = displayName;
+            tier.FindPropertyRelative("requiredCompletedRaceCount").intValue = requiredCompletedRaceCount;
+            tier.FindPropertyRelative("aiConfigurationId").stringValue = aiConfigurationId;
+            tier.FindPropertyRelative("aiConfiguration").objectReferenceValue = aiConfiguration;
+        }
+
         private static void CreateBootstrapScene(
             SceneFlowConfiguration sceneFlowConfiguration,
             VehicleCatalogDefinition vehicleCatalog,
             UpgradeDefinition engineUpgrade,
-            UpgradeDefinition handlingUpgrade)
+            UpgradeDefinition handlingUpgrade,
+            RaceProgressionDefinition raceProgressionDefinition)
         {
             var scene = NewEmptyScene();
             var bootstrapObject = new GameObject("Bootstrap");
@@ -309,6 +396,7 @@ namespace ApexRivals.Editor
             SetReference(bootstrapper, "vehicleCatalogDefinition", vehicleCatalog);
             SetReference(bootstrapper, "engineUpgradeDefinition", engineUpgrade);
             SetReference(bootstrapper, "handlingUpgradeDefinition", handlingUpgrade);
+            SetReference(bootstrapper, "raceProgressionDefinition", raceProgressionDefinition);
             SetReference(bootstrapper, "sceneLoader", sceneLoader);
             SetStringArray(bootstrapper, "knownVehicleIds", new[] { "starter" });
 
@@ -475,6 +563,43 @@ namespace ApexRivals.Editor
                 {
                     report.AddError($"Build Settings entry {index} must be enabled and point to {expected[index]}.");
                 }
+            }
+        }
+
+        private static void ValidateRaceProgression(IntegrationValidationReport report)
+        {
+            var definition = AssetDatabase.LoadAssetAtPath<RaceProgressionDefinition>(RaceProgressionPath);
+            if (definition == null)
+            {
+                return;
+            }
+
+            var service = new RaceProgressionService(
+                new PlayerProgressionState(),
+                definition.CreateTable(),
+                definition.CreateAiConfigurationMap());
+            var validation = service.Validate();
+            if (!validation.Succeeded)
+            {
+                report.AddError(validation.Message);
+                return;
+            }
+
+            var resolution = service.ResolveCurrentTier();
+            if (!resolution.Succeeded)
+            {
+                report.AddError(resolution.Message);
+                return;
+            }
+
+            report.AddWarning($"Progression difficulty starts at '{resolution.Tier.DisplayName}' and remains capped by the highest configured tier.");
+        }
+
+        private static void ValidateSaveSchema(IntegrationValidationReport report)
+        {
+            if (PlayerProfileSaveData.CurrentSchemaVersion < 2)
+            {
+                report.AddError("Player profile save schema must include completed race count migration.");
             }
         }
 

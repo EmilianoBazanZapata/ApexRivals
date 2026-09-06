@@ -37,5 +37,16 @@ namespace ApexRivals.Tests.EditMode.Progression
             Assert.That(result.Status, Is.EqualTo(CurrencyTransactionStatus.InvalidAmount));
             Assert.That(state.Currency, Is.EqualTo(25));
         }
+
+        [Test]
+        public void CompletedRaceCount_CannotBecomeNegative()
+        {
+            Assert.That(() => new PlayerProgressionState(completedRaceCount: -1), Throws.TypeOf<System.ArgumentOutOfRangeException>());
+
+            var state = new PlayerProgressionState();
+
+            Assert.That(() => state.SetCompletedRaceCount(-1), Throws.TypeOf<System.ArgumentOutOfRangeException>());
+            Assert.That(state.CompletedRaceCount, Is.Zero);
+        }
     }
 }

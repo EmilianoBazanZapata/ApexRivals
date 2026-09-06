@@ -43,6 +43,7 @@ namespace ApexRivals.SaveSystem.Runtime
                 var saveData = versionProbe.schemaVersion switch
                 {
                     PlayerProfileSaveData.CurrentSchemaVersion => JsonUtility.FromJson<PlayerProfileSaveData>(json),
+                    1 => MigrateFromVersion1(JsonUtility.FromJson<PlayerProfileSaveData>(json)),
                     0 => MigrateFromVersion0(JsonUtility.FromJson<PlayerProfileSaveDataV0>(json)),
                     _ => null
                 };
@@ -70,7 +71,26 @@ namespace ApexRivals.SaveSystem.Runtime
                 currency = oldData.currency,
                 engineUpgradeLevel = oldData.engineUpgradeLevel,
                 handlingUpgradeLevel = oldData.handlingUpgradeLevel,
+                completedRaceCount = 0,
                 selectedVehicleId = oldData.selectedVehicleStableId
+            };
+        }
+
+        private static PlayerProfileSaveData MigrateFromVersion1(PlayerProfileSaveData oldData)
+        {
+            if (oldData == null)
+            {
+                return null;
+            }
+
+            return new PlayerProfileSaveData
+            {
+                schemaVersion = PlayerProfileSaveData.CurrentSchemaVersion,
+                currency = oldData.currency,
+                engineUpgradeLevel = oldData.engineUpgradeLevel,
+                handlingUpgradeLevel = oldData.handlingUpgradeLevel,
+                completedRaceCount = 0,
+                selectedVehicleId = oldData.selectedVehicleId
             };
         }
     }

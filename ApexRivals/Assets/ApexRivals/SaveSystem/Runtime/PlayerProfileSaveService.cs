@@ -78,6 +78,7 @@ namespace ApexRivals.SaveSystem.Runtime
                 currency = _progressionState.Currency,
                 engineUpgradeLevel = _progressionState.GetUpgradeLevel(UpgradeType.Engine),
                 handlingUpgradeLevel = _progressionState.GetUpgradeLevel(UpgradeType.Handling),
+                completedRaceCount = _progressionState.CompletedRaceCount,
                 selectedVehicleId = _selectedVehicleState.SelectedVehicleId
             };
         }
@@ -109,6 +110,7 @@ namespace ApexRivals.SaveSystem.Runtime
             _progressionState.SetCurrency(saveData.currency);
             _progressionState.SetUpgradeLevel(UpgradeType.Engine, saveData.engineUpgradeLevel);
             _progressionState.SetUpgradeLevel(UpgradeType.Handling, saveData.handlingUpgradeLevel);
+            _progressionState.SetCompletedRaceCount(saveData.completedRaceCount);
             _selectedVehicleState.SetSelectedVehicleId(saveData.selectedVehicleId);
         }
     }

@@ -12,6 +12,7 @@ namespace ApexRivals.RaceSession.Runtime
         private readonly IRaceSessionRaceController _raceController;
         private readonly RaceRewardService _rewardService;
         private readonly PlayerProgressionState _progressionState;
+        private readonly RaceProgressionService _raceProgressionService;
         private readonly ISaveCheckpoint _saveCheckpoint;
         private readonly IRaceSessionNavigation _navigation;
         private readonly RaceSessionState _raceSessionState;
@@ -35,12 +36,14 @@ namespace ApexRivals.RaceSession.Runtime
             ISaveCheckpoint saveCheckpoint,
             IRaceSessionNavigation navigation,
             RaceSessionState raceSessionState,
-            ITimeScaleController timeScale)
+            ITimeScaleController timeScale,
+            RaceProgressionService raceProgressionService)
         {
             _setup = setup ?? throw new ArgumentNullException(nameof(setup));
             _raceController = raceController ?? throw new ArgumentNullException(nameof(raceController));
             _rewardService = rewardService ?? throw new ArgumentNullException(nameof(rewardService));
             _progressionState = progressionState ?? throw new ArgumentNullException(nameof(progressionState));
+            _raceProgressionService = raceProgressionService ?? throw new ArgumentNullException(nameof(raceProgressionService));
             _saveCheckpoint = saveCheckpoint ?? throw new ArgumentNullException(nameof(saveCheckpoint));
             _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
             _raceSessionState = raceSessionState ?? throw new ArgumentNullException(nameof(raceSessionState));
@@ -314,13 +317,42 @@ namespace ApexRivals.RaceSession.Runtime
                 return;
             }
 
+            var progressionResult = _raceProgressionService.RegisterCompletedPlayerRace();
+            if (!progressionResult.Succeeded)
+            {
+                LastCommandResult = RaceSessionCommandResult.Failure(RaceSessionCommandStatus.ProgressionFailed, progressionResult.Message);
+                SetState(RaceSessionLifecycleState.Failed);
+                CleanupAttempt();
+                return;
+            }
+
             var saveResult = _saveCheckpoint.Save();
             LastCommandResult = saveResult.Succeeded
                 ? RaceSessionCommandResult.Success()
                 : RaceSessionCommandResult.Failure(RaceSessionCommandStatus.SaveFailedAfterReward, saveResult.Message);
-            var result = new RaceSessionResult(racerFinished.Result, reward, _participantCount, _progressionState.Currency, saveResult.Succeeded, saveResult.Message);
+            var result = new RaceSessionResult(
+                racerFinished.Result,
+                reward,
+                _participantCount,
+                _progressionState.Currency,
+                progressionResult.CompletedRaceCount,
+                progressionResult.PreviousTier,
+                progressionResult.CurrentTier,
+                progressionResult.NewTierReached,
+                saveResult.Succeeded,
+                saveResult.Message);
             _raceSessionState.SetResult(result);
-            _lastResults = new RaceSessionResultsSnapshot(racerFinished.Result, _participantCount, reward, _progressionState.Currency, saveResult.Succeeded, saveResult.Message);
+            _lastResults = new RaceSessionResultsSnapshot(
+                racerFinished.Result,
+                _participantCount,
+                reward,
+                _progressionState.Currency,
+                progressionResult.CompletedRaceCount,
+                progressionResult.PreviousTier,
+                progressionResult.CurrentTier,
+                progressionResult.NewTierReached,
+                saveResult.Succeeded,
+                saveResult.Message);
             _navigation.ShowResults(result);
             SetState(RaceSessionLifecycleState.ShowingResults);
 

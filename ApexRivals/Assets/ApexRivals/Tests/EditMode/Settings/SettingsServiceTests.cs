@@ -105,7 +105,7 @@ namespace ApexRivals.Tests.EditMode.Settings
                 new SettingsResolution(0, 1080, 60)
             });
 
-            Assert.That(resolutions, Has.Count.EqualTo(2));
+            Assert.That(resolutions.Count, Is.EqualTo(2));
         }
 
         [Test]
@@ -201,7 +201,7 @@ namespace ApexRivals.Tests.EditMode.Settings
 
             presenter.Present();
 
-            Assert.That(presenter.Current.AvailableResolutions, Has.Count.EqualTo(2));
+            Assert.That(presenter.Current.AvailableResolutions.Count, Is.EqualTo(2));
             Assert.That(presenter.Current.SelectedResolution, Is.EqualTo(SettingsState.Default.Resolution));
         }
 

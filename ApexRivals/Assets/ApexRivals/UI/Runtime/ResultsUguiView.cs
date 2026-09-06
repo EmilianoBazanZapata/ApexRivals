@@ -11,6 +11,7 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Text raceTimeText;
         [SerializeField] private Text rewardText;
         [SerializeField] private Text updatedCurrencyText;
+        [SerializeField] private Text progressionText;
         [SerializeField] private Button retryButton;
         [SerializeField] private Button returnToGarageButton;
         [SerializeField] private Button returnToMainMenuButton;
@@ -31,6 +32,7 @@ namespace ApexRivals.UI.Runtime
             UguiViewText.Set(raceTimeText, UguiViewText.FormatTime(viewModel.RaceTime));
             UguiViewText.Set(rewardText, $"Reward: {viewModel.EarnedReward}");
             UguiViewText.Set(updatedCurrencyText, $"Currency: {viewModel.UpdatedCurrency}");
+            UguiViewText.Set(progressionText, CreateProgressionText(viewModel));
             UguiViewText.Set(statusText, viewModel.MessageKey);
             SetButton(retryButton, !viewModel.IsTransitioning);
             SetButton(returnToGarageButton, !viewModel.IsTransitioning);
@@ -132,6 +134,19 @@ namespace ApexRivals.UI.Runtime
             {
                 button.interactable = interactable;
             }
+        }
+
+        private static string CreateProgressionText(ResultsViewModel viewModel)
+        {
+            if (string.IsNullOrWhiteSpace(viewModel.CurrentTierId))
+            {
+                return $"Completed races: {viewModel.CompletedRaceCount}";
+            }
+
+            var tierText = $"Tier: {viewModel.CurrentTierDisplayName}";
+            return viewModel.NewTierReached
+                ? $"Completed races: {viewModel.CompletedRaceCount} | New tier: {viewModel.CurrentTierDisplayName}"
+                : $"Completed races: {viewModel.CompletedRaceCount} | {tierText}";
         }
     }
 }

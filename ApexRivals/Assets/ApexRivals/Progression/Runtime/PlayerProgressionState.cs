@@ -7,14 +7,20 @@ namespace ApexRivals.Progression.Runtime
     {
         private readonly Dictionary<UpgradeType, int> _upgradeLevels = new Dictionary<UpgradeType, int>();
 
-        public PlayerProgressionState(int startingCurrency = 0)
+        public PlayerProgressionState(int startingCurrency = 0, int completedRaceCount = 0)
         {
             if (startingCurrency < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(startingCurrency), "Starting currency cannot be negative.");
             }
 
+            if (completedRaceCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(completedRaceCount), "Completed race count cannot be negative.");
+            }
+
             Currency = startingCurrency;
+            CompletedRaceCount = completedRaceCount;
             _upgradeLevels[UpgradeType.Engine] = 0;
             _upgradeLevels[UpgradeType.Handling] = 0;
         }
@@ -22,6 +28,7 @@ namespace ApexRivals.Progression.Runtime
         public event Action<ProgressionStateChangedEvent> Changed;
 
         public int Currency { get; private set; }
+        public int CompletedRaceCount { get; private set; }
 
         public int GetUpgradeLevel(UpgradeType upgradeType)
         {
@@ -99,6 +106,27 @@ namespace ApexRivals.Progression.Runtime
             SetUpgradeLevel(upgradeType, GetUpgradeLevel(upgradeType) + 1);
         }
 
+        public void SetCompletedRaceCount(int completedRaceCount)
+        {
+            if (completedRaceCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(completedRaceCount), "Completed race count cannot be negative.");
+            }
+
+            if (CompletedRaceCount == completedRaceCount)
+            {
+                return;
+            }
+
+            CompletedRaceCount = completedRaceCount;
+            RaiseChanged();
+        }
+
+        public void RegisterCompletedRace()
+        {
+            SetCompletedRaceCount(CompletedRaceCount + 1);
+        }
+
         public CurrencyTransactionResult PurchaseUpgrade(UpgradeType upgradeType, int price)
         {
             if (price < 0)
@@ -119,7 +147,7 @@ namespace ApexRivals.Progression.Runtime
 
         private void RaiseChanged()
         {
-            Changed?.Invoke(new ProgressionStateChangedEvent(Currency));
+            Changed?.Invoke(new ProgressionStateChangedEvent(Currency, CompletedRaceCount));
         }
     }
 }

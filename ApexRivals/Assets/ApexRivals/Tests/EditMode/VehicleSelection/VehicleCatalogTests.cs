@@ -69,7 +69,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
 
             var vehicles = catalog.GetSelectableDemoVehicles();
 
-            Assert.That(vehicles, Has.Count.EqualTo(2));
+            Assert.That(vehicles.Count, Is.EqualTo(2));
             Assert.That(vehicles[0].StableId, Is.EqualTo("starter"));
             Assert.That(vehicles[1].StableId, Is.EqualTo("sport"));
         }

@@ -25,6 +25,7 @@ namespace ApexRivals.RaceSetup.Runtime
         public VehicleResetter VehicleResetter => vehicleResetter;
         public RaceParticipant RaceParticipant => raceParticipant;
         public DrivingInputGate DrivingInputGate => drivingInputGate;
+        public AiDrivingInputProvider AiInputProvider => aiInputProvider;
         public Transform CameraTarget => cameraTarget != null ? cameraTarget : transform;
 
         public void ConfigureReferences(

@@ -1,4 +1,5 @@
 using System.Collections;
+using ApexRivals.Progression.Configuration;
 using ApexRivals.Garage.Configuration;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
@@ -19,6 +20,7 @@ namespace ApexRivals.Bootstrap.Runtime
         [SerializeField] private VehicleCatalogDefinition vehicleCatalogDefinition;
         [SerializeField] private UpgradeDefinition engineUpgradeDefinition;
         [SerializeField] private UpgradeDefinition handlingUpgradeDefinition;
+        [SerializeField] private RaceProgressionDefinition raceProgressionDefinition;
         [SerializeField] private UnityContentSceneLoader sceneLoader;
         [SerializeField] private string[] knownVehicleIds = { SelectedVehicleState.DefaultVehicleId };
 
@@ -82,6 +84,20 @@ namespace ApexRivals.Bootstrap.Runtime
             var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
             var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
             var garageService = CreateGarageService(vehicleCatalog, progressionState);
+            var raceProgressionService = CreateRaceProgressionService(progressionState);
+            if (raceProgressionService == null)
+            {
+                StartupStatus = BootstrapStartupStatus.Failed;
+                return System.Threading.Tasks.Task.FromResult(new BootstrapStartupResult(BootstrapStartupStatus.Failed, "Race progression configuration is not assigned."));
+            }
+
+            var raceProgressionValidation = raceProgressionService.Validate();
+            if (!raceProgressionValidation.Succeeded)
+            {
+                StartupStatus = BootstrapStartupStatus.Failed;
+                return System.Threading.Tasks.Task.FromResult(new BootstrapStartupResult(BootstrapStartupStatus.Failed, raceProgressionValidation.Message));
+            }
+
             var sceneFlowService = new SceneFlowService(
                 sceneFlowConfiguration.CreateSceneMap(),
                 sceneLoader,
@@ -95,7 +111,8 @@ namespace ApexRivals.Bootstrap.Runtime
                 vehicleCatalog,
                 vehicleSelectionService,
                 garageService,
-                settingsService);
+                settingsService,
+                raceProgressionService);
 
             sceneLoader.ContentSceneUnloading += OnContentSceneUnloading;
             sceneLoader.ContentSceneLoaded += OnContentSceneLoaded;
@@ -171,6 +188,19 @@ namespace ApexRivals.Bootstrap.Runtime
                 engineUpgradeDefinition.CreateData(),
                 handlingUpgradeDefinition.CreateData(),
                 defaultVehicle.BaseStats);
+        }
+
+        private RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progressionState)
+        {
+            if (raceProgressionDefinition == null)
+            {
+                return null;
+            }
+
+            return new RaceProgressionService(
+                progressionState,
+                raceProgressionDefinition.CreateTable(),
+                raceProgressionDefinition.CreateAiConfigurationMap());
         }
 
         private void OnContentSceneUnloading(Scene scene)

@@ -175,6 +175,7 @@ MonoBehaviour:
   vehicleCatalogDefinition: {fileID: 11400000, guid: 41c0bf7dfed649078712751707df9593, type: 2}
   engineUpgradeDefinition: {fileID: 11400000, guid: db1d0dd0bf8e42b7b9e2366c40963806, type: 2}
   handlingUpgradeDefinition: {fileID: 11400000, guid: 0f492e0779254c68a09c336ad6ef13fd, type: 2}
+  raceProgressionDefinition: {fileID: 11400000, guid: 584171093c2d46a48f25895e7140bba9, type: 2}
   sceneLoader: {fileID: 100002}
   knownVehicleIds:
   - starter

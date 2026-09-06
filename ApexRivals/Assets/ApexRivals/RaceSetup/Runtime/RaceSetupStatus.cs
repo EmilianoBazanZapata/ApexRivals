@@ -10,6 +10,7 @@ namespace ApexRivals.RaceSetup.Runtime
         MissingVehiclePrefab,
         MissingVehicleComposition,
         MissingAiConfiguration,
+        DifficultyResolutionFailed,
         MissingRacingLine,
         SpawnFailed
     }

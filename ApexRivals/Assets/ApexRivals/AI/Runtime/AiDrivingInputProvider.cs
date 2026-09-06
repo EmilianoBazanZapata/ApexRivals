@@ -45,6 +45,7 @@ namespace ApexRivals.AI.Runtime
         private bool _racingLineValid;
 
         public DrivingInput CurrentInput => _currentInput;
+        public AiDriverConfiguration Configuration => configuration;
 
         public void Configure(
             AiDriverConfiguration driverConfiguration,

@@ -78,6 +78,12 @@ namespace ApexRivals.UI.Runtime
                 result.FinishTime,
                 result.EarnedReward,
                 result.UpdatedCurrency,
+                result.CompletedRaceCount,
+                result.PreviousTier.TierId,
+                result.PreviousTier.DisplayName,
+                result.CurrentTier.TierId,
+                result.CurrentTier.DisplayName,
+                result.NewTierReached,
                 _transitioning,
                 _failure,
                 _messageKey);

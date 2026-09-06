@@ -18,6 +18,7 @@ namespace ApexRivals.RaceSetup.Runtime
         private readonly UpgradeDefinitionData _handlingDefinition;
         private readonly IRaceVehicleFactory _vehicleFactory;
         private readonly Dictionary<string, AiDriverConfiguration> _aiConfigurationsById;
+        private readonly IRaceDifficultyProvider _raceDifficultyProvider;
         private readonly List<RaceVehicleComposition> _currentSpawned = new List<RaceVehicleComposition>();
         private bool _setupComplete;
 
@@ -27,7 +28,8 @@ namespace ApexRivals.RaceSetup.Runtime
             UpgradeDefinitionData engineDefinition,
             UpgradeDefinitionData handlingDefinition,
             IRaceVehicleFactory vehicleFactory,
-            IReadOnlyDictionary<string, AiDriverConfiguration> aiConfigurationsById)
+            IReadOnlyDictionary<string, AiDriverConfiguration> aiConfigurationsById,
+            IRaceDifficultyProvider raceDifficultyProvider = null)
         {
             _vehicleCatalog = vehicleCatalog ?? throw new ArgumentNullException(nameof(vehicleCatalog));
             _progressionState = progressionState ?? throw new ArgumentNullException(nameof(progressionState));
@@ -35,6 +37,7 @@ namespace ApexRivals.RaceSetup.Runtime
             _handlingDefinition = handlingDefinition ?? throw new ArgumentNullException(nameof(handlingDefinition));
             _vehicleFactory = vehicleFactory ?? throw new ArgumentNullException(nameof(vehicleFactory));
             _aiConfigurationsById = new Dictionary<string, AiDriverConfiguration>(aiConfigurationsById ?? new Dictionary<string, AiDriverConfiguration>(), StringComparer.Ordinal);
+            _raceDifficultyProvider = raceDifficultyProvider;
         }
 
         public RaceSetupResult SetupRace(
@@ -169,9 +172,11 @@ namespace ApexRivals.RaceSetup.Runtime
                 return Failure(RaceSetupStatus.MissingRacingLine, "AI race setup requires a racing line.");
             }
 
-            if (!_aiConfigurationsById.TryGetValue(entry.AiConfigurationId, out var aiConfiguration) || aiConfiguration == null)
+            if (!TryResolveAiConfiguration(entry.AiConfigurationId, out var aiConfiguration, out var aiMessage))
             {
-                return Failure(RaceSetupStatus.MissingAiConfiguration, $"AI configuration '{entry.AiConfigurationId}' is missing.");
+                return Failure(
+                    _raceDifficultyProvider != null ? RaceSetupStatus.DifficultyResolutionFailed : RaceSetupStatus.MissingAiConfiguration,
+                    aiMessage);
             }
 
             if (!composition.CanConfigureAI)
@@ -181,6 +186,23 @@ namespace ApexRivals.RaceSetup.Runtime
 
             composition.ConfigureAI(raceCoordinator, entry.ParticipantId, vehicleLookup.Vehicle.BaseConfiguration, aiConfiguration, racingLine);
             return Success(new RaceSetupOutput(null, new[] { composition }, new[] { composition.RaceParticipant }, null, new[] { composition.DrivingInputGate }));
+        }
+
+        private bool TryResolveAiConfiguration(string aiConfigurationId, out AiDriverConfiguration aiConfiguration, out string message)
+        {
+            if (_raceDifficultyProvider != null)
+            {
+                return _raceDifficultyProvider.TryGetCurrentAiConfiguration(out aiConfiguration, out message);
+            }
+
+            if (_aiConfigurationsById.TryGetValue(aiConfigurationId, out aiConfiguration) && aiConfiguration != null)
+            {
+                message = string.Empty;
+                return true;
+            }
+
+            message = $"AI configuration '{aiConfigurationId}' is missing.";
+            return false;
         }
 
         private void Cleanup(IReadOnlyList<RaceVehicleComposition> spawned)

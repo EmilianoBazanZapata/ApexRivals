@@ -85,7 +85,7 @@ namespace ApexRivals.Tests.EditMode.UI
 
             presenter.Present();
 
-            Assert.That(presenter.Current.Vehicles, Has.Count.EqualTo(2));
+            Assert.That(presenter.Current.Vehicles.Count, Is.EqualTo(2));
             Assert.That(presenter.Current.Vehicles[0].VehicleId, Is.EqualTo("starter"));
             Assert.That(presenter.Current.Vehicles[0].EffectiveStats.ForwardAcceleration, Is.GreaterThan(0f));
         }
@@ -202,7 +202,17 @@ namespace ApexRivals.Tests.EditMode.UI
         public async Task Results_MapsValuesAndDoesNotApplyReward()
         {
             var context = CreateRaceSessionContext();
-            context.SceneFlow.RaceSession.SetResult(new RaceSessionResult(new RaceResult("Player", 2, 71f), 300, 4, 900, true, string.Empty));
+            context.SceneFlow.RaceSession.SetResult(new RaceSessionResult(
+                new RaceResult("Player", 2, 71f),
+                300,
+                4,
+                900,
+                2,
+                new RaceProgressionTier("rookie", "Rookie", 0, "rookie"),
+                new RaceProgressionTier("amateur", "Amateur", 2, "amateur"),
+                true,
+                true,
+                string.Empty));
             var presenter = new ResultsPresenter(new FakeResultsView(), context.Session, context.SceneFlow);
             var before = context.Progression.Currency;
 
@@ -212,6 +222,10 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(presenter.Current.FinalPosition, Is.EqualTo(2));
             Assert.That(presenter.Current.ParticipantCount, Is.EqualTo(4));
             Assert.That(presenter.Current.EarnedReward, Is.EqualTo(300));
+            Assert.That(presenter.Current.CompletedRaceCount, Is.EqualTo(2));
+            Assert.That(presenter.Current.PreviousTierId, Is.EqualTo("rookie"));
+            Assert.That(presenter.Current.CurrentTierId, Is.EqualTo("amateur"));
+            Assert.That(presenter.Current.NewTierReached, Is.True);
             Assert.That(context.Progression.Currency, Is.EqualTo(before));
         }
 
@@ -346,8 +360,24 @@ namespace ApexRivals.Tests.EditMode.UI
             var navigation = new FakeRaceSessionNavigation();
             var sceneFlow = new SceneFlowService(new SceneFlowSceneMap("MainMenu", "Garage", "Race"), new FakeSceneLoader());
             var timeScale = new FakeTimeScaleController();
-            var session = new RaceSessionCoordinator(setup, raceController, rewardService, progression, save, navigation, sceneFlow.RaceSession, timeScale);
+            var session = new RaceSessionCoordinator(setup, raceController, rewardService, progression, save, navigation, sceneFlow.RaceSession, timeScale, CreateRaceProgressionService(progression));
             return new RaceContext(session, setup, raceController, progression, navigation, sceneFlow, timeScale);
+        }
+
+        private static RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progression)
+        {
+            return new RaceProgressionService(
+                progression,
+                new RaceProgressionTable(new[]
+                {
+                    new RaceProgressionTier("rookie", "Rookie", 0, "rookie"),
+                    new RaceProgressionTier("amateur", "Amateur", 2, "amateur")
+                }),
+                new Dictionary<string, ApexRivals.AI.Configuration.AiDriverConfiguration>
+                {
+                    ["rookie"] = ScriptableObject.CreateInstance<ApexRivals.AI.Configuration.AiDriverConfiguration>(),
+                    ["amateur"] = ScriptableObject.CreateInstance<ApexRivals.AI.Configuration.AiDriverConfiguration>()
+                });
         }
 
         private static void StartRace(RaceContext context)

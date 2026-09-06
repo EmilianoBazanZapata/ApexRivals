@@ -46,6 +46,11 @@ namespace ApexRivals.SaveSystem.Runtime
                 return new SaveDataValidationResult(false, null, "Upgrade levels cannot be negative.");
             }
 
+            if (saveData.completedRaceCount < 0)
+            {
+                return new SaveDataValidationResult(false, null, "Completed race count cannot be negative.");
+            }
+
             var selectedVehicleId = ResolveVehicleId(saveData.selectedVehicleId);
             var validated = new PlayerProfileSaveData
             {
@@ -53,6 +58,7 @@ namespace ApexRivals.SaveSystem.Runtime
                 currency = saveData.currency,
                 engineUpgradeLevel = saveData.engineUpgradeLevel,
                 handlingUpgradeLevel = saveData.handlingUpgradeLevel,
+                completedRaceCount = saveData.completedRaceCount,
                 selectedVehicleId = selectedVehicleId
             };
 

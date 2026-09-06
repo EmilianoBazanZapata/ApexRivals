@@ -293,6 +293,12 @@ namespace ApexRivals.UI.Runtime
             float raceTime,
             int earnedReward,
             int updatedCurrency,
+            int completedRaceCount,
+            string previousTierId,
+            string previousTierDisplayName,
+            string currentTierId,
+            string currentTierDisplayName,
+            bool newTierReached,
             bool isTransitioning,
             PresentationFailure failure,
             string messageKey)
@@ -302,6 +308,12 @@ namespace ApexRivals.UI.Runtime
             RaceTime = raceTime;
             EarnedReward = earnedReward;
             UpdatedCurrency = updatedCurrency;
+            CompletedRaceCount = completedRaceCount;
+            PreviousTierId = previousTierId;
+            PreviousTierDisplayName = previousTierDisplayName;
+            CurrentTierId = currentTierId;
+            CurrentTierDisplayName = currentTierDisplayName;
+            NewTierReached = newTierReached;
             IsTransitioning = isTransitioning;
             Failure = failure;
             MessageKey = messageKey;
@@ -312,6 +324,12 @@ namespace ApexRivals.UI.Runtime
         public float RaceTime { get; }
         public int EarnedReward { get; }
         public int UpdatedCurrency { get; }
+        public int CompletedRaceCount { get; }
+        public string PreviousTierId { get; }
+        public string PreviousTierDisplayName { get; }
+        public string CurrentTierId { get; }
+        public string CurrentTierDisplayName { get; }
+        public bool NewTierReached { get; }
         public bool IsTransitioning { get; }
         public PresentationFailure Failure { get; }
         public string MessageKey { get; }
