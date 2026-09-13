@@ -292,9 +292,10 @@ namespace ApexRivals.UI.Runtime
             {
                 _session = session;
                 _session.StateChanged += OnStateChanged;
+                _session.PositionChanged += OnPositionChanged;
             }
 
-#pragma warning disable CS0067 // Required by IRaceHudSource; this aggregate source publishes session snapshots and RaceStarted only.
+#pragma warning disable CS0067 // Required by IRaceHudSource; the aggregate source publishes position and RaceStarted updates.
             public event System.Action<ApexRivals.Race.Runtime.CountdownChangedEvent> CountdownChanged;
             public event System.Action<ApexRivals.Race.Runtime.LapCompletedEvent> LapCompleted;
             public event System.Action<ApexRivals.Race.Runtime.PositionChangedEvent> PositionChanged;
@@ -308,6 +309,7 @@ namespace ApexRivals.UI.Runtime
             public void Dispose()
             {
                 _session.StateChanged -= OnStateChanged;
+                _session.PositionChanged -= OnPositionChanged;
             }
 
             private void OnStateChanged(RaceSessionLifecycleState previous, RaceSessionLifecycleState current)
@@ -316,6 +318,11 @@ namespace ApexRivals.UI.Runtime
                 {
                     RaceStarted?.Invoke(new ApexRivals.Race.Runtime.RaceStartedEvent(0f));
                 }
+            }
+
+            private void OnPositionChanged(ApexRivals.Race.Runtime.PositionChangedEvent positionChanged)
+            {
+                PositionChanged?.Invoke(positionChanged);
             }
         }
     }

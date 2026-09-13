@@ -119,6 +119,20 @@ namespace ApexRivals.Tests.EditMode.RaceSession
         }
 
         [Test]
+        public void PlayerPositionChangesAreForwardedToTheHudPipeline()
+        {
+            var context = CreateContext();
+            var receivedPosition = 0;
+            context.Session.PositionChanged += positionChanged => receivedPosition = positionChanged.Position;
+            context.Session.Prepare();
+
+            context.RaceController.RaisePositionChanged("AI_01", 1);
+            context.RaceController.RaisePositionChanged("Player", 2);
+
+            Assert.That(receivedPosition, Is.EqualTo(2));
+        }
+
+        [Test]
         public void PlayerResultIsProcessedOnceAndRewardAddedOnce()
         {
             var context = CreateContext();
@@ -503,6 +517,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
         private sealed class FakeRaceSessionRaceController : IRaceSessionRaceController
         {
             public event Action<RaceStartedEvent> RaceStarted;
+            public event Action<PositionChangedEvent> PositionChanged;
             public event Action<RacerFinishedEvent> RacerFinished;
 
             public int ConfigureCount { get; private set; }
@@ -544,6 +559,11 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             public void RaiseRaceStarted()
             {
                 RaceStarted?.Invoke(new RaceStartedEvent(0f));
+            }
+
+            public void RaisePositionChanged(string racerId, int position)
+            {
+                PositionChanged?.Invoke(new PositionChangedEvent(racerId, position));
             }
 
             public void RaiseRacerFinished(RaceResult result)

@@ -54,6 +54,8 @@ namespace ApexRivals.RaceSession.Runtime
 
         public event Action<RaceSessionLifecycleState, RaceSessionLifecycleState> StateChanged;
 
+        public event Action<PositionChangedEvent> PositionChanged;
+
         public event Action<RaceSessionResultsSnapshot> ResultsReady;
 
         public RaceSessionLifecycleState State { get; private set; }
@@ -376,6 +378,14 @@ namespace ApexRivals.RaceSession.Runtime
             }
         }
 
+        private void HandlePositionChanged(PositionChangedEvent positionChanged)
+        {
+            if (string.Equals(positionChanged.RacerId, _playerParticipantId, StringComparison.Ordinal))
+            {
+                PositionChanged?.Invoke(positionChanged);
+            }
+        }
+
         private void Subscribe()
         {
             if (_subscriptionsActive)
@@ -384,6 +394,7 @@ namespace ApexRivals.RaceSession.Runtime
             }
 
             _raceController.RaceStarted += HandleRaceStarted;
+            _raceController.PositionChanged += HandlePositionChanged;
             _raceController.RacerFinished += HandleRacerFinished;
             _subscriptionsActive = true;
         }
@@ -396,6 +407,7 @@ namespace ApexRivals.RaceSession.Runtime
             }
 
             _raceController.RaceStarted -= HandleRaceStarted;
+            _raceController.PositionChanged -= HandlePositionChanged;
             _raceController.RacerFinished -= HandleRacerFinished;
             _subscriptionsActive = false;
         }

@@ -200,6 +200,22 @@ namespace ApexRivals.Tests.EditMode.UI
         }
 
         [Test]
+        public void RaceHud_PositionChangeRefreshesTheDisplayedPlayerPosition()
+        {
+            var source = new FakeRaceHudSource
+            {
+                SnapshotValue = new RaceHudSnapshot(1, 1, 2, 2, 0f, 10f)
+            };
+            var presenter = new RaceHudPresenter(new FakeRaceHudView(), source);
+
+            source.SnapshotValue = new RaceHudSnapshot(1, 1, 1, 2, 0f, 10f);
+            source.RaisePositionChanged();
+
+            Assert.That(presenter.Current.CurrentPosition, Is.EqualTo(1));
+            Assert.That(presenter.Current.ParticipantCount, Is.EqualTo(2));
+        }
+
+        [Test]
         public async Task Results_MapsValuesAndDoesNotApplyReward()
         {
             var context = CreateRaceSessionContext();
@@ -593,6 +609,11 @@ namespace ApexRivals.Tests.EditMode.UI
             {
                 LapCompleted?.Invoke(new LapCompletedEvent("Player", 1, 3));
             }
+
+            public void RaisePositionChanged()
+            {
+                PositionChanged?.Invoke(new PositionChangedEvent("Player", 1));
+            }
         }
 
         private sealed class FakeUiInputSource : IUiInputSource
@@ -709,6 +730,9 @@ namespace ApexRivals.Tests.EditMode.UI
         private sealed class FakeRaceSessionRaceController : IRaceSessionRaceController
         {
             public event Action<RaceStartedEvent> RaceStarted;
+#pragma warning disable CS0067 // Required by IRaceSessionRaceController; this UI test double does not raise position events.
+            public event Action<PositionChangedEvent> PositionChanged;
+#pragma warning restore CS0067
             public event Action<RacerFinishedEvent> RacerFinished;
 
             public Transform PlayerCameraTarget => null;

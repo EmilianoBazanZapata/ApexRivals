@@ -23,6 +23,12 @@ namespace ApexRivals.RaceSession.Runtime
             remove => _raceCoordinator.RaceStarted -= value;
         }
 
+        public event Action<PositionChangedEvent> PositionChanged
+        {
+            add => _raceCoordinator.PositionChanged += value;
+            remove => _raceCoordinator.PositionChanged -= value;
+        }
+
         public event Action<RacerFinishedEvent> RacerFinished
         {
             add => _raceCoordinator.RacerFinished += value;

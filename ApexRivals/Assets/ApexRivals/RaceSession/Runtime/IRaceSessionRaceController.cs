@@ -10,6 +10,8 @@ namespace ApexRivals.RaceSession.Runtime
     {
         event Action<RaceStartedEvent> RaceStarted;
 
+        event Action<PositionChangedEvent> PositionChanged;
+
         event Action<RacerFinishedEvent> RacerFinished;
 
         bool ConfigureForSession(RaceSetupOutput setupOutput, string playerParticipantId, out string message);
