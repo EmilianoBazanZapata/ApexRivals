@@ -1,5 +1,6 @@
 using System.Collections;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -55,10 +56,12 @@ namespace ApexRivals.SceneFlow.Runtime
             IsLoading = true;
             Progress = 0f;
             var previousContentScene = _currentContentScene;
+            var disabledAudioListeners = DisableAudioListeners(previousContentScene);
 
             var loadOperation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             if (loadOperation == null)
             {
+                RestoreAudioListeners(disabledAudioListeners);
                 IsLoading = false;
                 completion.SetResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, "Unity did not create a load operation for the requested scene."));
                 yield break;
@@ -73,6 +76,7 @@ namespace ApexRivals.SceneFlow.Runtime
 
                 if (cancellationToken.IsCancellationRequested)
                 {
+                    RestoreAudioListeners(disabledAudioListeners);
                     IsLoading = false;
                     completion.SetResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, "The content scene load was cancelled."));
                     yield break;
@@ -85,6 +89,7 @@ namespace ApexRivals.SceneFlow.Runtime
             var loadedScene = FindNewestLoadedScene(sceneName, previousContentScene);
             if (!loadedScene.IsValid() || !loadedScene.isLoaded)
             {
+                RestoreAudioListeners(disabledAudioListeners);
                 IsLoading = false;
                 completion.SetResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, "The requested scene did not finish loading."));
                 yield break;
@@ -107,6 +112,14 @@ namespace ApexRivals.SceneFlow.Runtime
 
                     unloadedSceneName = previousContentScene.name;
                 }
+                else
+                {
+                    RestoreAudioListeners(disabledAudioListeners);
+                }
+            }
+            else
+            {
+                RestoreAudioListeners(disabledAudioListeners);
             }
 
             _currentContentScene = loadedScene;
@@ -128,6 +141,45 @@ namespace ApexRivals.SceneFlow.Runtime
             }
 
             return SceneManager.GetSceneByName(sceneName);
+        }
+
+        private static List<AudioListener> DisableAudioListeners(Scene scene)
+        {
+            var disabledListeners = new List<AudioListener>();
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                return disabledListeners;
+            }
+
+            var listeners = new List<AudioListener>();
+            var roots = scene.GetRootGameObjects();
+            for (var index = 0; index < roots.Length; index++)
+            {
+                listeners.Clear();
+                roots[index].GetComponentsInChildren(true, listeners);
+                for (var listenerIndex = 0; listenerIndex < listeners.Count; listenerIndex++)
+                {
+                    var listener = listeners[listenerIndex];
+                    if (listener != null && listener.enabled)
+                    {
+                        listener.enabled = false;
+                        disabledListeners.Add(listener);
+                    }
+                }
+            }
+
+            return disabledListeners;
+        }
+
+        private static void RestoreAudioListeners(List<AudioListener> disabledListeners)
+        {
+            for (var index = 0; index < disabledListeners.Count; index++)
+            {
+                if (disabledListeners[index] != null)
+                {
+                    disabledListeners[index].enabled = true;
+                }
+            }
         }
     }
 }

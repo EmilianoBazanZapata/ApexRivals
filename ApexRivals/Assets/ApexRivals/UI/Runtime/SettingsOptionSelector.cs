@@ -106,13 +106,15 @@ namespace ApexRivals.UI.Runtime
             base.OnMove(eventData);
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public override void OnPointerEnter(PointerEventData eventData)
         {
+            base.OnPointerEnter(eventData);
             SelectSelf();
         }
 
-        public void OnPointerExit(PointerEventData eventData)
+        public override void OnPointerExit(PointerEventData eventData)
         {
+            base.OnPointerExit(eventData);
             RefreshVisuals();
         }
 

@@ -294,11 +294,13 @@ namespace ApexRivals.UI.Runtime
                 _session.StateChanged += OnStateChanged;
             }
 
+#pragma warning disable CS0067 // Required by IRaceHudSource; this aggregate source publishes session snapshots and RaceStarted only.
             public event System.Action<ApexRivals.Race.Runtime.CountdownChangedEvent> CountdownChanged;
             public event System.Action<ApexRivals.Race.Runtime.LapCompletedEvent> LapCompleted;
             public event System.Action<ApexRivals.Race.Runtime.PositionChangedEvent> PositionChanged;
             public event System.Action<ApexRivals.Race.Runtime.RaceStartedEvent> RaceStarted;
             public event System.Action<ApexRivals.Race.Runtime.RacerFinishedEvent> RacerFinished;
+#pragma warning restore CS0067
 
             public RaceHudSnapshot Snapshot => _session.Hud;
             public bool RacingInputActive => _session.State == RaceSessionLifecycleState.Racing;

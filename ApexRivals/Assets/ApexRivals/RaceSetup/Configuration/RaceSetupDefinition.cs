@@ -12,7 +12,9 @@ namespace ApexRivals.RaceSetup.Configuration
     {
         [SerializeField] private RaceDefinition raceDefinition;
         [SerializeField] private string playerParticipantId = "Player";
+#pragma warning disable CS0414 // Retained for existing serialized race setup assets.
         [SerializeField] private string playerVehicleId = "starter";
+#pragma warning restore CS0414
         [SerializeField, Min(0)] private int playerStartingGridIndex;
         [SerializeField] private RaceAiOpponentDefinition[] aiOpponents = Array.Empty<RaceAiOpponentDefinition>();
 

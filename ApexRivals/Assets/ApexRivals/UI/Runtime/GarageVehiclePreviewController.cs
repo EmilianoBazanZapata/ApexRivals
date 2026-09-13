@@ -9,8 +9,10 @@ namespace ApexRivals.UI.Runtime
         [Serializable]
         private struct Entry
         {
+#pragma warning disable CS0649 // Unity assigns these serialized entry fields.
             public string vehicleId;
             public GameObject prefab;
+#pragma warning restore CS0649
         }
 
         [SerializeField] private Transform previewAnchor;

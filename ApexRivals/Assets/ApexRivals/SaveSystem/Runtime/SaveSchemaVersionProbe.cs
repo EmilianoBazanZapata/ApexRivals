@@ -5,6 +5,6 @@ namespace ApexRivals.SaveSystem.Runtime
     [Serializable]
     internal sealed class SaveSchemaVersionProbe
     {
-        public int schemaVersion;
+        public int schemaVersion = 0;
     }
 }

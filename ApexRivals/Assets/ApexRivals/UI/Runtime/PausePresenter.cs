@@ -122,7 +122,7 @@ namespace ApexRivals.UI.Runtime
             _messageKey = string.Empty;
             Present();
 
-            var transition = await _sceneFlow.ForceReturnToMainMenu();
+            var transition = await _raceSession.ReturnToMainMenu();
             if (_disposed)
             {
                 return;
