@@ -1,20 +1,35 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# Apex Rivals — Development Branch
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+> **Rama de desarrollo de Apex Rivals**
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+Esta rama, `blocking`, fue utilizada como rama principal de trabajo durante el desarrollo del prototipo de **Apex Rivals**.
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+Su objetivo es conservar el historial detallado del proceso de desarrollo antes de su integración en `main`.
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+## ¿Qué contiene esta rama?
+
+El historial de commits de `blocking` permite consultar la evolución del proyecto, incluyendo:
+
+- implementación de los sistemas principales;
+- conducción y físicas del vehículo;
+- sistema de carrera;
+- IA experimental;
+- Garage y selección de vehículos;
+- progresión y persistencia;
+- Main Menu, HUD, Pause y Results;
+- integración de escenas;
+- correcciones y fixes;
+- testing;
+- documentación.
+
+## Historial de desarrollo
+
+Los commits se mantuvieron separados durante el desarrollo para facilitar la revisión de cada etapa, integración y corrección realizada.
+
+Para consultar la versión estable utilizada como referencia para la entrega, visitar la rama [`main`](../main).
+
+---
+
+**Apex Rivals**  
+Binary Suns Studio · Emiliano Bazán-Zapata  
+Motores de Desarrollo I · UTN FRBA
