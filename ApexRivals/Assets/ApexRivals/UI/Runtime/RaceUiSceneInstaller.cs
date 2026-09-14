@@ -1,6 +1,7 @@
 using ApexRivals.Bootstrap.Runtime;
 using ApexRivals.RaceSession.Runtime;
 using ApexRivals.SceneFlow.Runtime;
+using ApexRivals.Vehicle.Runtime;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -12,12 +13,14 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private UguiScreenNavigator screenNavigator;
         [SerializeField] private RaceSessionSceneInstaller raceSessionInstaller;
         [SerializeField] private RaceHudUguiView hudView;
+        [SerializeField] private VehicleRecoveryPromptUguiView vehicleRecoveryPromptView;
         [SerializeField] private PauseUguiView pauseView;
         [SerializeField] private ResultsUguiView resultsView;
         [SerializeField] private ApexRivals.Camera.Runtime.WheelVehicleFollowCamera followCamera;
 
         private ApplicationContext _context;
         private RaceHudPresenter _hudPresenter;
+        private VehicleRecoveryPromptPresenter _vehicleRecoveryPromptPresenter;
         private PausePresenter _pausePresenter;
         private ResultsPresenter _resultsPresenter;
         private RaceSessionHudSource _hudSource;
@@ -48,7 +51,7 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            if (screenNavigator == null || hudView == null || pauseView == null || resultsView == null)
+            if (screenNavigator == null || hudView == null || vehicleRecoveryPromptView == null || pauseView == null || resultsView == null)
             {
                 Debug.LogError("Race UI has missing serialized references.", this);
                 return;
@@ -68,6 +71,7 @@ namespace ApexRivals.UI.Runtime
             pauseView.ResumeRequested += OnPauseViewResumeRequested;
             resultsView.Bind(_resultsPresenter);
             BindHud(session);
+            BindVehicleRecoveryPrompt(session);
 
             session.StateChanged += OnSessionStateChanged;
             session.ResultsReady += OnResultsReady;
@@ -103,10 +107,12 @@ namespace ApexRivals.UI.Runtime
             _pausePresenter?.Dispose();
             _resultsPresenter?.Dispose();
             _hudPresenter?.Dispose();
+            _vehicleRecoveryPromptPresenter?.Dispose();
             _hudSource?.Dispose();
             hudView?.BindTelemetry(null);
             _hudSource = null;
             _hudPresenter = null;
+            _vehicleRecoveryPromptPresenter = null;
             _pausePresenter = null;
             _resultsPresenter = null;
             _context = null;
@@ -118,6 +124,23 @@ namespace ApexRivals.UI.Runtime
             _hudPresenter = new RaceHudPresenter(hudView, _hudSource);
             hudView.Bind(_hudPresenter);
             hudView.BindTelemetry(session.PlayerVehicleTelemetry);
+        }
+
+        private void BindVehicleRecoveryPrompt(RaceSessionCoordinator session)
+        {
+            var playerRigidbody = session.PlayerVehicleRigidbody;
+            var detector = playerRigidbody != null
+                ? playerRigidbody.GetComponent<VehicleRoofRecoveryDetector>()
+                : null;
+            if (detector == null)
+            {
+                vehicleRecoveryPromptView.Render(false);
+                Debug.LogWarning("Race UI could not resolve the player VehicleRoofRecoveryDetector.", this);
+                return;
+            }
+
+            _vehicleRecoveryPromptPresenter = new VehicleRecoveryPromptPresenter(vehicleRecoveryPromptView, detector);
+            _vehicleRecoveryPromptPresenter.Present();
         }
 
         private void CreatePauseAction()

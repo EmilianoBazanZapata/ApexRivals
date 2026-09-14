@@ -38,7 +38,6 @@ namespace ApexRivals.UI.Runtime
         public void Show(PresentationScreenState screenState)
         {
             var previous = CurrentScreen;
-            LogState("Show requested", previous, screenState);
             RememberSelection(previous);
             CurrentScreen = screenState;
             var enteringModal = screenState == PresentationScreenState.Paused
@@ -97,26 +96,22 @@ namespace ApexRivals.UI.Runtime
             LogSelection("Cancel input", CurrentScreen);
             if (panel == null || EventSystem.current == null)
             {
-                Debug.Log($"[UI_INPUT] Cancel ignored. panel={NameOf(panel)} eventSystem={(EventSystem.current != null)}");
                 return;
             }
 
             var selected = EventSystem.current.currentSelectedGameObject;
             if (selected != null && selected.GetComponent<ICancelHandler>() != null)
             {
-                Debug.Log($"[UI_INPUT] Cancel ignored because selected owns ICancelHandler. selected={NameOf(selected)} screen={CurrentScreen}");
                 return;
             }
 
             var eventData = new BaseEventData(EventSystem.current);
             if (selected != null && selected.transform.IsChildOf(panel.transform))
             {
-                Debug.Log($"[UI_INPUT] Cancel executing hierarchy from selected={NameOf(selected)} panel={NameOf(panel)} screen={CurrentScreen}");
                 ExecuteEvents.ExecuteHierarchy(selected, eventData, ExecuteEvents.cancelHandler);
                 return;
             }
 
-            Debug.Log($"[UI_INPUT] Cancel executing hierarchy from panel={NameOf(panel)} screen={CurrentScreen}");
             ExecuteEvents.ExecuteHierarchy(panel, eventData, ExecuteEvents.cancelHandler);
         }
 
@@ -212,7 +207,6 @@ namespace ApexRivals.UI.Runtime
             _pendingSelectionRefresh = null;
             if (CurrentScreen != screenState || EventSystem.current == null)
             {
-                Debug.Log($"[UI_INPUT] Deferred selection skipped. expected={screenState} actual={CurrentScreen} eventSystem={(EventSystem.current != null)}");
                 yield break;
             }
 
@@ -338,16 +332,10 @@ namespace ApexRivals.UI.Runtime
             return IsUsable(selected.GetComponent<Selectable>());
         }
 
-        private void LogState(string message, PresentationScreenState previous, PresentationScreenState next)
-        {
-            Debug.Log($"[UI_INPUT] {message}. previous={previous} next={next} selected={NameOf(EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null)}");
-        }
-
         private void LogSelection(string message, PresentationScreenState screenState)
         {
             var panel = ScreenPanel(screenState);
             var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-            Debug.Log($"[UI_INPUT] {message}. screen={screenState} selected={NameOf(selected)} panel={NameOf(panel)} usable={IsUsableSelection(selected, panel)} panelActive={(panel != null && panel.activeInHierarchy)}");
         }
 
         private static string NameOf(Object target)

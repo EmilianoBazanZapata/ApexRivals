@@ -1,3 +1,4 @@
+using System;
 using ApexRivals.Input.Runtime;
 using UnityEngine;
 
@@ -40,6 +41,10 @@ namespace ApexRivals.Vehicle.Runtime
         public float RoofHitDistance => roofHitDistance;
         public bool CanRecoverVehicle => canRecoverVehicle;
         public RecoveryInputSource LastRecoveryInput => lastRecoveryInput;
+
+        public event Action<bool> RecoveryAvailabilityChanged;
+        public event Action<RecoveryInputSource> RecoveryRequested;
+        public event Action<RecoveryInputSource> RecoveryCompleted;
 
         private void Awake()
         {
@@ -108,11 +113,11 @@ namespace ApexRivals.Vehicle.Runtime
             _invertedTime = isInverted && roofRayHit
                 ? _invertedTime + Time.deltaTime
                 : 0f;
-            canRecoverVehicle = VehicleRoofRecoveryRules.CanRecover(
+            SetRecoveryAvailability(VehicleRoofRecoveryRules.CanRecover(
                 isInverted,
                 roofRayHit,
                 _invertedTime,
-                invertedDebounceDuration);
+                invertedDebounceDuration));
         }
 
         private void TryConsumeRecoveryInput()
@@ -137,11 +142,24 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
+            RecoveryRequested?.Invoke(lastRecoveryInput);
             if (vehicleController.TryResetVehicle())
             {
                 _invertedTime = 0f;
-                canRecoverVehicle = false;
+                SetRecoveryAvailability(false);
+                RecoveryCompleted?.Invoke(lastRecoveryInput);
             }
+        }
+
+        private void SetRecoveryAvailability(bool isAvailable)
+        {
+            if (canRecoverVehicle == isAvailable)
+            {
+                return;
+            }
+
+            canRecoverVehicle = isAvailable;
+            RecoveryAvailabilityChanged?.Invoke(canRecoverVehicle);
         }
 
         private void OnDrawGizmosSelected()

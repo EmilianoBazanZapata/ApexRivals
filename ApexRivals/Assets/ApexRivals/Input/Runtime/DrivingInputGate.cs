@@ -37,7 +37,6 @@ namespace ApexRivals.Input.Runtime
         public void SetDrivingAllowed(bool isAllowed)
         {
             drivingAllowed = isAllowed;
-            Debug.Log($"[VEHICLE_DIAG] {name} DrivingInputGate.SetDrivingAllowed({isAllowed}) source={(_source != null ? _source.GetType().Name : "null")}", this);
 
             if (!drivingAllowed)
             {

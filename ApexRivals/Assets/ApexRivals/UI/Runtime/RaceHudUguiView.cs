@@ -144,7 +144,7 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            UguiViewText.Set(positionText, $"Position {viewModel.CurrentPosition}/{viewModel.ParticipantCount}");
+            UguiViewText.Set(positionText, $"{viewModel.CurrentPosition}/{viewModel.ParticipantCount}");
             _lastCurrentPosition = viewModel.CurrentPosition;
             _lastParticipantCount = viewModel.ParticipantCount;
             _hasRenderedStaticValues = true;
