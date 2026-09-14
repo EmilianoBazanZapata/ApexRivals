@@ -19,6 +19,11 @@
 
 ---
 
+> [!WARNING]
+> **Historial de commits:** todos los commits realizados durante el desarrollo del proyecto se encuentran en la rama **`blocking`**. Para revisar el proceso de desarrollo completo, consultar el historial de esa rama y no el de `main`.
+
+---
+
 ## Descripción
 
 **Apex Rivals** es un juego de carreras arcade 3D para PC desarrollado en Unity 6. El proyecto busca ofrecer una conducción inmediata y accesible, con derrape, progresión de vehículo y una estructura de carrera completa de principio a fin.
@@ -618,6 +623,9 @@ Después:
 
 Bootstrap inicializa el perfil, settings y servicios antes de ingresar al Main Menu.
 
+> [!WARNING]
+> El historial completo de commits se encuentra en la rama **`blocking`**, no en `main`. Para revisar el proceso de desarrollo, cambiar a esa rama con `git checkout blocking`.
+
 ---
 
 # Build
@@ -694,4 +702,3 @@ El proyecto está preparado para ampliar progresivamente el número de vehículo
 **Apex Rivals** fue diseñado y desarrollado por **Emiliano Bazán-Zapata** bajo el nombre **Binary Suns Studio**, como proyecto individual para la materia **Motores de Desarrollo I** de la Tecnicatura Universitaria en Desarrollo y Producción de Videojuegos.
 
 Universidad Tecnológica Nacional — Facultad Regional Buenos Aires.
-
