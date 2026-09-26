@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a758c1458ca4213a8a5d67a53fc5e12, type: 3}
+  m_Name: VanguardWheelVehicleConfiguration
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Vehicle.Configuration.WheelVehicleConfiguration
+  mass: 1000
+  linearDamping: 0
+  angularDamping: 0.05
+  motorPower: 100
+  differential: 4
+  gearRatios: [3, 2.5, 2, 1.5, 1, 0.8]
+  idleRpm: 800
+  redlineRpm: 6500
+  upshiftRpm: 5500
+  downshiftRpm: 3300
+  gearShiftDuration: 0.12
+  gearShiftCooldownDuration: 0.25
+  engineRpmResponse: 3
+  enginePowerCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 1
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1.1105323
+      value: -0.011385194
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  brakePower: 50000
+  frontBrakeFactor: 0.7
+  rearBrakeFactor: 0.3
+  handbrakeTorque: 50000
+  handbrakeMotorTorqueMultiplier: 0
+  driftMotorTorqueMultiplier: 1
+  driftRearSidewaysGripMultiplier: 0.5
+  driftHandbrakeEntryDuration: 0.1
+  driftHandbrakeHoldMultiplier: 0.1
+  reverseEntrySpeed: 0.5
+  steeringCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: -0.9073868
+      value: 63.596565
+      inSlope: -0.441032
+      outSlope: -0.441032
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 82.59024
+      value: 15.46351
+      inSlope: -0.441032
+      outSlope: -0.441032
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  steeringSpeedScale: 10
+  maximumSteeringAngle: 90
+  countersteerEnabled: 1
+  countersteerGuardAngle: 120
+  countersteerStrength: 1
+  wheelRadius: 0.3
+  wheelMass: 20
+  wheelDampingRate: 0.25
+  suspensionDistance: 0.1
+  forceAppPointDistance: 0
+  suspensionSpring: 50000
+  suspensionDamper: 4500
+  suspensionTargetPosition: 0.5
+  frontForwardFriction: {extremumSlip: 0.4, extremumValue: 1, asymptoteSlip: 0.8, asymptoteValue: 0.5, stiffness: 1}
+  frontSidewaysFriction: {extremumSlip: 0.2, extremumValue: 1, asymptoteSlip: 0.5, asymptoteValue: 0.75, stiffness: 1}
+  rearForwardFriction: {extremumSlip: 0.4, extremumValue: 1, asymptoteSlip: 0.8, asymptoteValue: 0.5, stiffness: 1}
+  rearSidewaysFriction: {extremumSlip: 0.1, extremumValue: 0.7, asymptoteSlip: 0.1, asymptoteValue: 0.6, stiffness: 0.8}
+  performanceAcceleration: 12
+  performanceTopSpeed: 50
+  performanceSteering: 10
+  performanceHandling: 0.55
+  performanceDriftHandling: 0.22

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24af6431ea222444eabfb3bdafaa2ba4, type: 3}
+  m_Name: ProfessionalAiDriverConfiguration
+  m_EditorClassIdentifier:
+  difficultyName: Professional
+  difficultyMultiplier: 1.15
+  targetSpeed: 24
+  minimumCornerSpeed: 9
+  steeringSensitivity: 1.14
+  brakingSensitivity: 1.12
+  driftCornerThreshold: 0.6
+  driftMinimumSpeed: 13
+  stuckSpeedThreshold: 1.5
+  stuckDetectionDuration: 2.5
+  recoveryCooldown: 5
+  steeringSmoothing: 8
+  throttleSmoothing: 6
+  brakeSmoothing: 10
+  lookAheadWaypointCount: 3
+  waypointReachDistance: 5

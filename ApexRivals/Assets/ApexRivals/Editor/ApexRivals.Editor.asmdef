@@ -1,0 +1,21 @@
+{
+    "name": "ApexRivals.Editor",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Runtime",
+        "Unity.InputSystem",
+        "Unity.ProBuilder",
+        "Unity.ProBuilder.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9033c24b29e723341a1e6294204c16b7, type: 3}
+  m_Name: VanguardVehicleDefinition
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.VehicleSelection.Configuration.VehicleDefinition
+  stableId: vanguard
+  displayName: Vanguard
+  description: Balanced and agile starter sports coupe.
+  baseConfiguration: {fileID: 11400000, guid: bc7156db47fb4eafad2c5091f879b23d, type: 2}
+  vehiclePrefab: {fileID: 5125654590113072179, guid: 7b2c841896cf77f41b3aa979e689c9ae, type: 3}
+  previewSprite: {fileID: 0}
+  availableInDemo: 1

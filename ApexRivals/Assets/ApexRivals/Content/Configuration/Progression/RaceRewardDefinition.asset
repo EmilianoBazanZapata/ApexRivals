@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8584fa6ad11f13544ab4c72036d9ebbd, type: 3}
+  m_Name: RaceRewardDefinition
+  m_EditorClassIdentifier:
+  rewards:
+  - position: 1
+    currencyReward: 500
+  - position: 2
+    currencyReward: 300
+  - position: 3
+    currencyReward: 200
+  fallbackReward: 100
