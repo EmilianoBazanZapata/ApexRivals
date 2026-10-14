@@ -12,21 +12,24 @@ namespace ApexRivals.UI.Runtime
 
         [SerializeField] private Button upgradesTabButton;
         [SerializeField] private Button vehiclesTabButton;
-        [SerializeField] private Image upgradesTabBackground;
-        [SerializeField] private Image vehiclesTabBackground;
         [SerializeField] private GameObject upgradesPanel;
         [SerializeField] private GameObject vehiclePanel;
         [SerializeField] private Selectable upgradesInitialSelection;
         [SerializeField] private Selectable vehiclesInitialSelection;
         [SerializeField] private GameObject backgroundOverlay;
-        [SerializeField] private Color selectedTabColor = new Color32(0xE5, 0x34, 0x2E, 0xFF);
-        [SerializeField] private Color unselectedTabColor = new Color32(0x1B, 0x1E, 0x26, 0xFF);
 
         private bool _subscribed;
         private bool _hasValidSelectedVehicle;
         private bool _hasAppliedSection;
 
         public GarageSection CurrentSection { get; private set; } = GarageSection.Vehicles;
+
+        public Button VehiclesTabButton => vehiclesTabButton;
+
+        public Button UpgradesTabButton => upgradesTabButton;
+
+        /// <summary>Raised after a section is shown, so the view can rebuild its navigation graph.</summary>
+        public event Action<GarageSection> SectionChanged;
 
         private void OnEnable()
         {
@@ -112,9 +115,9 @@ namespace ApexRivals.UI.Runtime
                 && EventSystem.current != null
                 && (EventSystem.current.currentSelectedGameObject == null
                     || EventSystem.current.currentSelectedGameObject == vehiclesTabButton?.gameObject
-                    || !IsUsable(EventSystem.current.currentSelectedGameObject.GetComponent<Selectable>())))
+                    || !IsUsable(UiFocus.SelectableOf(EventSystem.current.currentSelectedGameObject))))
             {
-                Focus(vehiclesInitialSelection);
+                Focus(vehiclesInitialSelection, vehiclesTabButton);
             }
         }
 
@@ -146,17 +149,17 @@ namespace ApexRivals.UI.Runtime
             SetActive(upgradesPanel, upgradesTabButton == null || section == GarageSection.Upgrades);
             SetActive(vehiclePanel, section == GarageSection.Vehicles);
             SetActive(backgroundOverlay, section != GarageSection.Vehicles);
+            SetTabVisuals(section);
 
-            SetTabColor(upgradesTabBackground, section == GarageSection.Upgrades);
-            SetTabColor(vehiclesTabBackground, section == GarageSection.Vehicles);
+            SectionChanged?.Invoke(section);
 
             if (section == GarageSection.Upgrades)
             {
-                Focus(upgradesInitialSelection);
+                Focus(upgradesInitialSelection, upgradesTabButton);
             }
             else if (section == GarageSection.Vehicles)
             {
-                Focus(vehiclesInitialSelection);
+                Focus(vehiclesInitialSelection, vehiclesTabButton);
             }
         }
 
@@ -170,6 +173,21 @@ namespace ApexRivals.UI.Runtime
             if (upgradesTabButton != null)
             {
                 upgradesTabButton.interactable = _hasValidSelectedVehicle;
+            }
+        }
+
+        private void SetTabVisuals(GarageSection section)
+        {
+            var vehiclesState = vehiclesTabButton != null ? vehiclesTabButton.GetComponent<UguiMenuButtonVisualState>() : null;
+            var upgradesState = upgradesTabButton != null ? upgradesTabButton.GetComponent<UguiMenuButtonVisualState>() : null;
+            if (vehiclesState != null)
+            {
+                vehiclesState.IsCurrent = section == GarageSection.Vehicles;
+            }
+
+            if (upgradesState != null)
+            {
+                upgradesState.IsCurrent = section == GarageSection.Upgrades;
             }
         }
 
@@ -190,25 +208,18 @@ namespace ApexRivals.UI.Runtime
             ShowSection(TabOrder[nextIndex]);
         }
 
-        private static void Focus(Selectable selection)
+        private void Focus(Selectable selection, Selectable sectionTab)
         {
-            if (EventSystem.current != null && IsUsable(selection))
+            // Content may be unusable (e.g. upgrades you cannot afford): fall back to the section tab.
+            if (!UiFocus.Request(selection))
             {
-                EventSystem.current.SetSelectedGameObject(selection.gameObject);
+                UiFocus.Request(UiNavigation.First(sectionTab, vehiclesTabButton, upgradesTabButton));
             }
         }
 
         private static bool IsUsable(Selectable selectable)
         {
             return selectable != null && selectable.gameObject.activeInHierarchy && selectable.IsInteractable();
-        }
-
-        private void SetTabColor(Image background, bool selected)
-        {
-            if (background != null)
-            {
-                background.color = selected ? selectedTabColor : unselectedTabColor;
-            }
         }
 
         private static void SetActive(GameObject target, bool active)

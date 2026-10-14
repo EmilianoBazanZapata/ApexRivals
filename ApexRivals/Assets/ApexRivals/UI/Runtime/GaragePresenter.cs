@@ -57,6 +57,43 @@ namespace ApexRivals.UI.Runtime
             Present();
         }
 
+        /// <summary>
+        /// Drops a focused-but-not-equipped vehicle so the preview, stats and Start Race all match the
+        /// equipped one again. No-op when nothing is being previewed.
+        /// </summary>
+        public void CancelVehiclePreview()
+        {
+            if (_operationActive
+                || !_vehicleSelectionService.HasCommittedVehicleSelection
+                || _vehicleSelectionService.CurrentCandidateVehicleId == _vehicleSelectionService.CurrentSelectedVehicleId)
+            {
+                return;
+            }
+
+            _vehicleSelectionService.CancelPreview();
+            Present();
+        }
+
+        /// <summary>Previews and equips <paramref name="vehicleId"/> in one step (click / Submit on a vehicle).</summary>
+        public void EquipVehicle(string vehicleId)
+        {
+            if (_operationActive)
+            {
+                return;
+            }
+
+            var selection = _vehicleSelectionService.Select(vehicleId);
+            if (!selection.Succeeded)
+            {
+                _purchaseStatus = PresentationStatus.Invalid;
+                _messageKey = "ui.vehicleSelection.invalidSelection";
+                Present();
+                return;
+            }
+
+            ConfirmVehicle();
+        }
+
         public void SelectPreviousVehicle()
         {
             SelectVehicleByOffset(-1);
@@ -152,10 +189,13 @@ namespace ApexRivals.UI.Runtime
             var state = _garageService.GetState();
             var selectionState = _vehicleSelectionService.GetState();
             var vehicles = new List<VehicleSelectionItemViewModel>(selectionState.Vehicles.Count);
+            var equippedIndex = -1;
             var candidateIndex = -1;
+            var candidateId = _vehicleSelectionService.CurrentCandidateVehicleId;
             for (var index = 0; index < selectionState.Vehicles.Count; index++)
             {
                 var vehicle = selectionState.Vehicles[index];
+                // Selected = equipped (committed) vehicle; the candidate is what the player is previewing.
                 vehicles.Add(new VehicleSelectionItemViewModel(
                     vehicle.VehicleId,
                     vehicle.DisplayName,
@@ -166,8 +206,18 @@ namespace ApexRivals.UI.Runtime
 
                 if (vehicle.Selected)
                 {
+                    equippedIndex = vehicles.Count - 1;
+                }
+
+                if (vehicle.VehicleId == candidateId)
+                {
                     candidateIndex = vehicles.Count - 1;
                 }
+            }
+
+            if (candidateIndex < 0)
+            {
+                candidateIndex = equippedIndex;
             }
 
             var hasValidVehicle = _vehicleSelectionService.HasValidCommittedVehicleSelection;

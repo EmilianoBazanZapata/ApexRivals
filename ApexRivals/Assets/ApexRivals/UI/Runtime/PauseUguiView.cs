@@ -22,11 +22,6 @@ namespace ApexRivals.UI.Runtime
         private PausePresenter _presenter;
         private bool _subscribed;
         private Action _pendingConfirmedAction;
-        private GameObject _previousSelection;
-        private GameObject _selectionBeforePause;
-        private CursorLockMode _previousCursorLockMode;
-        private bool _previousCursorVisible;
-        private bool _cursorStateCaptured;
         private bool _wasPaused;
         private bool _confirmationSubmitting;
 
@@ -202,14 +197,13 @@ namespace ApexRivals.UI.Runtime
 
             _pendingConfirmedAction = onConfirmed;
             UguiViewText.Set(confirmationText, message);
-            _previousSelection = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+            UiModalPointerBlocker.Ensure(confirmationDialogRoot);
             confirmationDialogRoot.SetActive(true);
             ConfigureConfirmationNavigation();
 
-            if (EventSystem.current != null && confirmationConfirmButton != null && confirmationConfirmButton.IsInteractable())
-            {
-                EventSystem.current.SetSelectedGameObject(confirmationConfirmButton.gameObject);
-            }
+            // The dialog is a modal focus scope: navigation, hover and repairs stay inside it, and
+            // closing it gives focus back to the button that opened it.
+            UiFocus.PushScope(confirmationDialogRoot, confirmationConfirmButton);
         }
 
         private void OnConfirmationConfirmed()
@@ -234,10 +228,6 @@ namespace ApexRivals.UI.Runtime
             }
 
             HideConfirmation();
-            if (EventSystem.current != null && _previousSelection != null)
-            {
-                EventSystem.current.SetSelectedGameObject(_previousSelection);
-            }
         }
 
         public void OnCancel(BaseEventData eventData)
@@ -257,6 +247,8 @@ namespace ApexRivals.UI.Runtime
             _pendingConfirmedAction = null;
             if (confirmationDialogRoot != null)
             {
+                // Pop while the dialog is still active so the previous focus is restored, not repaired.
+                UiFocus.PopScope(confirmationDialogRoot);
                 confirmationDialogRoot.SetActive(false);
             }
 
@@ -274,58 +266,16 @@ namespace ApexRivals.UI.Runtime
 
         private void EnterPauseView()
         {
-            CaptureCursorState();
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
             HideConfirmation();
 
-            _selectionBeforePause = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-            if (EventSystem.current != null)
-            {
-                EventSystem.current.SetSelectedGameObject(GetFirstPauseSelectable());
-            }
+            // UguiScreenNavigator owns screen focus and restores it on resume; this only covers the case
+            // where the pause buttons become active after the navigator already switched screens.
+            UiFocus.Request(GetFirstPauseSelectable());
         }
 
         private void ExitPauseView()
         {
             HideConfirmation();
-            RestoreCursorState();
-
-            if (EventSystem.current != null && SelectionBelongsToThisView(EventSystem.current.currentSelectedGameObject))
-            {
-                EventSystem.current.SetSelectedGameObject(_selectionBeforePause != null && _selectionBeforePause.activeInHierarchy ? _selectionBeforePause : null);
-            }
-
-            _selectionBeforePause = null;
-        }
-
-        private void CaptureCursorState()
-        {
-            if (_cursorStateCaptured)
-            {
-                return;
-            }
-
-            _previousCursorLockMode = Cursor.lockState;
-            _previousCursorVisible = Cursor.visible;
-            _cursorStateCaptured = true;
-        }
-
-        private void RestoreCursorState()
-        {
-            if (!_cursorStateCaptured)
-            {
-                return;
-            }
-
-            Cursor.lockState = _previousCursorLockMode;
-            Cursor.visible = _previousCursorVisible;
-            _cursorStateCaptured = false;
-        }
-
-        private bool SelectionBelongsToThisView(GameObject selection)
-        {
-            return selection != null && selection.transform.IsChildOf(transform);
         }
 
         private void SetConfirmationButtons(bool interactable)

@@ -25,9 +25,10 @@ namespace ApexRivals.UI.Runtime
         private GameObject _lastSelectedBeforeModal;
         private readonly Dictionary<PresentationScreenState, GameObject> _lastSelections = new Dictionary<PresentationScreenState, GameObject>();
         private Coroutine _pendingSelectionRefresh;
-        private bool _navigationInputActive = true;
 
         public PresentationScreenState CurrentScreen { get; private set; } = PresentationScreenState.Main;
+
+        public bool IsGameplayActive => CurrentScreen == PresentationScreenState.Racing;
 
         private void OnEnable()
         {
@@ -50,11 +51,10 @@ namespace ApexRivals.UI.Runtime
 
             if (previous != screenState && EventSystem.current != null)
             {
-                EventSystem.current.SetSelectedGameObject(null);
+                UiFocus.Clear();
             }
 
             ApplyPanelVisibility(screenState);
-            LogSelection("After panel visibility", screenState);
 
             if (previous == PresentationScreenState.Paused && screenState == PresentationScreenState.Racing)
             {
@@ -64,55 +64,46 @@ namespace ApexRivals.UI.Runtime
 
             if (previous == PresentationScreenState.Settings && screenState == PresentationScreenState.Main)
             {
-                _navigationInputActive = true;
                 SelectInitial(PresentationScreenState.Main);
-                LogSelection("Settings -> Main immediate selection", PresentationScreenState.Main);
                 RefreshSelectionNextFrame(PresentationScreenState.Main);
                 return;
             }
 
             SelectInitial(screenState);
-            LogSelection("After SelectInitial", screenState);
             RefreshSelectionNextFrame(screenState);
         }
 
         public void NotifyNavigationInput()
         {
-            _navigationInputActive = true;
-            LogSelection("Navigation input before repair", CurrentScreen);
             RepairSelectionIfInvalid();
-            LogSelection("Navigation input after repair", CurrentScreen);
         }
 
         public void NotifyMouseInput()
         {
-            _navigationInputActive = false;
+            // Focus is kept valid in every modality; mouse input only refreshes the remembered selection.
             RememberSelection(CurrentScreen);
         }
 
         public void NotifyCancelInput()
         {
-            var panel = ScreenPanel(CurrentScreen);
-            LogSelection("Cancel input", CurrentScreen);
-            if (panel == null || EventSystem.current == null)
+            // An open modal owns Cancel; otherwise the current screen does. The module's own cancel
+            // action is unbound, so this is the only dispatch path and must never bail out early.
+            var root = UiFocus.HasActiveScope ? UiFocus.ActiveScopeRoot : ScreenPanel(CurrentScreen);
+            if (root == null || EventSystem.current == null)
             {
                 return;
             }
 
             var selected = EventSystem.current.currentSelectedGameObject;
-            if (selected != null && selected.GetComponent<ICancelHandler>() != null)
-            {
-                return;
-            }
-
             var eventData = new BaseEventData(EventSystem.current);
-            if (selected != null && selected.transform.IsChildOf(panel.transform))
+            if (selected != null
+                && selected.transform.IsChildOf(root.transform)
+                && ExecuteEvents.ExecuteHierarchy(selected, eventData, ExecuteEvents.cancelHandler) != null)
             {
-                ExecuteEvents.ExecuteHierarchy(selected, eventData, ExecuteEvents.cancelHandler);
                 return;
             }
 
-            ExecuteEvents.ExecuteHierarchy(panel, eventData, ExecuteEvents.cancelHandler);
+            ExecuteEvents.ExecuteHierarchy(root, eventData, ExecuteEvents.cancelHandler);
         }
 
         private void ApplyPanelVisibility(PresentationScreenState screenState)
@@ -136,7 +127,7 @@ namespace ApexRivals.UI.Runtime
             var currentPanel = ScreenPanel(CurrentScreen);
             if (IsUsableSelection(_lastSelectedBeforeModal, currentPanel))
             {
-                EventSystem.current.SetSelectedGameObject(_lastSelectedBeforeModal);
+                UiFocus.Request(_lastSelectedBeforeModal);
                 return;
             }
 
@@ -145,7 +136,12 @@ namespace ApexRivals.UI.Runtime
 
         private void Update()
         {
-            if (!_navigationInputActive || EventSystem.current == null || CurrentSelectionIsUsable(ScreenPanel(CurrentScreen)))
+            if (UiFocus.RepairActiveScope())
+            {
+                return;
+            }
+
+            if (EventSystem.current == null || CurrentSelectionIsUsable(ScreenPanel(CurrentScreen)))
             {
                 return;
             }
@@ -178,15 +174,13 @@ namespace ApexRivals.UI.Runtime
             selection = FirstUsableSelection(selection, panel);
             if (selection != null)
             {
-                EventSystem.current.SetSelectedGameObject(selection.gameObject);
-                LogSelection($"SelectInitial picked {NameOf(selection.gameObject)}", screenState);
+                UiFocus.Request(selection);
                 return;
             }
 
             if (!CurrentSelectionIsUsable(panel))
             {
-                EventSystem.current.SetSelectedGameObject(null);
-                LogSelection("SelectInitial cleared selection", screenState);
+                UiFocus.Clear();
             }
         }
 
@@ -212,18 +206,17 @@ namespace ApexRivals.UI.Runtime
 
             if (!CurrentSelectionIsUsable(ScreenPanel(screenState)))
             {
-                LogSelection("Deferred selection invalid before repair", screenState);
                 SelectInitial(screenState);
-                LogSelection("Deferred selection after repair", screenState);
-            }
-            else
-            {
-                LogSelection("Deferred selection already valid", screenState);
             }
         }
 
         private void RepairSelectionIfInvalid()
         {
+            if (UiFocus.RepairActiveScope())
+            {
+                return;
+            }
+
             if (EventSystem.current == null || CurrentSelectionIsUsable(ScreenPanel(CurrentScreen)))
             {
                 return;
@@ -263,26 +256,7 @@ namespace ApexRivals.UI.Runtime
 
         private static Selectable FirstUsableSelection(Selectable preferred, GameObject panel)
         {
-            if (IsUsable(preferred))
-            {
-                return preferred;
-            }
-
-            if (panel == null || !panel.activeInHierarchy)
-            {
-                return null;
-            }
-
-            var selectables = panel.GetComponentsInChildren<Selectable>(true);
-            for (var index = 0; index < selectables.Length; index++)
-            {
-                if (IsUsable(selectables[index]))
-                {
-                    return selectables[index];
-                }
-            }
-
-            return null;
+            return IsUsable(preferred) ? preferred : UiFocus.FirstUsable(null, panel);
         }
 
         private void RememberSelection(PresentationScreenState screenState)
@@ -303,13 +277,13 @@ namespace ApexRivals.UI.Runtime
         {
             return _lastSelections.TryGetValue(screenState, out var selected)
                 && IsUsableSelection(selected, ScreenPanel(screenState))
-                    ? selected.GetComponent<Selectable>()
+                    ? UiFocus.SelectableOf(selected)
                     : null;
         }
 
         private static bool IsUsable(Selectable selectable)
         {
-            return selectable != null && selectable.gameObject.activeInHierarchy && selectable.IsInteractable();
+            return UiFocus.IsUsable(selectable);
         }
 
         private static bool CurrentSelectionIsUsable(GameObject currentPanel)
@@ -329,18 +303,7 @@ namespace ApexRivals.UI.Runtime
                 return false;
             }
 
-            return IsUsable(selected.GetComponent<Selectable>());
-        }
-
-        private void LogSelection(string message, PresentationScreenState screenState)
-        {
-            var panel = ScreenPanel(screenState);
-            var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-        }
-
-        private static string NameOf(Object target)
-        {
-            return target != null ? target.name : "null";
+            return IsUsable(UiFocus.SelectableOf(selected));
         }
     }
 }

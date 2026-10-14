@@ -1,11 +1,12 @@
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ApexRivals.UI.Runtime
 {
     [DisallowMultipleComponent]
-    public sealed class ResultsUguiView : MonoBehaviour, IResultsView
+    public sealed class ResultsUguiView : MonoBehaviour, IResultsView, ICancelHandler
     {
         [SerializeField] private Text finalPositionText;
         [SerializeField] private Text raceTimeText;
@@ -97,6 +98,16 @@ namespace ApexRivals.UI.Runtime
             }
 
             _subscribed = false;
+        }
+
+        /// <summary>
+        /// Esc/B never leaves the results screen on its own: it moves focus to "Return to garage" and the
+        /// player confirms with Submit. Pending design decision; change the target here if needed.
+        /// </summary>
+        public void OnCancel(BaseEventData eventData)
+        {
+            eventData?.Use();
+            UiFocus.Request(returnToGarageButton);
         }
 
         private async void OnRetryClicked()

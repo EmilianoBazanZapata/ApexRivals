@@ -13,8 +13,6 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button exitButton;
 
-        private Button _lastValidSelection;
-
         private void OnEnable()
         {
             RefreshNavigation();
@@ -43,34 +41,6 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
-        public bool IsMenuButton(GameObject candidate)
-        {
-            return IsButton(candidate, playButton)
-                || IsButton(candidate, garageButton)
-                || IsButton(candidate, settingsButton)
-                || IsButton(candidate, exitButton);
-        }
-
-        private Button FirstEnabled()
-        {
-            if (IsEnabled(playButton))
-            {
-                return playButton;
-            }
-
-            if (IsEnabled(garageButton))
-            {
-                return garageButton;
-            }
-
-            if (IsEnabled(settingsButton))
-            {
-                return settingsButton;
-            }
-
-            return IsEnabled(exitButton) ? exitButton : null;
-        }
-
         private static Button FindEnabled(Button[] buttons, int startIndex, int direction)
         {
             if (buttons == null || buttons.Length == 0)
@@ -93,11 +63,6 @@ namespace ApexRivals.UI.Runtime
         private static bool IsEnabled(Button button)
         {
             return button != null && button.gameObject.activeSelf && button.IsInteractable();
-        }
-
-        private static bool IsButton(GameObject candidate, Button button)
-        {
-            return candidate != null && button != null && candidate == button.gameObject;
         }
     }
 }

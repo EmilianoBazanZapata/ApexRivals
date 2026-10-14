@@ -9,16 +9,16 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class SettingsUguiView : MonoBehaviour, ISettingsView, ICancelHandler
     {
+        private const string DesktopRefreshRateLabel = "Desktop";
+        private static readonly string[] DesktopRefreshRateOptions = { DesktopRefreshRateLabel };
+
         [SerializeField] private Button displayTabButton;
         [SerializeField] private Button audioTabButton;
         [SerializeField] private GameObject displayPanel;
         [SerializeField] private GameObject audioPanel;
-        [SerializeField] private Slider resolutionSlider;
-        [SerializeField] private Text resolutionValueText;
-        [SerializeField] private Slider refreshRateSlider;
-        [SerializeField] private Text refreshRateValueText;
-        [SerializeField] private Slider fullScreenModeSlider;
-        [SerializeField] private Text fullScreenModeValueText;
+        [SerializeField] private SettingsOptionSelector resolutionSelector;
+        [SerializeField] private SettingsOptionSelector refreshRateSelector;
+        [SerializeField] private SettingsOptionSelector fullScreenModeSelector;
         [SerializeField] private Slider masterVolumeSlider;
         [SerializeField] private Slider musicVolumeSlider;
         [SerializeField] private Slider sfxVolumeSlider;
@@ -63,7 +63,7 @@ namespace ApexRivals.UI.Runtime
 
             _selectedResolution = viewModel.SelectedResolution;
             RenderResolutionSelector(viewModel.SelectedResolution);
-            RenderRefreshRateSelector(viewModel.SelectedResolution);
+            RenderRefreshRateSelector(viewModel.SelectedResolution, viewModel.FullScreenMode);
             RenderFullScreenSelector(viewModel.FullScreenMode);
             SetSlider(masterVolumeSlider, viewModel.MasterVolume);
             SetSlider(musicVolumeSlider, viewModel.MusicVolume);
@@ -105,19 +105,19 @@ namespace ApexRivals.UI.Runtime
                 audioTabButton.onClick.AddListener(OnAudioTabClicked);
             }
 
-            if (resolutionSlider != null)
+            if (resolutionSelector != null)
             {
-                resolutionSlider.onValueChanged.AddListener(OnResolutionChanged);
+                resolutionSelector.ValueChanged += OnResolutionChanged;
             }
 
-            if (refreshRateSlider != null)
+            if (refreshRateSelector != null)
             {
-                refreshRateSlider.onValueChanged.AddListener(OnRefreshRateChanged);
+                refreshRateSelector.ValueChanged += OnRefreshRateChanged;
             }
 
-            if (fullScreenModeSlider != null)
+            if (fullScreenModeSelector != null)
             {
-                fullScreenModeSlider.onValueChanged.AddListener(OnFullScreenModeChanged);
+                fullScreenModeSelector.ValueChanged += OnFullScreenModeChanged;
             }
 
             if (masterVolumeSlider != null)
@@ -170,19 +170,19 @@ namespace ApexRivals.UI.Runtime
                 audioTabButton.onClick.RemoveListener(OnAudioTabClicked);
             }
 
-            if (resolutionSlider != null)
+            if (resolutionSelector != null)
             {
-                resolutionSlider.onValueChanged.RemoveListener(OnResolutionChanged);
+                resolutionSelector.ValueChanged -= OnResolutionChanged;
             }
 
-            if (refreshRateSlider != null)
+            if (refreshRateSelector != null)
             {
-                refreshRateSlider.onValueChanged.RemoveListener(OnRefreshRateChanged);
+                refreshRateSelector.ValueChanged -= OnRefreshRateChanged;
             }
 
-            if (fullScreenModeSlider != null)
+            if (fullScreenModeSelector != null)
             {
-                fullScreenModeSlider.onValueChanged.RemoveListener(OnFullScreenModeChanged);
+                fullScreenModeSelector.ValueChanged -= OnFullScreenModeChanged;
             }
 
             if (masterVolumeSlider != null)
@@ -218,41 +218,35 @@ namespace ApexRivals.UI.Runtime
             _subscribed = false;
         }
 
-        private void OnResolutionChanged(float value)
+        private void OnResolutionChanged(int index)
         {
-            var index = Mathf.RoundToInt(value);
             if (_rendering || index < 0 || index >= _resolutionOptions.Count)
             {
                 return;
             }
 
             var option = _resolutionOptions[index];
-            SetOptionText(resolutionValueText, _resolutionOptions, index, CreateResolutionLabel);
             var selected = FindMatchingRefreshRate(option.Width, option.Height, _selectedResolution.RefreshRate);
             _presenter?.SelectResolution(selected);
         }
 
-        private void OnRefreshRateChanged(float value)
+        private void OnRefreshRateChanged(int index)
         {
-            var index = Mathf.RoundToInt(value);
             if (_rendering || index < 0 || index >= _refreshRateOptions.Count)
             {
                 return;
             }
 
-            SetOptionText(refreshRateValueText, _refreshRateOptions, index, option => CreateRefreshRateLabel(option.RefreshRate));
             _presenter?.SelectResolution(_refreshRateOptions[index]);
         }
 
-        private void OnFullScreenModeChanged(float value)
+        private void OnFullScreenModeChanged(int index)
         {
-            var index = Mathf.RoundToInt(value);
             if (_rendering || index < 0 || index >= _fullScreenModeOptions.Count)
             {
                 return;
             }
 
-            SetOptionText(fullScreenModeValueText, _fullScreenModeOptions, index, CreateFullScreenModeLabel);
             _presenter?.SetFullScreenMode(_fullScreenModeOptions[index]);
         }
 
@@ -287,10 +281,8 @@ namespace ApexRivals.UI.Runtime
 
         private void OnCancelClicked()
         {
-            Debug.Log($"[UI_INPUT] Settings cancel clicked. selectedBefore={SelectedName()} cancelTarget={_cancelTarget}");
             _presenter?.Cancel();
             _navigator?.Show(_cancelTarget);
-            Debug.Log($"[UI_INPUT] Settings cancel completed. selectedAfter={SelectedName()}");
         }
 
         public void OnCancel(BaseEventData eventData)
@@ -318,11 +310,12 @@ namespace ApexRivals.UI.Runtime
         {
             SetActive(displayPanel, true);
             SetActive(audioPanel, false);
+            SetTabVisuals(true);
             ConfigureNavigation();
 
             if (selectFirstControl)
             {
-                SelectIfUsable(resolutionSlider);
+                SelectIfUsable(resolutionSelector);
             }
         }
 
@@ -330,6 +323,7 @@ namespace ApexRivals.UI.Runtime
         {
             SetActive(displayPanel, false);
             SetActive(audioPanel, true);
+            SetTabVisuals(false);
             ConfigureNavigation();
 
             if (selectFirstControl)
@@ -367,11 +361,10 @@ namespace ApexRivals.UI.Runtime
                 labels.Add($"{selectedResolution.Width} x {selectedResolution.Height}");
             }
 
-            ConfigureDiscreteSlider(resolutionSlider, _resolutionOptions.Count, selectedIndex);
-            SetOptionText(resolutionValueText, labels, selectedIndex);
+            resolutionSelector?.SetOptions(labels, selectedIndex);
         }
 
-        private void RenderRefreshRateSelector(SettingsResolution selectedResolution)
+        private void RenderRefreshRateSelector(SettingsResolution selectedResolution, FullScreenMode fullScreenMode)
         {
             _refreshRateOptions.Clear();
             var labels = new List<string>();
@@ -402,8 +395,28 @@ namespace ApexRivals.UI.Runtime
                 labels.Add(CreateRefreshRateLabel(selectedResolution.RefreshRate));
             }
 
-            ConfigureDiscreteSlider(refreshRateSlider, _refreshRateOptions.Count, selectedIndex);
-            SetOptionText(refreshRateValueText, labels, selectedIndex);
+            if (refreshRateSelector == null)
+            {
+                return;
+            }
+
+            if (DisplayRefreshRateRules.IsRefreshRateSelectable(fullScreenMode))
+            {
+                refreshRateSelector.interactable = true;
+                refreshRateSelector.SetOptions(labels, selectedIndex);
+                return;
+            }
+
+            var wasSelected = EventSystem.current != null
+                && EventSystem.current.currentSelectedGameObject == refreshRateSelector.gameObject;
+
+            refreshRateSelector.interactable = false;
+            refreshRateSelector.SetOptions(DesktopRefreshRateOptions, 0);
+
+            if (wasSelected)
+            {
+                SelectIfUsable(fullScreenModeSelector);
+            }
         }
 
         private void RenderFullScreenSelector(FullScreenMode selectedMode)
@@ -421,8 +434,7 @@ namespace ApexRivals.UI.Runtime
                 labels.Add(CreateFullScreenModeLabel(mode));
             }
 
-            ConfigureDiscreteSlider(fullScreenModeSlider, _fullScreenModeOptions.Count, selectedIndex);
-            SetOptionText(fullScreenModeValueText, labels, selectedIndex);
+            fullScreenModeSelector?.SetOptions(labels, selectedIndex);
         }
 
         private SettingsResolution FindMatchingRefreshRate(int width, int height, int preferredRefreshRate)
@@ -448,28 +460,57 @@ namespace ApexRivals.UI.Runtime
 
         private void ConfigureNavigation()
         {
-            var firstSetting = displayPanel != null && displayPanel.activeSelf ? (Selectable)resolutionSlider : masterVolumeSlider;
-            var secondSetting = displayPanel != null && displayPanel.activeSelf ? (Selectable)refreshRateSlider : musicVolumeSlider;
-            var thirdSetting = displayPanel != null && displayPanel.activeSelf ? (Selectable)fullScreenModeSlider : sfxVolumeSlider;
+            var rows = new List<Selectable>(3);
+            if (displayPanel != null && displayPanel.activeSelf)
+            {
+                AddRowIfPresent(rows, resolutionSelector);
+                if (refreshRateSelector != null && refreshRateSelector.IsInteractable())
+                {
+                    rows.Add(refreshRateSelector);
+                }
 
-            SetNavigation(displayTabButton, applyButton, audioTabButton, null, audioTabButton);
-            SetNavigation(audioTabButton, displayTabButton, firstSetting, displayTabButton, null);
-            SetNavigation(firstSetting, audioTabButton, secondSetting, null, null);
-            SetNavigation(secondSetting, firstSetting, thirdSetting, null, null);
-            SetNavigation(thirdSetting, secondSetting, restoreDefaultsButton, null, null);
-            SetNavigation(restoreDefaultsButton, thirdSetting, cancelButton, null, cancelButton);
+                AddRowIfPresent(rows, fullScreenModeSelector);
+            }
+            else
+            {
+                AddRowIfPresent(rows, masterVolumeSlider);
+                AddRowIfPresent(rows, musicVolumeSlider);
+                AddRowIfPresent(rows, sfxVolumeSlider);
+            }
+
+            var firstRow = rows.Count > 0 ? rows[0] : null;
+            var lastRow = rows.Count > 0 ? rows[rows.Count - 1] : null;
+
+            // The audio tab is optional; never link to a missing tab or navigation dead-ends.
+            var lastTab = audioTabButton != null ? (Selectable)audioTabButton : displayTabButton;
+            var belowTabs = firstRow != null ? firstRow : restoreDefaultsButton;
+
+            SetNavigation(displayTabButton, applyButton, audioTabButton != null ? audioTabButton : belowTabs, null, audioTabButton);
+            SetNavigation(audioTabButton, displayTabButton, belowTabs, displayTabButton, null);
+
+            for (var index = 0; index < rows.Count; index++)
+            {
+                var up = index == 0 ? lastTab : rows[index - 1];
+                var down = index == rows.Count - 1 ? (Selectable)restoreDefaultsButton : rows[index + 1];
+                SetNavigation(rows[index], up, down, null, null);
+            }
+
+            SetNavigation(restoreDefaultsButton, lastRow != null ? lastRow : lastTab, cancelButton, null, cancelButton);
             SetNavigation(cancelButton, restoreDefaultsButton, applyButton, restoreDefaultsButton, applyButton);
             SetNavigation(applyButton, cancelButton, displayTabButton, cancelButton, null);
+        }
+
+        private static void AddRowIfPresent(List<Selectable> rows, Selectable row)
+        {
+            if (row != null)
+            {
+                rows.Add(row);
+            }
         }
 
         private static string CreateRefreshRateLabel(int refreshRate)
         {
             return refreshRate > 0 ? $"{refreshRate} Hz" : "Default";
-        }
-
-        private static string CreateResolutionLabel(SettingsResolution resolution)
-        {
-            return $"{resolution.Width} x {resolution.Height}";
         }
 
         private static string CreateFullScreenModeLabel(FullScreenMode mode)
@@ -480,45 +521,6 @@ namespace ApexRivals.UI.Runtime
                 FullScreenMode.ExclusiveFullScreen => "Exclusive Fullscreen",
                 _ => "Borderless"
             };
-        }
-
-        private static void ConfigureDiscreteSlider(Slider slider, int optionCount, int selectedIndex)
-        {
-            if (slider == null)
-            {
-                return;
-            }
-
-            var maxIndex = Mathf.Max(0, optionCount - 1);
-            slider.wholeNumbers = true;
-            slider.minValue = 0f;
-            slider.maxValue = maxIndex;
-            slider.interactable = optionCount > 0;
-            slider.SetValueWithoutNotify(Mathf.Clamp(selectedIndex, 0, maxIndex));
-        }
-
-        private static void SetOptionText(Text text, List<string> labels, int selectedIndex)
-        {
-            if (text == null)
-            {
-                return;
-            }
-
-            var maxIndex = Mathf.Max(0, labels.Count - 1);
-            var label = labels.Count > 0 ? labels[Mathf.Clamp(selectedIndex, 0, maxIndex)] : string.Empty;
-            UguiViewText.Set(text, $"< {label} >");
-        }
-
-        private static void SetOptionText<T>(Text text, List<T> options, int selectedIndex, System.Func<T, string> labelFactory)
-        {
-            if (text == null)
-            {
-                return;
-            }
-
-            var maxIndex = Mathf.Max(0, options.Count - 1);
-            var label = options.Count > 0 ? labelFactory(options[Mathf.Clamp(selectedIndex, 0, maxIndex)]) : string.Empty;
-            UguiViewText.Set(text, $"< {label} >");
         }
 
         private static bool ContainsSize(List<SettingsResolution> resolutions, int width, int height)
@@ -573,12 +575,24 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
+        private void SetTabVisuals(bool displaySelected)
+        {
+            var displayState = displayTabButton != null ? displayTabButton.GetComponent<UguiMenuButtonVisualState>() : null;
+            var audioState = audioTabButton != null ? audioTabButton.GetComponent<UguiMenuButtonVisualState>() : null;
+            if (displayState != null)
+            {
+                displayState.IsCurrent = displaySelected;
+            }
+
+            if (audioState != null)
+            {
+                audioState.IsCurrent = !displaySelected;
+            }
+        }
+
         private static void SelectIfUsable(Selectable selectable)
         {
-            if (EventSystem.current != null && selectable != null && selectable.gameObject.activeInHierarchy && selectable.IsInteractable())
-            {
-                EventSystem.current.SetSelectedGameObject(selectable.gameObject);
-            }
+            UiFocus.Request(selectable);
         }
 
         private static void SetNavigation(Selectable selectable, Selectable up, Selectable down, Selectable left, Selectable right)
@@ -595,13 +609,6 @@ namespace ApexRivals.UI.Runtime
             navigation.selectOnLeft = left;
             navigation.selectOnRight = right;
             selectable.navigation = navigation;
-        }
-
-        private static string SelectedName()
-        {
-            return EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
-                ? EventSystem.current.currentSelectedGameObject.name
-                : "null";
         }
     }
 }

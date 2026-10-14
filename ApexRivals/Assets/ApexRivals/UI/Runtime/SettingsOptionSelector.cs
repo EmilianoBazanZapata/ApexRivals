@@ -5,8 +5,12 @@ using UnityEngine.UI;
 
 namespace ApexRivals.UI.Runtime
 {
+    /// <summary>
+    /// Option row for discrete settings. Up and down move between rows; left and
+    /// right change the value. Hover selects the row and arrow clicks change one step.
+    /// </summary>
     [DisallowMultipleComponent]
-    public sealed class SettingsOptionSelector : Selectable, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+    public sealed class SettingsOptionSelector : Selectable, IPointerClickHandler
     {
         [SerializeField] private Text labelText;
         [SerializeField] private Text previousArrowText;
@@ -15,17 +19,11 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private RectTransform previousHitTarget;
         [SerializeField] private RectTransform nextHitTarget;
         [SerializeField] private Graphic background;
-        [SerializeField] private Color normalBackground = new Color32(0x12, 0x14, 0x18, 0xE8);
-        [SerializeField] private Color selectedBackground = new Color32(0xD1, 0x14, 0x10, 0xF0);
-        [SerializeField] private Color disabledBackground = new Color32(0x25, 0x27, 0x2D, 0xB8);
-        [SerializeField] private Color labelColor = new Color32(0x9A, 0x9F, 0xA8, 0xFF);
-        [SerializeField] private Color valueColor = Color.white;
-        [SerializeField] private Color selectedValueColor = Color.white;
-        [SerializeField] private Color disabledTextColor = new Color32(0x74, 0x78, 0x80, 0xFF);
+        [SerializeField] private bool wrapAround = true;
 
         private readonly List<string> _options = new List<string>();
-        private bool _suppressValueChanged;
         private int _selectedIndex;
+        private bool _isSelected;
 
         public event System.Action<int> ValueChanged;
 
@@ -35,6 +33,7 @@ namespace ApexRivals.UI.Runtime
         protected override void Awake()
         {
             base.Awake();
+            transition = Transition.None;
             ResolveReferences();
             RefreshVisuals();
         }
@@ -47,6 +46,7 @@ namespace ApexRivals.UI.Runtime
 
         protected override void OnDisable()
         {
+            _isSelected = false;
             base.OnDisable();
             RefreshVisuals();
         }
@@ -77,9 +77,8 @@ namespace ApexRivals.UI.Runtime
 
         public void SetSelectedIndexWithoutNotify(int selectedIndex)
         {
-            _suppressValueChanged = true;
-            SetSelectedIndex(selectedIndex);
-            _suppressValueChanged = false;
+            _selectedIndex = ClampIndex(selectedIndex);
+            RefreshVisuals();
         }
 
         public override void OnMove(AxisEventData eventData)
@@ -89,16 +88,13 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            if (eventData.moveDir == MoveDirection.Left)
+            if (eventData.moveDir == MoveDirection.Left || eventData.moveDir == MoveDirection.Right)
             {
-                SelectPrevious();
-                eventData.Use();
-                return;
-            }
+                if (IsInteractable())
+                {
+                    Step(eventData.moveDir == MoveDirection.Left ? -1 : 1);
+                }
 
-            if (eventData.moveDir == MoveDirection.Right)
-            {
-                SelectNext();
                 eventData.Use();
                 return;
             }
@@ -109,7 +105,10 @@ namespace ApexRivals.UI.Runtime
         public override void OnPointerEnter(PointerEventData eventData)
         {
             base.OnPointerEnter(eventData);
-            SelectSelf();
+            if (UiInputModality.IsMouse)
+            {
+                SelectSelf();
+            }
         }
 
         public override void OnPointerExit(PointerEventData eventData)
@@ -120,19 +119,23 @@ namespace ApexRivals.UI.Runtime
 
         public override void OnSelect(BaseEventData eventData)
         {
+            _isSelected = true;
             base.OnSelect(eventData);
             RefreshVisuals();
         }
 
         public override void OnDeselect(BaseEventData eventData)
         {
+            _isSelected = false;
             base.OnDeselect(eventData);
             RefreshVisuals();
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (eventData == null || !IsInteractable())
+            if (eventData == null
+                || eventData.button != PointerEventData.InputButton.Left
+                || !IsInteractable())
             {
                 return;
             }
@@ -141,17 +144,20 @@ namespace ApexRivals.UI.Runtime
 
             if (RectContains(previousHitTarget, eventData))
             {
-                SelectPrevious();
+                Step(-1);
                 return;
             }
 
             if (RectContains(nextHitTarget, eventData))
             {
-                SelectNext();
+                Step(1);
                 return;
             }
 
-            RefreshVisuals();
+            if (previousHitTarget == null && nextHitTarget == null && RectContainsInlineArrow(eventData, out var direction))
+            {
+                Step(direction);
+            }
         }
 
         protected override void DoStateTransition(SelectionState state, bool instant)
@@ -160,50 +166,42 @@ namespace ApexRivals.UI.Runtime
             RefreshVisuals();
         }
 
-        private void SelectPrevious()
+        private void Step(int direction)
         {
-            if (_options.Count <= 1)
+            var count = _options.Count;
+            if (!IsInteractable() || count <= 1)
             {
                 return;
             }
 
-            SetSelectedIndex((_selectedIndex - 1 + _options.Count) % _options.Count);
-        }
+            var next = _selectedIndex + direction;
+            if (wrapAround)
+            {
+                next = (next % count + count) % count;
+            }
+            else
+            {
+                next = Mathf.Clamp(next, 0, count - 1);
+            }
 
-        private void SelectNext()
-        {
-            if (_options.Count <= 1)
+            if (next == _selectedIndex)
             {
                 return;
             }
 
-            SetSelectedIndex((_selectedIndex + 1) % _options.Count);
-        }
-
-        private void SetSelectedIndex(int selectedIndex)
-        {
-            var clamped = _options.Count == 0 ? 0 : Mathf.Clamp(selectedIndex, 0, _options.Count - 1);
-            if (_selectedIndex == clamped && valueText != null && valueText.text == CurrentValueLabel())
-            {
-                RefreshVisuals();
-                return;
-            }
-
-            _selectedIndex = clamped;
+            _selectedIndex = next;
             RefreshVisuals();
+            ValueChanged?.Invoke(_selectedIndex);
+        }
 
-            if (!_suppressValueChanged)
-            {
-                ValueChanged?.Invoke(_selectedIndex);
-            }
+        private int ClampIndex(int index)
+        {
+            return _options.Count == 0 ? 0 : Mathf.Clamp(index, 0, _options.Count - 1);
         }
 
         private void SelectSelf()
         {
-            if (EventSystem.current != null && !EventSystem.current.alreadySelecting && IsInteractable())
-            {
-                EventSystem.current.SetSelectedGameObject(gameObject);
-            }
+            UiFocus.Request(this);
 
             RefreshVisuals();
         }
@@ -212,20 +210,18 @@ namespace ApexRivals.UI.Runtime
         {
             ResolveReferences();
 
-            var hasAnyOptions = _options.Count > 0;
-            interactable = hasAnyOptions;
-            var showInlineArrows = previousArrowText == null && nextArrowText == null;
+            var enabledRow = IsInteractable() && _options.Count > 0;
+            var highlighted = enabledRow && _isSelected;
+            var inlineArrows = previousArrowText == null && nextArrowText == null;
             if (valueText != null)
             {
                 var label = CurrentValueLabel();
-                valueText.text = showInlineArrows && label.Length > 0 ? $"< {label} >" : label;
+                valueText.text = inlineArrows && label.Length > 0 ? $"< {label} >" : label;
             }
 
-            var selected = EventSystem.current != null && EventSystem.current.currentSelectedGameObject == gameObject;
-            var textColor = !hasAnyOptions ? disabledTextColor : selected ? selectedValueColor : valueColor;
-
-            SetGraphicColor(background, !hasAnyOptions ? disabledBackground : selected ? selectedBackground : normalBackground);
-            SetTextColor(labelText, labelColor);
+            var textColor = !enabledRow ? ApexUiVisualStyle.DisabledText : ApexUiVisualStyle.PrimaryText;
+            SetGraphicColor(background, !enabledRow ? ApexUiVisualStyle.Disabled : highlighted ? ApexUiVisualStyle.PrimaryRed : ApexUiVisualStyle.PanelElevated);
+            SetTextColor(labelText, ApexUiVisualStyle.SecondaryText);
             SetTextColor(valueText, textColor);
             SetTextColor(previousArrowText, textColor);
             SetTextColor(nextArrowText, textColor);
@@ -243,7 +239,7 @@ namespace ApexRivals.UI.Runtime
 
         private string CurrentValueLabel()
         {
-            return _options.Count == 0 ? string.Empty : _options[Mathf.Clamp(_selectedIndex, 0, _options.Count - 1)];
+            return _options.Count == 0 ? string.Empty : _options[ClampIndex(_selectedIndex)];
         }
 
         private void ResolveReferences()
@@ -252,12 +248,78 @@ namespace ApexRivals.UI.Runtime
             {
                 background = targetGraphic;
             }
+
+            if (valueText == null)
+            {
+                valueText = FindChildText("Value", "Label");
+            }
+
+            if (previousArrowText == null)
+            {
+                previousArrowText = FindChildText("PreviousArrow");
+            }
+
+            if (nextArrowText == null)
+            {
+                nextArrowText = FindChildText("NextArrow");
+            }
+
+            if (previousHitTarget == null && previousArrowText != null)
+            {
+                previousHitTarget = previousArrowText.rectTransform;
+            }
+
+            if (nextHitTarget == null && nextArrowText != null)
+            {
+                nextHitTarget = nextArrowText.rectTransform;
+            }
+        }
+
+        private Text FindChildText(string childName, string fallbackName = null)
+        {
+            var child = transform.Find(childName);
+            var text = child != null ? child.GetComponent<Text>() : null;
+            if (text != null || string.IsNullOrEmpty(fallbackName))
+            {
+                return text;
+            }
+
+            child = transform.Find(fallbackName);
+            return child != null ? child.GetComponent<Text>() : null;
         }
 
         private static bool RectContains(RectTransform rectTransform, PointerEventData eventData)
         {
             return rectTransform != null
+                && rectTransform.gameObject.activeInHierarchy
                 && RectTransformUtility.RectangleContainsScreenPoint(rectTransform, eventData.position, eventData.pressEventCamera);
+        }
+
+        private bool RectContainsInlineArrow(PointerEventData eventData, out int direction)
+        {
+            direction = 0;
+            var rectTransform = transform as RectTransform;
+            if (rectTransform == null
+                || !RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    rectTransform, eventData.position, eventData.pressEventCamera, out var localPoint))
+            {
+                return false;
+            }
+
+            var halfWidth = rectTransform.rect.width * 0.5f;
+            if (localPoint.x <= -halfWidth + 56f)
+            {
+                direction = -1;
+                return true;
+            }
+
+            if (localPoint.x >= halfWidth - 56f)
+            {
+                direction = 1;
+                return true;
+            }
+
+            return false;
         }
 
         private static void SetGraphicColor(Graphic graphic, Color color)

@@ -11,11 +11,16 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class BootstrapUiInputSystem : MonoBehaviour
     {
+        public const string PreviousTabActionName = "PreviousTab";
+        public const string NextTabActionName = "NextTab";
+
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private EventSystem eventSystem;
         [SerializeField] private InputSystemUIInputModule inputModule;
         [SerializeField] private float moveRepeatDelay = 0.45f;
         [SerializeField] private float moveRepeatRate = 0.12f;
+        [SerializeField, Tooltip("Enables mouse pointer interaction with the UI. Development kill-switch; keep enabled to mix mouse, keyboard and gamepad.")] private bool allowPointerInput = true;
+        [SerializeField, Min(0f), Tooltip("Pixels the mouse must travel before keyboard/gamepad mode hands control back to the mouse. Filters sensor jitter.")] private float mouseActivationDistance = 4f;
 
         private readonly List<InputActionReference> _runtimeReferences = new List<InputActionReference>();
         private InputAction _navigateAction;
@@ -23,21 +28,31 @@ namespace ApexRivals.UI.Runtime
         private InputAction _cancelAction;
         private InputAction _pointAction;
         private InputAction _clickAction;
-        private InputAction _previousVehicleAction;
-        private InputAction _nextVehicleAction;
+        private InputAction _previousTabAction;
+        private InputAction _nextTabAction;
         private IUiFocusCoordinator _focusCoordinator;
         private IUiVehicleSelectionNavigation _vehicleSelectionNavigation;
-        private Vector2 _lastPointerPosition;
+        private IUiTabNavigation _tabNavigation;
         private double _lastSubmitTime = double.NegativeInfinity;
         private double _lastCancelTime = double.NegativeInfinity;
         private Coroutine _deferredSubmit;
-        private bool _hasPointerPosition;
+        private Vector2 _pointerAnchor;
+        private bool _hasPointerAnchor;
+        private bool _selectHoveredPending;
+        private bool _moduleConfigured;
+        private bool _configuredAllowPointerInput;
+        private FullScreenMode _lastAppliedFullScreenMode;
+        private bool _lastAppliedAllowPointerInput;
+        private bool _lastAppliedGameplayActive;
 
         private void Awake()
         {
+            UiInputModality.Set(UiInputMode.Navigation);
+            UiFocus.Reset();
             EnsureComponents();
             ConfigureInputModule();
             DisableCompetingInputOwners(gameObject.scene);
+            ApplyCursorPolicy();
         }
 
         private void OnEnable()
@@ -48,6 +63,97 @@ namespace ApexRivals.UI.Runtime
         private void OnDisable()
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus)
+            {
+                ApplyCursorPolicy();
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (allowPointerInput != _configuredAllowPointerInput)
+            {
+                ConfigureInputModule();
+            }
+
+            if (Screen.fullScreenMode != _lastAppliedFullScreenMode
+                || allowPointerInput != _lastAppliedAllowPointerInput
+                || IsGameplayActive() != _lastAppliedGameplayActive)
+            {
+                ApplyCursorPolicy();
+            }
+
+            if (_selectHoveredPending)
+            {
+                // Runs after EventSystem.Update, so the module has already raycast this frame's position.
+                _selectHoveredPending = false;
+                SelectHoveredSelectable();
+            }
+        }
+
+        private void ApplyCursorPolicy()
+        {
+            _lastAppliedFullScreenMode = Screen.fullScreenMode;
+            _lastAppliedAllowPointerInput = allowPointerInput;
+            _lastAppliedGameplayActive = IsGameplayActive();
+            var policy = UiCursorPolicy.Resolve(allowPointerInput, UiInputModality.Current, _lastAppliedGameplayActive, _lastAppliedFullScreenMode);
+            if (Cursor.visible == policy.visible && Cursor.lockState == policy.lockMode)
+            {
+                return;
+            }
+
+            Cursor.visible = policy.visible;
+            Cursor.lockState = policy.lockMode;
+
+            // Locking/unlocking can warp the cursor; that jump must not read as the player moving the mouse.
+            _hasPointerAnchor = false;
+        }
+
+        private bool IsGameplayActive()
+        {
+            return _focusCoordinator is Object coordinator && coordinator != null && _focusCoordinator.IsGameplayActive;
+        }
+
+        private void SetModality(UiInputMode mode)
+        {
+            if (!allowPointerInput)
+            {
+                mode = UiInputMode.Navigation;
+            }
+
+            if (UiInputModality.Current == mode)
+            {
+                return;
+            }
+
+            UiInputModality.Set(mode);
+            if (mode == UiInputMode.Mouse)
+            {
+                _selectHoveredPending = true;
+                _focusCoordinator?.NotifyMouseInput();
+            }
+            else
+            {
+                _hasPointerAnchor = false;
+            }
+
+            ApplyCursorPolicy();
+        }
+
+        private void SelectHoveredSelectable()
+        {
+            var current = EventSystem.current;
+            if (inputModule == null || current == null || current.alreadySelecting || Mouse.current == null)
+            {
+                return;
+            }
+
+            var hovered = inputModule.GetLastRaycastResult(Mouse.current.deviceId).gameObject;
+            UiFocus.Request(hovered != null ? hovered.GetComponentInParent<Selectable>() : null);
         }
 
         private void OnDestroy()
@@ -108,6 +214,8 @@ namespace ApexRivals.UI.Runtime
 
         private void ConfigureInputModule()
         {
+            var pointerSettingChanged = _configuredAllowPointerInput != allowPointerInput;
+            _configuredAllowPointerInput = allowPointerInput;
             if (inputActions == null || inputModule == null)
             {
                 return;
@@ -120,18 +228,35 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
+            if (_moduleConfigured && !pointerSettingChanged)
+            {
+                // Scene loads only need the map re-enabled. Rebuilding would destroy references the
+                // module still holds, and swapping pointer actions makes the module disable them.
+                uiMap.Enable();
+                return;
+            }
+
+            if (!allowPointerInput)
+            {
+                UiInputModality.Set(UiInputMode.Navigation);
+            }
+
             inputModule.actionsAsset = inputActions;
             inputModule.moveRepeatDelay = moveRepeatDelay;
             inputModule.moveRepeatRate = moveRepeatRate;
+            ReleaseModuleActions();
             ClearRuntimeReferences();
+            _moduleConfigured = true;
             inputModule.move = CreateReference(uiMap, "Navigate");
             inputModule.submit = null;
             inputModule.cancel = null;
-            inputModule.point = CreateReference(uiMap, "Point");
-            inputModule.leftClick = CreateReference(uiMap, "Click");
-            inputModule.rightClick = CreateReference(uiMap, "RightClick");
-            inputModule.middleClick = CreateReference(uiMap, "MiddleClick");
-            inputModule.scrollWheel = CreateReference(uiMap, "ScrollWheel");
+            // Pointer actions stay bound for the whole session; the active device is tracked by
+            // UiInputModality instead of unbinding Point, which used to disable the action itself.
+            inputModule.point = allowPointerInput ? CreateReference(uiMap, "Point") : null;
+            inputModule.leftClick = allowPointerInput ? CreateReference(uiMap, "Click") : null;
+            inputModule.rightClick = allowPointerInput ? CreateReference(uiMap, "RightClick") : null;
+            inputModule.middleClick = allowPointerInput ? CreateReference(uiMap, "MiddleClick") : null;
+            inputModule.scrollWheel = allowPointerInput ? CreateReference(uiMap, "ScrollWheel") : null;
 
             SubscribeUiActions(uiMap);
             uiMap.Enable();
@@ -151,6 +276,16 @@ namespace ApexRivals.UI.Runtime
             return reference;
         }
 
+        private void ReleaseModuleActions()
+        {
+            inputModule.move = null;
+            inputModule.point = null;
+            inputModule.leftClick = null;
+            inputModule.rightClick = null;
+            inputModule.middleClick = null;
+            inputModule.scrollWheel = null;
+        }
+
         private void ClearRuntimeReferences()
         {
             UnsubscribeUiActions();
@@ -167,13 +302,13 @@ namespace ApexRivals.UI.Runtime
 
         private void SubscribeUiActions(InputActionMap uiMap)
         {
-            _navigateAction = uiMap.FindAction("Navigate", false);
-            _submitAction = uiMap.FindAction("Submit", false);
-            _cancelAction = uiMap.FindAction("Cancel", false);
-            _pointAction = uiMap.FindAction("Point", false);
-            _clickAction = uiMap.FindAction("Click", false);
-            _previousVehicleAction = uiMap.FindAction("PreviousVehicle", false);
-            _nextVehicleAction = uiMap.FindAction("NextVehicle", false);
+            _navigateAction = FindRequiredAction(uiMap, "Navigate");
+            _submitAction = FindRequiredAction(uiMap, "Submit");
+            _cancelAction = FindRequiredAction(uiMap, "Cancel");
+            _pointAction = allowPointerInput ? uiMap.FindAction("Point", false) : null;
+            _clickAction = allowPointerInput ? uiMap.FindAction("Click", false) : null;
+            _previousTabAction = FindRequiredAction(uiMap, PreviousTabActionName);
+            _nextTabAction = FindRequiredAction(uiMap, NextTabActionName);
 
             if (_navigateAction != null)
             {
@@ -200,15 +335,26 @@ namespace ApexRivals.UI.Runtime
                 _clickAction.performed += OnClickPerformed;
             }
 
-            if (_previousVehicleAction != null)
+            if (_previousTabAction != null)
             {
-                _previousVehicleAction.performed += OnPreviousVehiclePerformed;
+                _previousTabAction.performed += OnPreviousTabPerformed;
             }
 
-            if (_nextVehicleAction != null)
+            if (_nextTabAction != null)
             {
-                _nextVehicleAction.performed += OnNextVehiclePerformed;
+                _nextTabAction.performed += OnNextTabPerformed;
             }
+        }
+
+        private InputAction FindRequiredAction(InputActionMap uiMap, string actionName)
+        {
+            var action = uiMap.FindAction(actionName, false);
+            if (action == null)
+            {
+                Debug.LogError($"Bootstrap UI input could not find UI/{actionName}.", this);
+            }
+
+            return action;
         }
 
         private void UnsubscribeUiActions()
@@ -238,14 +384,14 @@ namespace ApexRivals.UI.Runtime
                 _clickAction.performed -= OnClickPerformed;
             }
 
-            if (_previousVehicleAction != null)
+            if (_previousTabAction != null)
             {
-                _previousVehicleAction.performed -= OnPreviousVehiclePerformed;
+                _previousTabAction.performed -= OnPreviousTabPerformed;
             }
 
-            if (_nextVehicleAction != null)
+            if (_nextTabAction != null)
             {
-                _nextVehicleAction.performed -= OnNextVehiclePerformed;
+                _nextTabAction.performed -= OnNextTabPerformed;
             }
 
             _navigateAction = null;
@@ -253,8 +399,8 @@ namespace ApexRivals.UI.Runtime
             _cancelAction = null;
             _pointAction = null;
             _clickAction = null;
-            _previousVehicleAction = null;
-            _nextVehicleAction = null;
+            _previousTabAction = null;
+            _nextTabAction = null;
         }
 
         private void OnNavigatePerformed(InputAction.CallbackContext context)
@@ -264,6 +410,7 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
+            SetModality(UiInputMode.Navigation);
             _focusCoordinator?.NotifyNavigationInput();
         }
 
@@ -276,15 +423,17 @@ namespace ApexRivals.UI.Runtime
 
             if (IsDuplicateSubmit(context.time))
             {
-                Debug.Log($"[UI_INPUT] Submit ignored as duplicate. control={context.control?.path} selected={SelectedName()} time={context.time:0.000}");
                 return;
             }
 
-            Debug.Log($"[UI_INPUT] Submit received. control={context.control?.path} selectedBefore={SelectedName()} time={context.time:0.000}");
+            SetModality(UiInputMode.Navigation);
+
+            // Validate before notifying the coordinator: NotifyNavigationInput repairs focus, and a
+            // submit must never activate a control the player did not have focused when pressing it.
+            var hadValidSelection = HasValidSubmitTarget();
             _focusCoordinator?.NotifyNavigationInput();
-            if (TrySubmitCurrentSelection())
+            if (hadValidSelection && TrySubmitCurrentSelection())
             {
-                Debug.Log($"[UI_INPUT] Submit executed immediately. selected={SelectedName()}");
                 return;
             }
 
@@ -293,8 +442,7 @@ namespace ApexRivals.UI.Runtime
                 StopCoroutine(_deferredSubmit);
             }
 
-            Debug.Log($"[UI_INPUT] Submit deferred because current selection is invalid. selected={SelectedName()}");
-            _deferredSubmit = StartCoroutine(SubmitAfterSelectionRepair());
+            _deferredSubmit = StartCoroutine(RepairSelectionNextFrame());
         }
 
         private void OnCancelPerformed(InputAction.CallbackContext context)
@@ -306,29 +454,43 @@ namespace ApexRivals.UI.Runtime
 
             if (IsDuplicateCancel(context.time))
             {
-                Debug.Log($"[UI_INPUT] Cancel ignored as duplicate. control={context.control?.path} selected={SelectedName()} time={context.time:0.000}");
                 return;
             }
 
-            Debug.Log($"[UI_INPUT] Cancel received. control={context.control?.path} selectedBefore={SelectedName()} time={context.time:0.000}");
+            SetModality(UiInputMode.Navigation);
             _focusCoordinator?.NotifyNavigationInput();
             _focusCoordinator?.NotifyCancelInput();
-            Debug.Log($"[UI_INPUT] Cancel processed. selectedAfter={SelectedName()}");
         }
 
-        private void OnPreviousVehiclePerformed(InputAction.CallbackContext context)
+        private void OnPreviousTabPerformed(InputAction.CallbackContext context)
         {
             if (context.ReadValueAsButton())
             {
-                _vehicleSelectionNavigation?.SelectPreviousVehicle();
+                SetModality(UiInputMode.Navigation);
+                if (_vehicleSelectionNavigation != null)
+                {
+                    _vehicleSelectionNavigation.SelectPreviousVehicle();
+                }
+                else
+                {
+                    _tabNavigation?.ShowPreviousTab();
+                }
             }
         }
 
-        private void OnNextVehiclePerformed(InputAction.CallbackContext context)
+        private void OnNextTabPerformed(InputAction.CallbackContext context)
         {
             if (context.ReadValueAsButton())
             {
-                _vehicleSelectionNavigation?.SelectNextVehicle();
+                SetModality(UiInputMode.Navigation);
+                if (_vehicleSelectionNavigation != null)
+                {
+                    _vehicleSelectionNavigation.SelectNextVehicle();
+                }
+                else
+                {
+                    _tabNavigation?.ShowNextTab();
+                }
             }
         }
 
@@ -354,24 +516,30 @@ namespace ApexRivals.UI.Runtime
             return false;
         }
 
-        private System.Collections.IEnumerator SubmitAfterSelectionRepair()
+        private System.Collections.IEnumerator RepairSelectionNextFrame()
         {
+            // Panels activated this frame may only become selectable on the next one.
             yield return null;
 
             _focusCoordinator?.NotifyNavigationInput();
-            var submitted = TrySubmitCurrentSelection();
-            Debug.Log($"[UI_INPUT] Deferred submit processed. submitted={submitted} selected={SelectedName()}");
             _deferredSubmit = null;
+        }
+
+        private static GameObject CurrentSubmitTarget()
+        {
+            return EventSystem.current != null
+                ? ExecuteEvents.GetEventHandler<ISubmitHandler>(EventSystem.current.currentSelectedGameObject)
+                : null;
+        }
+
+        private static bool HasValidSubmitTarget()
+        {
+            return IsValidSubmitTarget(CurrentSubmitTarget());
         }
 
         private static bool TrySubmitCurrentSelection()
         {
-            if (EventSystem.current == null)
-            {
-                return false;
-            }
-
-            var selected = ExecuteEvents.GetEventHandler<ISubmitHandler>(EventSystem.current.currentSelectedGameObject);
+            var selected = CurrentSubmitTarget();
             if (!IsValidSubmitTarget(selected))
             {
                 return false;
@@ -389,15 +557,8 @@ namespace ApexRivals.UI.Runtime
                 return false;
             }
 
-            var selectable = target.GetComponent<Selectable>();
+            var selectable = UiFocus.SelectableOf(target);
             return selectable == null || selectable.IsInteractable();
-        }
-
-        private static string SelectedName()
-        {
-            return EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
-                ? EventSystem.current.currentSelectedGameObject.name
-                : "null";
         }
 
         private void OnPointPerformed(InputAction.CallbackContext context)
@@ -407,22 +568,32 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            var position = context.ReadValue<Vector2>();
-            if (_hasPointerPosition && (position - _lastPointerPosition).sqrMagnitude < 0.01f)
+            if (UiInputModality.IsMouse)
             {
                 return;
             }
 
-            _lastPointerPosition = position;
-            _hasPointerPosition = true;
-            _focusCoordinator?.NotifyMouseInput();
+            var position = context.ReadValue<Vector2>();
+            if (!_hasPointerAnchor)
+            {
+                _pointerAnchor = position;
+                _hasPointerAnchor = true;
+                return;
+            }
+
+            if ((position - _pointerAnchor).sqrMagnitude < mouseActivationDistance * mouseActivationDistance)
+            {
+                return;
+            }
+
+            SetModality(UiInputMode.Mouse);
         }
 
         private void OnClickPerformed(InputAction.CallbackContext context)
         {
             if (context.control?.device is Mouse && context.ReadValueAsButton())
             {
-                _focusCoordinator?.NotifyMouseInput();
+                SetModality(UiInputMode.Mouse);
             }
         }
 
@@ -449,6 +620,7 @@ namespace ApexRivals.UI.Runtime
 
             _focusCoordinator = null;
             _vehicleSelectionNavigation = null;
+            _tabNavigation = null;
             var roots = scene.GetRootGameObjects();
             for (var rootIndex = 0; rootIndex < roots.Length; rootIndex++)
             {
@@ -463,6 +635,11 @@ namespace ApexRivals.UI.Runtime
                     if (_vehicleSelectionNavigation == null && coordinators[index] is IUiVehicleSelectionNavigation vehicleSelectionNavigation)
                     {
                         _vehicleSelectionNavigation = vehicleSelectionNavigation;
+                    }
+
+                    if (_tabNavigation == null && coordinators[index] is IUiTabNavigation tabNavigation)
+                    {
+                        _tabNavigation = tabNavigation;
                     }
                 }
             }

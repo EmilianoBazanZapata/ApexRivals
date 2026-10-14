@@ -165,8 +165,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 12bced6e7992fa140ac6447ae8bd6649, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &100003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -177,8 +177,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6a8b07cd541770b4d8acf5a340fe757e, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   sceneFlowConfiguration: {fileID: 11400000, guid: 4dc17e94c22d4e5b867eccff3481733f, type: 2}
   vehicleCatalogDefinition: {fileID: 11400000, guid: 41c0bf7dfed649078712751707df9593, type: 2}
   engineUpgradeDefinition: {fileID: 11400000, guid: db1d0dd0bf8e42b7b9e2366c40963806, type: 2}
@@ -197,7 +197,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01614664b831546d2ae94a42149d80ac, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.UI.InputSystemUIInputModule
   m_SendPointerHoverToParent: 1
   m_MoveRepeatDelay: 0.45
@@ -214,7 +214,7 @@ MonoBehaviour:
   m_ScrollWheelAction: {fileID: 1884927216}
   m_TrackedDevicePositionAction: {fileID: 1069785755}
   m_TrackedDeviceOrientationAction: {fileID: 945466126}
-  m_DeselectOnBackgroundClick: 1
+  m_DeselectOnBackgroundClick: 0
   m_PointerBehavior: 0
   m_CursorLockBehavior: 0
   m_ScrollDeltaPerTick: 6
@@ -228,7 +228,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventSystem
   m_FirstSelected: {fileID: 0}
   m_sendNavigationEvents: 1
@@ -243,13 +243,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a2fe7c2fcf448a748b757ffb49f2a2a6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.BootstrapUiInputSystem
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   eventSystem: {fileID: 100005}
   inputModule: {fileID: 100004}
   moveRepeatDelay: 0.45
   moveRepeatRate: 0.12
+  allowPointerInput: 1
+  mouseActivationDistance: 4
 --- !u!114 &690332306
 MonoBehaviour:
   m_ObjectHideFlags: 0

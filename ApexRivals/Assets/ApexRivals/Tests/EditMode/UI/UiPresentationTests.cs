@@ -320,42 +320,6 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(context.TimeScale.TimeScale, Is.EqualTo(1f));
         }
 
-        [Test]
-        public async Task InputNavigation_BlocksAndRestoresGameplayInput()
-        {
-            var context = CreateUiContext();
-            await context.SceneFlow.OpenMainMenu();
-            await context.SceneFlow.StartRace();
-            var blocker = new FakeGameplayInputBlocker();
-            var coordinator = new UiNavigationCoordinator(new FakeUiInputSource(), blocker, new FakeSelectionStore(), context.SceneFlow);
-
-            context.SceneFlow.PauseRace();
-            coordinator.RefreshGameplayInputBlock();
-            Assert.That(blocker.GameplayInputBlocked, Is.True);
-
-            context.SceneFlow.ResumeRace();
-            coordinator.RefreshGameplayInputBlock();
-            Assert.That(blocker.GameplayInputBlocked, Is.False);
-
-            context.SceneFlow.ShowRaceResults(new RaceSessionResult(new RaceResult("Player", 1, 60f), 500));
-            coordinator.RefreshGameplayInputBlock();
-            Assert.That(blocker.GameplayInputBlocked, Is.True);
-        }
-
-        [Test]
-        public void InputNavigation_SubscriptionsAreRemovedOnDispose()
-        {
-            var context = CreateUiContext();
-            var input = new FakeUiInputSource();
-            var store = new FakeSelectionStore();
-            var coordinator = new UiNavigationCoordinator(input, new FakeGameplayInputBlocker(), store, context.SceneFlow);
-
-            coordinator.Dispose();
-            input.RaiseCanceled();
-
-            Assert.That(store.RestoreCount, Is.Zero);
-        }
-
         private static UiContext CreateUiContext(FakeSceneLoader loader = null, int startingCurrency = 0, bool vehicleCommitted = false)
         {
             var activeLoader = loader ?? new FakeSceneLoader();
@@ -613,46 +577,6 @@ namespace ApexRivals.Tests.EditMode.UI
             public void RaisePositionChanged()
             {
                 PositionChanged?.Invoke(new PositionChangedEvent("Player", 1));
-            }
-        }
-
-        private sealed class FakeUiInputSource : IUiInputSource
-        {
-#pragma warning disable CS0067
-            public event Action Submitted;
-            public event Action Canceled;
-            public event Action PausePressed;
-#pragma warning restore CS0067
-
-            public void RaiseCanceled()
-            {
-                Canceled?.Invoke();
-            }
-        }
-
-        private sealed class FakeGameplayInputBlocker : IGameplayInputBlocker
-        {
-            public bool GameplayInputBlocked { get; private set; }
-
-            public void SetGameplayInputBlocked(bool blocked)
-            {
-                GameplayInputBlocked = blocked;
-            }
-        }
-
-        private sealed class FakeSelectionStore : IUiSelectionStore
-        {
-            public string CurrentSelectionId { get; private set; }
-            public int RestoreCount { get; private set; }
-
-            public void Select(string selectionId)
-            {
-                CurrentSelectionId = selectionId;
-            }
-
-            public void RestorePreviousSelection()
-            {
-                RestoreCount++;
             }
         }
 

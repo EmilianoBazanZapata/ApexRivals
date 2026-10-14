@@ -10,16 +10,38 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Button button;
         [SerializeField] private Graphic background;
         [SerializeField] private Text[] labels;
-        [SerializeField] private Color normalBackground = new Color32(0x08, 0x0A, 0x0D, 0xC8);
-        [SerializeField] private Color highlightedBackground = new Color32(0xD1, 0x14, 0x10, 0xF0);
-        [SerializeField] private Color pressedBackground = new Color32(0x7D, 0x08, 0x06, 0xF8);
-        [SerializeField] private Color disabledBackground = new Color32(0x25, 0x27, 0x2D, 0xB8);
-        [SerializeField] private Color normalText = new Color32(0xF2, 0xF2, 0xEC, 0xFF);
-        [SerializeField] private Color highlightedText = Color.white;
-        [SerializeField] private Color disabledText = new Color32(0x8B, 0x90, 0x98, 0xFF);
+        [SerializeField, Tooltip("Accents the label only. The red fill is reserved for the focused control.")] private bool primaryAction;
 
-        private bool _pointerInside;
         private bool _pressed;
+        private bool _isCurrent;
+
+        public bool PrimaryAction
+        {
+            get => primaryAction;
+            set
+            {
+                primaryAction = value;
+                Apply();
+            }
+        }
+
+        /// <summary>
+        /// Marks the active tab/section. Shown with an elevated panel and accent label, never with the focus fill.
+        /// </summary>
+        public bool IsCurrent
+        {
+            get => _isCurrent;
+            set
+            {
+                _isCurrent = value;
+                Apply();
+            }
+        }
+
+        private void Awake()
+        {
+            ResolveReferences();
+        }
 
         private void Reset()
         {
@@ -35,7 +57,6 @@ namespace ApexRivals.UI.Runtime
 
         private void OnDisable()
         {
-            _pointerInside = false;
             _pressed = false;
             Apply();
         }
@@ -59,10 +80,11 @@ namespace ApexRivals.UI.Runtime
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            _pointerInside = true;
-            if (button != null && button.IsInteractable() && EventSystem.current != null)
+            // Hover only moves focus while the mouse drives the UI; a hidden, resting cursor must not steal it.
+            // UiFocus also refuses targets behind an open modal.
+            if (UiInputModality.IsMouse)
             {
-                EventSystem.current.SetSelectedGameObject(button.gameObject);
+                UiFocus.Request(button);
             }
 
             Apply();
@@ -70,7 +92,6 @@ namespace ApexRivals.UI.Runtime
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            _pointerInside = false;
             _pressed = false;
             Apply();
         }
@@ -96,9 +117,21 @@ namespace ApexRivals.UI.Runtime
 
             var selected = EventSystem.current != null && EventSystem.current.currentSelectedGameObject == button.gameObject;
             var interactable = button.IsInteractable();
-            var useHighlighted = interactable && selected;
-            var backgroundColor = !interactable ? disabledBackground : _pressed && (selected || _pointerInside) ? pressedBackground : useHighlighted ? highlightedBackground : normalBackground;
-            var textColor = !interactable ? disabledText : useHighlighted ? highlightedText : normalText;
+            var focused = interactable && selected;
+            var backgroundColor = !interactable
+                ? ApexUiVisualStyle.Disabled
+                : focused
+                    ? _pressed ? ApexUiVisualStyle.PrimaryRedPressed : ApexUiVisualStyle.PrimaryRed
+                    : _isCurrent
+                        ? ApexUiVisualStyle.PanelElevated
+                        : ApexUiVisualStyle.Panel;
+            var textColor = !interactable
+                ? ApexUiVisualStyle.DisabledText
+                : focused
+                    ? ApexUiVisualStyle.FocusedText
+                    : primaryAction || _isCurrent
+                        ? ApexUiVisualStyle.AccentText
+                        : ApexUiVisualStyle.PrimaryText;
 
             if (background.color != backgroundColor)
             {
@@ -120,6 +153,20 @@ namespace ApexRivals.UI.Runtime
                     }
                 }
             }
+        }
+
+        private void ResolveReferences()
+        {
+            if (button == null)
+            {
+                button = GetComponent<Button>();
+            }
+
+            if (background == null && button != null)
+            {
+                background = button.targetGraphic;
+            }
+
         }
     }
 }

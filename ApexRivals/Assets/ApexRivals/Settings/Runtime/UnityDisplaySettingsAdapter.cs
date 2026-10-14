@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,7 +12,10 @@ namespace ApexRivals.Settings.Runtime
             get
             {
                 var current = Screen.currentResolution;
-                return new SettingsResolution(current.width, current.height, GetRefreshRate(current));
+                return new SettingsResolution(
+                    current.width,
+                    current.height,
+                    DisplayRefreshRateRules.RoundRefreshRate(current.refreshRateRatio));
             }
         }
 
@@ -25,7 +27,12 @@ namespace ApexRivals.Settings.Runtime
                 return new SettingsOperationResult(SettingsOperationStatus.UnsupportedResolution, "Selected resolution is not supported by this display.");
             }
 
-            Screen.SetResolution(settings.Width, settings.Height, settings.FullScreenMode, CreateRefreshRate(settings.RefreshRate));
+            var refreshRate = DisplayRefreshRateRules.ResolveExactRefreshRate(
+                Screen.resolutions,
+                settings.Width,
+                settings.Height,
+                settings.RefreshRate);
+            Screen.SetResolution(settings.Width, settings.Height, settings.FullScreenMode, refreshRate);
             return SettingsOperationResult.Success();
         }
 
@@ -36,28 +43,13 @@ namespace ApexRivals.Settings.Runtime
             for (var index = 0; index < resolutions.Length; index++)
             {
                 var resolution = resolutions[index];
-                mapped[index] = new SettingsResolution(resolution.width, resolution.height, GetRefreshRate(resolution));
+                mapped[index] = new SettingsResolution(
+                    resolution.width,
+                    resolution.height,
+                    DisplayRefreshRateRules.RoundRefreshRate(resolution.refreshRateRatio));
             }
 
             return SettingsDisplayCatalog.RemoveDuplicates(mapped);
-        }
-
-        private static int GetRefreshRate(Resolution resolution)
-        {
-            var value = resolution.refreshRateRatio.value;
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                return 0;
-            }
-
-            return Math.Max(0, Mathf.RoundToInt((float)value));
-        }
-
-        private static RefreshRate CreateRefreshRate(int refreshRate)
-        {
-            return refreshRate > 0
-                ? new RefreshRate { numerator = (uint)refreshRate, denominator = 1 }
-                : default;
         }
     }
 }

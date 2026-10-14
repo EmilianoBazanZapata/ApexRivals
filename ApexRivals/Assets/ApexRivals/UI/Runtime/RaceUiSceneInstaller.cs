@@ -28,8 +28,6 @@ namespace ApexRivals.UI.Runtime
         private double _lastPauseInputTime = double.NegativeInfinity;
         private bool _fallbackPauseActive;
         private float _fallbackPreviousTimeScale = 1f;
-        private CursorLockMode _fallbackPreviousCursorLockMode;
-        private bool _fallbackPreviousCursorVisible;
         private bool _subscribed;
 
         private void OnEnable()
@@ -272,12 +270,8 @@ namespace ApexRivals.UI.Runtime
             }
 
             _fallbackPreviousTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
-            _fallbackPreviousCursorLockMode = Cursor.lockState;
-            _fallbackPreviousCursorVisible = Cursor.visible;
             _fallbackPauseActive = true;
             Time.timeScale = 0f;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
             screenNavigator.Show(PresentationScreenState.Paused);
 
             if (pauseView != null)
@@ -301,8 +295,6 @@ namespace ApexRivals.UI.Runtime
             }
 
             Time.timeScale = _fallbackPreviousTimeScale > 0f ? _fallbackPreviousTimeScale : 1f;
-            Cursor.lockState = _fallbackPreviousCursorLockMode;
-            Cursor.visible = _fallbackPreviousCursorVisible;
             _fallbackPauseActive = false;
             screenNavigator.Show(PresentationScreenState.Racing);
         }
