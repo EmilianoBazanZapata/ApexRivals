@@ -1,8 +1,0 @@
-﻿<Solution>
-  <Project Path="ApexRivals.Runtime.csproj" />
-  <Project Path="ApexRivals.Tests.EditMode.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
-  <Project Path="ApexRivals.Tests.PlayMode.csproj" />
-  <Project Path="ApexRivals.Editor.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
-</Solution>
