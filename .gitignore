@@ -32,9 +32,6 @@ sysinfo.txt
 # Crash reports
 crashlytics-build.properties
 
-# Optional package caches
-Packages/packages-lock.json
-
 # Ignore graphify output folder
 graphify-out/
 
