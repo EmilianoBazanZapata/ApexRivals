@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -251,20 +252,78 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
             Assert.That(service.RacePresentationState, Is.EqualTo(RacePresentationState.Racing));
         }
 
+        [Test]
+        public async Task FailedExitKeepsResultsAndSuccessfulExitClearsThem()
+        {
+            var loader = new FakeSceneLoader();
+            var service = CreateService(loader);
+            await service.OpenMainMenu();
+            await service.StartRace();
+            service.ShowRaceResults(new RaceSessionResult(new RaceResult("Player", 1, 72.5f), 100));
+            loader.FailNextLoad = true;
+
+            Assert.That((await service.ReturnFromRaceToMainMenu()).Succeeded, Is.False);
+            Assert.That(service.RaceSession.HasResult, Is.True);
+            Assert.That(service.RacePresentationState, Is.EqualTo(RacePresentationState.Results));
+            Assert.That((await service.ReturnFromRaceToMainMenu()).Succeeded, Is.True);
+            Assert.That(service.RaceSession.HasResult, Is.False);
+        }
+
         private static SceneFlowService CreateService(FakeSceneLoader loader = null, FakeSaveCheckpoint saveCheckpoint = null)
         {
             var sceneMap = new SceneFlowSceneMap("MainMenu", "Garage", "Race");
             return new SceneFlowService(sceneMap, loader ?? new FakeSceneLoader(), saveCheckpoint);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task LoaderExceptionRestoresStateAndAllowsNextTransition(bool synchronous)
+        {
+            var loader = new FakeSceneLoader();
+            var service = CreateService(loader);
+            await service.OpenMainMenu();
+            await service.StartRace();
+            service.PauseRace();
+            loader.ThrowNextLoad = true;
+            loader.ThrowSynchronously = synchronous;
+
+            var failed = await service.ReturnFromRaceToGarage();
+
+            Assert.That(failed.Status, Is.EqualTo(SceneTransitionStatus.SceneLoadFailed));
+            Assert.That(service.State, Is.EqualTo(ApplicationState.Race));
+            Assert.That(service.RacePresentationState, Is.EqualTo(RacePresentationState.Paused));
+            Assert.That(service.CurrentContentScene, Is.EqualTo(ContentSceneId.Race));
+            Assert.That((await service.ReturnFromRaceToGarage()).Succeeded, Is.True);
+        }
+
+        [Test]
+        public async Task SaveExceptionReturnsFailureAndAllowsNextTransition()
+        {
+            var save = new FakeSaveCheckpoint();
+            var service = CreateService(saveCheckpoint: save);
+            await service.OpenMainMenu();
+            await service.StartRace();
+            save.ThrowNextSave = true;
+
+            Assert.That((await service.RetryRace()).Status, Is.EqualTo(SceneTransitionStatus.SaveFailed));
+            Assert.That(service.State, Is.EqualTo(ApplicationState.Race));
+            Assert.That((await service.RetryRace()).Succeeded, Is.True);
+        }
+
         private sealed class FakeSaveCheckpoint : ISaveCheckpoint
         {
             public int SaveCount { get; private set; }
             public bool ShouldFail { get; set; }
+            public bool ThrowNextSave { get; set; }
 
             public SaveCheckpointResult Save()
             {
                 SaveCount++;
+                if (ThrowNextSave)
+                {
+                    ThrowNextSave = false;
+                    throw new InvalidOperationException("Save exception.");
+                }
                 return ShouldFail ? SaveCheckpointResult.Failure("Save failed.") : SaveCheckpointResult.Success();
             }
         }
@@ -277,6 +336,8 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
 
             public bool CompleteImmediately { get; set; } = true;
             public bool FailNextLoad { get; set; }
+            public bool ThrowNextLoad { get; set; }
+            public bool ThrowSynchronously { get; set; }
             public float Progress { get; private set; }
             public bool IsLoading { get; private set; }
             public string BootstrapSceneName => "Bootstrap";
@@ -290,6 +351,18 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
                 bool reloadCurrentScene,
                 CancellationToken cancellationToken = default)
             {
+                if (ThrowNextLoad)
+                {
+                    ThrowNextLoad = false;
+                    var exception = new InvalidOperationException("Load exception.");
+                    if (ThrowSynchronously)
+                    {
+                        throw exception;
+                    }
+
+                    return Task.FromException<ContentSceneLoadResult>(exception);
+                }
+
                 if (IsLoading)
                 {
                     return Task.FromResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.ConcurrentLoad, sceneId, sceneName, "Already loading."));

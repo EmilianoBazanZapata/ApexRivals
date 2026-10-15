@@ -21,6 +21,9 @@ namespace ApexRivals.Progression.Runtime
                 return false;
             }
 
+            // A full wallet is not a failed race. Report only the amount actually
+            // credited, so results and saved progression agree at the balance limit.
+            reward = System.Math.Min(reward, int.MaxValue - _progressionState.Currency);
             if (reward == 0)
             {
                 return true;

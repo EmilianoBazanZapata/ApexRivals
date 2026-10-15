@@ -89,7 +89,8 @@ namespace ApexRivals.UI.Runtime
             }
 
             _settings.Cancel();
-            Render(PresentationFailure.None, "ui.settings.cancelled");
+            Render(_settings.HasUnsavedChanges ? PresentationFailure.SettingsApplyFailed : PresentationFailure.None,
+                _settings.HasUnsavedChanges ? "ui.settings.display.rollbackFailed" : "ui.settings.cancelled");
         }
 
         public void RestoreDefaults()
@@ -162,6 +163,7 @@ namespace ApexRivals.UI.Runtime
                 SettingsOperationStatus.UnsupportedResolution => "ui.settings.resolution.unsupported",
                 SettingsOperationStatus.DisplayApplyFailed => "ui.settings.display.failed",
                 SettingsOperationStatus.StorageFailed => "ui.settings.storage.failed",
+                SettingsOperationStatus.DisplayRollbackFailed => "ui.settings.display.rollbackFailed",
                 _ => "ui.settings.failed"
             };
         }

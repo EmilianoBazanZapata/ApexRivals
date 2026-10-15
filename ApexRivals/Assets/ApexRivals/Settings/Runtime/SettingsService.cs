@@ -17,14 +17,16 @@ namespace ApexRivals.Settings.Runtime
             _defaults = defaults ?? SettingsState.Default;
             Current = ResolveForDisplay(_defaults);
             Draft = Current;
+            Persisted = Current;
         }
 
         public event Action<AudioPreferences> AudioPreferencesCommitted;
 
         public SettingsState Current { get; private set; }
         public SettingsState Draft { get; private set; }
+        public SettingsState Persisted { get; private set; }
         public IReadOnlyList<SettingsResolution> AvailableResolutions => _display.SupportedResolutions;
-        public bool HasUnsavedChanges => Draft != Current;
+        public bool HasUnsavedChanges => Draft != Current || Current != Persisted;
         public AudioPreferences CurrentAudioPreferences => CreateAudioPreferences(Current);
 
         public SettingsOperationResult Load()
@@ -33,6 +35,7 @@ namespace ApexRivals.Settings.Runtime
             {
                 Current = ResolveForDisplay(_defaults);
                 Draft = Current;
+                Persisted = Current;
                 return new SettingsOperationResult(SettingsOperationStatus.DefaultsLoaded, string.Empty);
             }
 
@@ -41,11 +44,13 @@ namespace ApexRivals.Settings.Runtime
             {
                 Current = ResolveForDisplay(_defaults);
                 Draft = Current;
+                Persisted = Current;
                 return new SettingsOperationResult(SettingsOperationStatus.LoadedDefaultsAfterFailure, readResult.Message);
             }
 
             Current = ResolveForDisplay(readResult.Settings);
             Draft = Current;
+            Persisted = Current;
 
             return readResult.Status == SettingsStorageReadStatus.Invalid
                 ? new SettingsOperationResult(SettingsOperationStatus.LoadedWithInvalidValues, readResult.Message)
@@ -85,21 +90,55 @@ namespace ApexRivals.Settings.Runtime
                 return new SettingsOperationResult(SettingsOperationStatus.UnsupportedResolution, "Selected resolution is not supported by this display.");
             }
 
-            var displayResult = _display.Apply(Draft);
+            var attempted = Draft;
+            var previous = Current;
+            var displayResult = TryApplyDisplay(attempted);
             if (!displayResult.Succeeded)
             {
                 return new SettingsOperationResult(SettingsOperationStatus.DisplayApplyFailed, displayResult.Message);
             }
 
-            var saveResult = _storage.Save(Draft);
+            SettingsStorageWriteResult saveResult;
+            try
+            {
+                saveResult = _storage.Save(attempted);
+            }
+            catch (Exception exception)
+            {
+                saveResult = new SettingsStorageWriteResult(false, exception.Message);
+            }
+
             if (!saveResult.Succeeded)
             {
+                var rollback = TryApplyDisplay(previous);
+                if (!rollback.Succeeded)
+                {
+                    // The attempted display mode is still applied. Keep that fact
+                    // separate from persisted preferences; do not commit audio changes.
+                    Current = previous.WithResolution(attempted.Resolution).WithFullScreenMode(attempted.FullScreenMode);
+                    return new SettingsOperationResult(SettingsOperationStatus.DisplayRollbackFailed,
+                        saveResult.Message + " Display rollback failed: " + rollback.Message);
+                }
+
                 return new SettingsOperationResult(SettingsOperationStatus.StorageFailed, saveResult.Message);
             }
 
-            Current = Draft;
+            Current = attempted;
+            Persisted = attempted;
             AudioPreferencesCommitted?.Invoke(CreateAudioPreferences(Current));
             return SettingsOperationResult.Success();
+        }
+
+        private SettingsOperationResult TryApplyDisplay(SettingsState settings)
+        {
+            try
+            {
+                return _display.Apply(settings);
+            }
+            catch (Exception exception)
+            {
+                return new SettingsOperationResult(SettingsOperationStatus.DisplayApplyFailed, exception.Message);
+            }
         }
 
         public void Cancel()

@@ -130,7 +130,7 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
                 return new SaveStorageReadResult(false, string.Empty, "No backup.");
             }
 
-            public SaveStorageWriteResult WriteSave(string payload)
+            public SaveStorageWriteResult WriteSave(string payload, bool preserveBackup = false)
             {
                 _savePayload = payload;
                 return new SaveStorageWriteResult(true, string.Empty);

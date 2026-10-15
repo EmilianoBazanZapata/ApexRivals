@@ -5,6 +5,33 @@ namespace ApexRivals.Tests.EditMode.Progression
 {
     public sealed class PlayerProgressionStateTests
     {
+        [TestCase(int.MaxValue, 1)]
+        [TestCase(int.MaxValue - 5, 6)]
+        public void AddCurrency_OverflowIsRejectedWithoutMutationOrEvent(int balance, int amount)
+        {
+            var state = new PlayerProgressionState(balance);
+            var events = 0;
+            state.Changed += _ => events++;
+
+            var result = state.AddCurrency(amount);
+
+            Assert.That(result.Status, Is.EqualTo(CurrencyTransactionStatus.BalanceLimitExceeded));
+            Assert.That(state.Currency, Is.EqualTo(balance));
+            Assert.That(events, Is.Zero);
+        }
+
+        [Test]
+        public void AddCurrency_ExactMaximumIsAccepted()
+        {
+            var state = new PlayerProgressionState(int.MaxValue - 5);
+            var events = 0;
+            state.Changed += _ => events++;
+
+            Assert.That(state.AddCurrency(5).Succeeded, Is.True);
+            Assert.That(state.Currency, Is.EqualTo(int.MaxValue));
+            Assert.That(events, Is.EqualTo(1));
+        }
+
         [Test]
         public void AddCurrency_PositiveAmount_IncreasesCurrency()
         {

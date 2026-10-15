@@ -37,7 +37,7 @@ namespace ApexRivals.Race.Runtime
             return true;
         }
 
-        public static int CompareRacePosition(RacerPositionSnapshot left, RacerPositionSnapshot right, IReadOnlyList<Vector3> checkpointPositions)
+        public static int CompareRacePosition(RacerPositionSnapshot left, RacerPositionSnapshot right, IReadOnlyList<Vector3> checkpointPositions, RacePositionRoute route = null)
         {
             var leftProgress = left.Progress;
             var rightProgress = right.Progress;
@@ -62,6 +62,13 @@ namespace ApexRivals.Race.Runtime
             if (checkpointComparison != 0)
             {
                 return checkpointComparison;
+            }
+
+            if (route != null && route.IsValid)
+            {
+                var routeComparison = route.GetSectorProgress(rightProgress.NextExpectedCheckpointIndex, right.Position)
+                    .CompareTo(route.GetSectorProgress(leftProgress.NextExpectedCheckpointIndex, left.Position));
+                return routeComparison != 0 ? routeComparison : string.CompareOrdinal(leftProgress.RacerId, rightProgress.RacerId);
             }
 
             var leftDistance = DistanceToNextCheckpoint(left, checkpointPositions);

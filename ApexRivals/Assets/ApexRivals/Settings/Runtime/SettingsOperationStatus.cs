@@ -8,6 +8,7 @@ namespace ApexRivals.Settings.Runtime
         LoadedDefaultsAfterFailure,
         UnsupportedResolution,
         DisplayApplyFailed,
-        StorageFailed
+        StorageFailed,
+        DisplayRollbackFailed
     }
 }

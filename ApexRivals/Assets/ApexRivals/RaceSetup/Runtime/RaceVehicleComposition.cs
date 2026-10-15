@@ -75,6 +75,9 @@ namespace ApexRivals.RaceSetup.Runtime
             raceParticipant.Configure(raceCoordinator, participantId, progressTransform != null ? progressTransform : transform);
             _vehicleRuntime.ConfigureRuntime(drivingInputGate, vehicleResetter);
             _vehicleRuntime.ApplyPerformanceStats(effectiveStats);
+            var playerRecovery = GetComponent<PlayerCheckpointRecovery>();
+            if (playerRecovery == null) playerRecovery = gameObject.AddComponent<PlayerCheckpointRecovery>();
+            playerRecovery.Configure(raceCoordinator, raceParticipant, vehicleResetter);
         }
 
         public void ConfigureAI(

@@ -52,6 +52,48 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         }
 
         [Test]
+        public void MissingPrimaryWithValidBackupRecoversTheEntireProfile()
+        {
+            var data = PlayerProfileSaveData.CreateDefault();
+            data.currency = 321;
+            data.engineUpgradeLevel = 1;
+            data.handlingUpgradeLevel = 2;
+            data.completedRaceCount = 4;
+            data.selectedVehicleId = "sport";
+            data.vehicleSelectionCommitted = true;
+            var storage = new MemoryProfileSaveStorage { BackupPayload = Serialize(data) };
+            var progression = new PlayerProgressionState();
+            var selected = new SelectedVehicleState();
+
+            var result = CreateService(progression, selected, storage).LoadOrCreateDefault();
+
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.RecoveredFromBackup));
+            Assert.That(progression.Currency, Is.EqualTo(321));
+            Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(1));
+            Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(2));
+            Assert.That(progression.CompletedRaceCount, Is.EqualTo(4));
+            Assert.That(selected.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(selected.HasCommittedVehicleSelection, Is.True);
+            Assert.That(storage.SavePayload, Is.Null, "Recovery must not rotate or overwrite backup files.");
+        }
+
+        [TestCase("{ invalid json")]
+        [TestCase("")]
+        public void MissingPrimaryWithInvalidBackupFailsWithoutResettingExistingState(string backup)
+        {
+            var storage = new MemoryProfileSaveStorage { BackupPayload = backup };
+            var progression = new PlayerProgressionState(55);
+            var selected = new SelectedVehicleState("sport", true);
+
+            var result = CreateService(progression, selected, storage).LoadOrCreateDefault();
+
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Failed));
+            Assert.That(progression.Currency, Is.EqualTo(55));
+            Assert.That(selected.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(storage.BackupPayload, Is.EqualTo(backup));
+        }
+
+        [Test]
         public void Save_UsesTheEstablishedCurrentSchemaJsonContract()
         {
             var storage = new MemoryProfileSaveStorage();
@@ -538,14 +580,14 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
                     : new SaveStorageReadResult(false, string.Empty, "Backup file does not exist.");
             }
 
-            public SaveStorageWriteResult WriteSave(string payload)
+            public SaveStorageWriteResult WriteSave(string payload, bool preserveBackup = false)
             {
                 if (FailWrites)
                 {
                     return new SaveStorageWriteResult(false, "Write failed.");
                 }
 
-                if (SavePayload != null)
+                if (SavePayload != null && !preserveBackup)
                 {
                     BackupPayload = SavePayload;
                 }

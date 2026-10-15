@@ -215,46 +215,20 @@ namespace ApexRivals.RaceSession.Runtime
             return RaceSessionCommandResult.Success();
         }
 
-        public async Task<RaceSessionCommandResult> Retry()
+        public Task<RaceSessionCommandResult> Retry()
         {
-            if (State == RaceSessionLifecycleState.Disposed)
-            {
-                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.Disposed, "The race session has been disposed.");
-            }
-
-            if (State != RaceSessionLifecycleState.ShowingResults && State != RaceSessionLifecycleState.Paused && State != RaceSessionLifecycleState.Racing)
-            {
-                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.InvalidState, "Retry is only valid during racing, pause or results.");
-            }
-
-            SetState(RaceSessionLifecycleState.Retrying);
-            _timeScale.Resume();
-            CleanupAttempt();
-            var navigationResult = await _navigation.RetryRace();
-            if (!navigationResult.Succeeded)
-            {
-                SetState(RaceSessionLifecycleState.Failed);
-                return SetLastResult(RaceSessionCommandResult.Failure(RaceSessionCommandStatus.NavigationFailed, navigationResult.Message));
-            }
-
-            SetState(RaceSessionLifecycleState.Uninitialized);
-            var prepareResult = Prepare();
-            if (!prepareResult.Succeeded)
-            {
-                return prepareResult;
-            }
-
-            return Start();
+            // The replacement scene owns preparation and startup of its new session.
+            return Navigate(_navigation.RetryRace, RaceSessionLifecycleState.Retrying);
         }
 
         public Task<RaceSessionCommandResult> ReturnToGarage()
         {
-            return Exit(_navigation.ReturnToGarage);
+            return Navigate(_navigation.ReturnToGarage, RaceSessionLifecycleState.Exiting);
         }
 
         public Task<RaceSessionCommandResult> ReturnToMainMenu()
         {
-            return Exit(_navigation.ReturnToMainMenu);
+            return Navigate(_navigation.ReturnToMainMenu, RaceSessionLifecycleState.Exiting);
         }
 
         public void Dispose()
@@ -269,7 +243,9 @@ namespace ApexRivals.RaceSession.Runtime
             SetState(RaceSessionLifecycleState.Disposed);
         }
 
-        private async Task<RaceSessionCommandResult> Exit(Func<Task<SceneTransitionResult>> navigate)
+        private async Task<RaceSessionCommandResult> Navigate(
+            Func<Task<SceneTransitionResult>> navigate,
+            RaceSessionLifecycleState transitionState)
         {
             if (State == RaceSessionLifecycleState.Disposed)
             {
@@ -278,25 +254,57 @@ namespace ApexRivals.RaceSession.Runtime
 
             if (State != RaceSessionLifecycleState.Racing && State != RaceSessionLifecycleState.Paused && State != RaceSessionLifecycleState.ShowingResults)
             {
-                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.InvalidState, "Race exit is only valid during racing, pause or results.");
+                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.InvalidState, "Race navigation is only valid during racing, pause or results.");
             }
 
-            SetState(RaceSessionLifecycleState.Exiting);
-            _timeScale.Resume();
+            var previousState = State;
+            SetState(transitionState);
+            // Keep vehicles and subscriptions until unloading actually commits. Freeze
+            // the current attempt so failure can restore exactly the previous state.
+            _timeScale.Pause();
             _raceController.BlockDriving();
-            Unsubscribe();
-            _setup.Cleanup();
 
-            var navigationResult = await navigate();
-            if (!navigationResult.Succeeded)
+            try
             {
-                SetState(RaceSessionLifecycleState.Failed);
-                return SetLastResult(RaceSessionCommandResult.Failure(RaceSessionCommandStatus.NavigationFailed, navigationResult.Message));
+                var navigationResult = await navigate();
+                if (!navigationResult.Succeeded)
+                {
+                    return RestoreAfterNavigationFailure(previousState, navigationResult.Message);
+                }
+            }
+            catch (Exception exception)
+            {
+                return RestoreAfterNavigationFailure(previousState, exception.Message);
             }
 
-            _raceSessionState.Clear();
-            SetState(RaceSessionLifecycleState.Disposed);
-            return RaceSessionCommandResult.Success();
+            // Real scene unloading may already have disposed this instance and installed
+            // a new one. Never restart it or clear the replacement's shared result state.
+            if (State != RaceSessionLifecycleState.Disposed)
+            {
+                Dispose();
+            }
+
+            return SetLastResult(RaceSessionCommandResult.Success());
+        }
+
+        private RaceSessionCommandResult RestoreAfterNavigationFailure(RaceSessionLifecycleState previousState, string message)
+        {
+            if (State != RaceSessionLifecycleState.Disposed)
+            {
+                if (previousState != RaceSessionLifecycleState.Paused)
+                {
+                    _timeScale.Resume();
+                }
+
+                if (previousState == RaceSessionLifecycleState.Racing)
+                {
+                    _raceController.AllowDriving();
+                }
+
+                SetState(previousState);
+            }
+
+            return SetLastResult(RaceSessionCommandResult.Failure(RaceSessionCommandStatus.NavigationFailed, message));
         }
 
         private void HandleRaceStarted(RaceStartedEvent raceStarted)

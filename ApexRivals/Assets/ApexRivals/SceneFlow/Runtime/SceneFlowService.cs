@@ -134,40 +134,57 @@ namespace ApexRivals.SceneFlow.Runtime
 
             if (saveBeforeTransition && _saveCheckpoint != null)
             {
-                var saveResult = _saveCheckpoint.Save();
-                if (!saveResult.Succeeded)
+                try
                 {
-                    return new SceneTransitionResult(SceneTransitionStatus.SaveFailed, previousState, State, targetSceneId, saveResult.Message);
+                    var saveResult = _saveCheckpoint.Save();
+                    if (!saveResult.Succeeded)
+                    {
+                        return new SceneTransitionResult(SceneTransitionStatus.SaveFailed, previousState, State, targetSceneId, saveResult.Message);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    return new SceneTransitionResult(SceneTransitionStatus.SaveFailed, previousState, State, targetSceneId, exception.Message);
                 }
             }
 
             var previousPresentationState = RacePresentationState;
             _transitionInProgress = true;
-            SetState(ApplicationState.Transitioning);
+            try
+            {
+                SetState(ApplicationState.Transitioning);
+                var loadResult = await _sceneLoader.LoadContentSceneAsync(targetSceneId, sceneName, reloadCurrentScene);
+                if (!loadResult.Succeeded)
+                {
+                    RacePresentationState = previousPresentationState;
+                    SetState(previousState);
+                    return new SceneTransitionResult(SceneTransitionStatus.SceneLoadFailed, previousState, State, targetSceneId, loadResult.Message);
+                }
 
-            var loadResult = await _sceneLoader.LoadContentSceneAsync(targetSceneId, sceneName, reloadCurrentScene);
-            _transitionInProgress = false;
+                CurrentContentScene = targetSceneId;
+                RaceSession.Clear();
+                if (targetState == ApplicationState.Race)
+                {
+                    RacePresentationState = RacePresentationState.Racing;
+                }
+                else
+                {
+                    RacePresentationState = RacePresentationState.None;
+                }
 
-            if (!loadResult.Succeeded)
+                SetState(targetState);
+                return new SceneTransitionResult(SceneTransitionStatus.Succeeded, previousState, State, targetSceneId, string.Empty);
+            }
+            catch (Exception exception)
             {
                 RacePresentationState = previousPresentationState;
                 SetState(previousState);
-                return new SceneTransitionResult(SceneTransitionStatus.SceneLoadFailed, previousState, State, targetSceneId, loadResult.Message);
+                return new SceneTransitionResult(SceneTransitionStatus.SceneLoadFailed, previousState, State, targetSceneId, exception.Message);
             }
-
-            CurrentContentScene = targetSceneId;
-            if (targetState == ApplicationState.Race)
+            finally
             {
-                RaceSession.Clear();
-                RacePresentationState = RacePresentationState.Racing;
+                _transitionInProgress = false;
             }
-            else
-            {
-                RacePresentationState = RacePresentationState.None;
-            }
-
-            SetState(targetState);
-            return new SceneTransitionResult(SceneTransitionStatus.Succeeded, previousState, State, targetSceneId, string.Empty);
         }
 
         private bool CanOpenMainMenu()

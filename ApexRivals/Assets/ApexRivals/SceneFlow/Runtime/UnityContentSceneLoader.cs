@@ -1,4 +1,3 @@
-using System.Collections;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -41,92 +40,134 @@ namespace ApexRivals.SceneFlow.Runtime
                 return Task.FromResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.DuplicateLoad, sceneId, sceneName, "The content scene is already loaded."));
             }
 
-            var completion = new TaskCompletionSource<ContentSceneLoadResult>();
-            StartCoroutine(LoadContentScene(sceneId, sceneName, reloadCurrentScene, completion, cancellationToken));
-            return completion.Task;
+            if (!Application.CanStreamedLevelBeLoaded(sceneName))
+            {
+                return Task.FromResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, "The requested scene is not available in the build settings."));
+            }
+
+            return LoadContentScene(sceneId, sceneName, cancellationToken);
         }
 
-        private IEnumerator LoadContentScene(
+        private async Task<ContentSceneLoadResult> LoadContentScene(
             ContentSceneId sceneId,
             string sceneName,
-            bool reloadCurrentScene,
-            TaskCompletionSource<ContentSceneLoadResult> completion,
             CancellationToken cancellationToken)
         {
             IsLoading = true;
             Progress = 0f;
             var previousContentScene = _currentContentScene;
-            var disabledAudioListeners = DisableAudioListeners(previousContentScene);
-
-            var loadOperation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            if (loadOperation == null)
+            var disabledAudioListeners = new List<AudioListener>();
+            var loadedScene = default(Scene);
+            var committed = false;
+            try
             {
-                RestoreAudioListeners(disabledAudioListeners);
-                IsLoading = false;
-                completion.SetResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, "Unity did not create a load operation for the requested scene."));
-                yield break;
-            }
-
-            while (!loadOperation.isDone)
-            {
-                if (FindNewestLoadedScene(sceneName, previousContentScene).isLoaded)
+                cancellationToken.ThrowIfCancellationRequested();
+                disabledAudioListeners = DisableAudioListeners(previousContentScene);
+                var loadOperation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                if (loadOperation == null)
                 {
-                    break;
+                    throw new InvalidOperationException("Unity did not create a load operation for the requested scene.");
                 }
 
-                if (cancellationToken.IsCancellationRequested)
+                // Unity cannot cancel an in-flight load. Wait for it before honoring
+                // cancellation, so the finally block can unload the candidate scene.
+                while (!loadOperation.isDone)
                 {
-                    RestoreAudioListeners(disabledAudioListeners);
-                    IsLoading = false;
-                    completion.SetResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, "The content scene load was cancelled."));
-                    yield break;
+                    if (FindNewestLoadedScene(sceneName, previousContentScene).isLoaded)
+                    {
+                        break;
+                    }
+
+                    Progress = Mathf.Clamp01(loadOperation.progress);
+                    await Task.Yield();
                 }
 
-                Progress = Mathf.Clamp01(loadOperation.progress);
-                yield return null;
-            }
-
-            var loadedScene = FindNewestLoadedScene(sceneName, previousContentScene);
-            if (!loadedScene.IsValid() || !loadedScene.isLoaded)
-            {
-                RestoreAudioListeners(disabledAudioListeners);
-                IsLoading = false;
-                completion.SetResult(ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, "The requested scene did not finish loading."));
-                yield break;
-            }
-
-            SceneManager.SetActiveScene(loadedScene);
-
-            var unloadedSceneName = string.Empty;
-            if (previousContentScene.IsValid() && previousContentScene.isLoaded && previousContentScene.name != BootstrapSceneName)
-            {
-                ContentSceneUnloading?.Invoke(previousContentScene);
-                var unloadOperation = SceneManager.UnloadSceneAsync(previousContentScene);
-                if (unloadOperation != null)
+                loadedScene = FindNewestLoadedScene(sceneName, previousContentScene);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!loadedScene.IsValid() || !loadedScene.isLoaded)
                 {
+                    throw new InvalidOperationException("The requested scene did not finish loading.");
+                }
+
+                SceneManager.SetActiveScene(loadedScene);
+                var unloadedSceneName = string.Empty;
+                if (previousContentScene.IsValid() && previousContentScene.isLoaded && previousContentScene.name != BootstrapSceneName)
+                {
+                    unloadedSceneName = previousContentScene.name;
+                    var unloadOperation = SceneManager.UnloadSceneAsync(previousContentScene);
+                    if (unloadOperation == null)
+                    {
+                        throw new InvalidOperationException("Unity did not create an unload operation for the previous scene.");
+                    }
+
+                    // Only dispose the old session after Unity accepted the unload.
+                    NotifySceneObservers(ContentSceneUnloading, previousContentScene);
                     while (!unloadOperation.isDone)
                     {
                         Progress = Mathf.Clamp01(unloadOperation.progress);
-                        yield return null;
+                        await Task.Yield();
                     }
-
-                    unloadedSceneName = previousContentScene.name;
                 }
-                else
+
+                _currentContentScene = loadedScene;
+                committed = true;
+                NotifySceneObservers(ContentSceneLoaded, loadedScene);
+                Progress = 1f;
+                return ContentSceneLoadResult.Success(sceneId, sceneName, unloadedSceneName);
+            }
+            catch (Exception exception)
+            {
+                return ContentSceneLoadResult.Failure(ContentSceneLoadStatus.LoadFailed, sceneId, sceneName, exception.Message);
+            }
+            finally
+            {
+                try
+                {
+                    if (!committed && loadedScene.IsValid() && loadedScene.isLoaded && loadedScene.handle != previousContentScene.handle)
+                    {
+                        if (previousContentScene.IsValid() && previousContentScene.isLoaded)
+                        {
+                            SceneManager.SetActiveScene(previousContentScene);
+                        }
+
+                        var rollback = SceneManager.UnloadSceneAsync(loadedScene);
+                        if (rollback != null)
+                        {
+                            while (!rollback.isDone)
+                            {
+                                await Task.Yield();
+                            }
+                        }
+                    }
+                }
+                finally
                 {
                     RestoreAudioListeners(disabledAudioListeners);
+                    IsLoading = false;
                 }
             }
-            else
+        }
+
+        private static void NotifySceneObservers(Action<Scene> observers, Scene scene)
+        {
+            if (observers == null)
             {
-                RestoreAudioListeners(disabledAudioListeners);
+                return;
             }
 
-            _currentContentScene = loadedScene;
-            ContentSceneLoaded?.Invoke(loadedScene);
-            Progress = 1f;
-            IsLoading = false;
-            completion.SetResult(ContentSceneLoadResult.Success(sceneId, sceneName, unloadedSceneName));
+            foreach (Action<Scene> observer in observers.GetInvocationList())
+            {
+                try
+                {
+                    observer(scene);
+                }
+                catch (Exception exception)
+                {
+                    // A broken subscriber must not strand the loading task or prevent
+                    // other subscribers from releasing/installing their scene services.
+                    Debug.LogException(exception);
+                }
+            }
         }
 
         private static Scene FindNewestLoadedScene(string sceneName, Scene previousContentScene)
@@ -140,7 +181,7 @@ namespace ApexRivals.SceneFlow.Runtime
                 }
             }
 
-            return SceneManager.GetSceneByName(sceneName);
+            return default;
         }
 
         private static List<AudioListener> DisableAudioListeners(Scene scene)

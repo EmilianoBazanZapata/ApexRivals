@@ -110,15 +110,15 @@ namespace ApexRivals.Vehicle.Configuration
         public WheelFrictionSettings rearSidewaysFriction = new WheelFrictionSettings { extremumSlip = 0.1f, extremumValue = 0.7f, asymptoteSlip = 0.1f, asymptoteValue = 0.6f, stiffness = 0.8f };
 
         [Header("Selection / Progression")]
-        [Tooltip("Game-facing acceleration rating for selection and upgrades. This value does not change WheelCollider physics directly.")]
+        [Tooltip("Baseline acceleration rating. Applied upgrade ratios scale engine power relative to this value.")]
         [Min(0f)] public float performanceAcceleration;
-        [Tooltip("Game-facing top-speed rating for selection and upgrades. This value does not change WheelCollider physics directly.")]
+        [Tooltip("Forward propulsion speed limit in m/s when performance stats are applied by player composition. Upgrades increase this limit; external forces are not clamped.")]
         [Min(0f)] public float performanceTopSpeed;
-        [Tooltip("Game-facing steering rating for selection and upgrades. This value does not change WheelCollider physics directly.")]
+        [Tooltip("Baseline steering rating. Applied upgrade ratios scale steering input within the configured angle limit.")]
         [Min(0f)] public float performanceSteering;
-        [Tooltip("Game-facing normal-handling rating for selection and upgrades. This value does not change WheelCollider friction directly.")]
+        [Tooltip("Baseline normal-handling rating. Applied upgrade ratios scale lateral tire stiffness.")]
         [Min(0f)] public float performanceHandling;
-        [Tooltip("Game-facing drift-handling rating for selection and upgrades. This value does not change WheelCollider friction directly.")]
+        [Tooltip("Baseline drift-handling rating. Applied upgrade ratios scale rear lateral grip during forward drift.")]
         [Min(0f)] public float performanceDriftHandling;
 
         public float GetGearRatio(int gearIndex)

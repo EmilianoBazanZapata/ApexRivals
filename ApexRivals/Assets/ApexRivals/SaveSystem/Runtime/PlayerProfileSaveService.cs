@@ -12,6 +12,7 @@ namespace ApexRivals.SaveSystem.Runtime
         private readonly IPlayerProfileSaveStorage _storage;
         private readonly PlayerProfileJsonSerializer _serializer;
         private readonly PlayerProfileSaveValidator _validator;
+        private bool _preserveRecoveredBackup;
 
         public PlayerProfileSaveService(
             PlayerProgressionState progressionState,
@@ -35,7 +36,8 @@ namespace ApexRivals.SaveSystem.Runtime
                 return new PlayerProfileSaveResult(PlayerProfileSaveStatus.SerializationFailed, serializationResult.Error);
             }
 
-            var writeResult = _storage.WriteSave(serializationResult.Json);
+            var writeResult = _storage.WriteSave(serializationResult.Json, _preserveRecoveredBackup);
+            if (writeResult.Succeeded) _preserveRecoveredBackup = false;
             return writeResult.Succeeded
                 ? new PlayerProfileSaveResult(PlayerProfileSaveStatus.Saved, string.Empty)
                 : new PlayerProfileSaveResult(PlayerProfileSaveStatus.StorageFailed, writeResult.Error);
@@ -43,17 +45,22 @@ namespace ApexRivals.SaveSystem.Runtime
 
         public PlayerProfileLoadResult LoadOrCreateDefault()
         {
-            if (!_storage.SaveExists())
+            var saveExists = _storage.SaveExists();
+            if (!saveExists && !_storage.BackupExists())
             {
                 var defaultData = PlayerProfileSaveData.CreateDefault();
                 Restore(defaultData);
+                _preserveRecoveredBackup = false;
                 return new PlayerProfileLoadResult(PlayerProfileLoadStatus.CreatedDefault, defaultData, string.Empty);
             }
 
-            var primaryResult = TryLoadFromStorage(_storage.ReadSave());
+            var primaryResult = saveExists
+                ? TryLoadFromStorage(_storage.ReadSave())
+                : new PlayerProfileLoadResult(PlayerProfileLoadStatus.Failed, null, "The primary save file is missing.");
             if (primaryResult.Succeeded)
             {
                 Restore(primaryResult.SaveData);
+                _preserveRecoveredBackup = false;
                 return new PlayerProfileLoadResult(PlayerProfileLoadStatus.Loaded, primaryResult.SaveData, string.Empty);
             }
 
@@ -63,6 +70,7 @@ namespace ApexRivals.SaveSystem.Runtime
                 if (backupResult.Succeeded)
                 {
                     Restore(backupResult.SaveData);
+                    _preserveRecoveredBackup = true;
                     return new PlayerProfileLoadResult(PlayerProfileLoadStatus.RecoveredFromBackup, backupResult.SaveData, primaryResult.Message);
                 }
             }
@@ -93,6 +101,7 @@ namespace ApexRivals.SaveSystem.Runtime
             }
 
             Restore(PlayerProfileSaveData.CreateDefault());
+            _preserveRecoveredBackup = false;
             return new PlayerProfileSaveResult(PlayerProfileSaveStatus.Deleted, string.Empty);
         }
 

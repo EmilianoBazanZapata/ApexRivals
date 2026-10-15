@@ -4,6 +4,7 @@ namespace ApexRivals.Progression.Runtime
     {
         Succeeded,
         InvalidAmount,
-        InsufficientCurrency
+        InsufficientCurrency,
+        BalanceLimitExceeded
     }
 }

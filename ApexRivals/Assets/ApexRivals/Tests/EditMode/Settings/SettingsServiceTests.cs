@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,107 @@ namespace ApexRivals.Tests.EditMode.Settings
 {
     public sealed class SettingsServiceTests
     {
+        [TestCase(false)]
+        [TestCase(true)]
+        public void FailedSaveRestoresDisplayAndCancelKeepsCommittedSettings(bool throws)
+        {
+            var storage = new MemorySettingsStorage { FailSave = !throws, ThrowSave = throws };
+            var display = new FakeDisplaySettingsAdapter();
+            var service = CreateService(storage, display);
+            var previous = service.Current;
+            var events = 0;
+            service.AudioPreferencesCommitted += _ => events++;
+            service.EditFullScreenMode(FullScreenMode.Windowed);
+            service.EditResolution(new SettingsResolution(1280, 720, 60));
+            service.EditMasterVolume(0.25f);
+            var attempted = service.Draft;
+
+            var result = service.Apply();
+
+            Assert.That(result.Status, Is.EqualTo(SettingsOperationStatus.StorageFailed));
+            Assert.That(display.LastApplied, Is.EqualTo(previous));
+            Assert.That(service.Current, Is.EqualTo(previous));
+            Assert.That(service.Persisted, Is.EqualTo(previous));
+            Assert.That(service.Draft, Is.EqualTo(attempted), "Keep edits available for retry.");
+            Assert.That(events, Is.Zero);
+            service.Cancel();
+            Assert.That(service.Draft, Is.EqualTo(previous));
+            Assert.That(service.HasUnsavedChanges, Is.False);
+        }
+
+        [Test]
+        public void SaveRetryCommitsOnceAfterTheDisplayWasRolledBack()
+        {
+            var storage = new MemorySettingsStorage { FailSave = true };
+            var display = new FakeDisplaySettingsAdapter();
+            var service = CreateService(storage, display);
+            var events = 0;
+            service.AudioPreferencesCommitted += _ => events++;
+            service.EditFullScreenMode(FullScreenMode.Windowed);
+            service.EditMusicVolume(0.2f);
+            Assert.That(service.Apply().Succeeded, Is.False);
+            storage.FailSave = false;
+
+            Assert.That(service.Apply().Succeeded, Is.True);
+            Assert.That(service.Current, Is.EqualTo(storage.Saved));
+            Assert.That(service.Current, Is.EqualTo(display.LastApplied));
+            Assert.That(service.Persisted, Is.EqualTo(service.Current));
+            Assert.That(service.HasUnsavedChanges, Is.False);
+            Assert.That(events, Is.EqualTo(1));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void FailedDisplayRollbackTracksAppliedModeAndAllowsPersistingIt(bool throws)
+        {
+            var storage = new MemorySettingsStorage { FailSave = true };
+            var display = new FakeDisplaySettingsAdapter { FailOnApplyNumber = throws ? 0 : 2, ThrowOnApplyNumber = throws ? 2 : 0 };
+            var service = CreateService(storage, display);
+            var previous = service.Current;
+            service.EditFullScreenMode(FullScreenMode.Windowed);
+            service.EditMusicVolume(0.2f);
+            var result = service.Apply();
+
+            Assert.That(result.Status, Is.EqualTo(SettingsOperationStatus.DisplayRollbackFailed));
+            Assert.That(service.Current.FullScreenMode, Is.EqualTo(FullScreenMode.Windowed));
+            Assert.That(display.LastApplied.FullScreenMode, Is.EqualTo(service.Current.FullScreenMode));
+            Assert.That(service.Current.MusicVolume, Is.EqualTo(previous.MusicVolume));
+            Assert.That(service.Persisted, Is.EqualTo(previous));
+            service.Cancel();
+            Assert.That(service.HasUnsavedChanges, Is.True, "Applied mode still differs from saved preferences.");
+            storage.FailSave = false;
+            Assert.That(service.Apply().Succeeded, Is.True);
+            Assert.That(service.Persisted, Is.EqualTo(service.Current));
+            Assert.That(service.HasUnsavedChanges, Is.False);
+        }
+
+        [Test]
+        public void DisplayExceptionDoesNotWritePreferencesOrBlockPresenterRetry()
+        {
+            var storage = new MemorySettingsStorage();
+            var display = new FakeDisplaySettingsAdapter { ThrowOnApplyNumber = 1 };
+            var service = CreateService(storage, display);
+            var presenter = new SettingsPresenter(new FakeSettingsView(), service);
+            presenter.SetMusicVolume(0.2f);
+
+            Assert.That(presenter.Apply().Status, Is.EqualTo(SettingsOperationStatus.DisplayApplyFailed));
+            Assert.That(storage.SaveCount, Is.Zero);
+            Assert.That(presenter.Apply().Succeeded, Is.True);
+        }
+
+        [Test]
+        public void PresenterKeepsApplyAvailableWhenCancelCannotUndoUnpersistedDisplayMode()
+        {
+            var storage = new MemorySettingsStorage { FailSave = true };
+            var display = new FakeDisplaySettingsAdapter { FailOnApplyNumber = 2 };
+            var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(storage, display));
+            presenter.SetFullScreenMode(FullScreenMode.Windowed);
+            presenter.Apply();
+            presenter.Cancel();
+            Assert.That(presenter.Current.CanApply, Is.True);
+            Assert.That(presenter.Current.MessageKey, Is.EqualTo("ui.settings.display.rollbackFailed"));
+        }
+
         [Test]
         public void DefaultSettingsAreSensible()
         {
@@ -251,6 +353,8 @@ namespace ApexRivals.Tests.EditMode.Settings
         private sealed class MemorySettingsStorage : ISettingsStorage
         {
             public bool Exists { get; set; }
+            public bool FailSave { get; set; }
+            public bool ThrowSave { get; set; }
             public SettingsStorageReadStatus ReadStatus { get; set; } = SettingsStorageReadStatus.Loaded;
             public SettingsState Stored { get; set; } = SettingsState.Default;
             public SettingsState Saved { get; private set; }
@@ -273,6 +377,8 @@ namespace ApexRivals.Tests.EditMode.Settings
             public SettingsStorageWriteResult Save(SettingsState settings)
             {
                 SaveCount++;
+                if (ThrowSave) throw new InvalidOperationException("Controlled settings save exception.");
+                if (FailSave) return new SettingsStorageWriteResult(false, "Controlled settings save failure.");
                 Saved = settings;
                 WrittenKeys.Clear();
                 WrittenKeys.Add("width");
@@ -307,6 +413,8 @@ namespace ApexRivals.Tests.EditMode.Settings
             }
 
             public bool FailApply { get; set; }
+            public int FailOnApplyNumber { get; set; }
+            public int ThrowOnApplyNumber { get; set; }
             public int ApplyCount { get; private set; }
             public SettingsState LastApplied { get; private set; }
             public IReadOnlyList<SettingsResolution> SupportedResolutions => _supportedResolutions;
@@ -315,10 +423,11 @@ namespace ApexRivals.Tests.EditMode.Settings
             public SettingsOperationResult Apply(SettingsState settings)
             {
                 ApplyCount++;
+                if (ApplyCount == ThrowOnApplyNumber) throw new InvalidOperationException("Controlled display exception.");
+                if (FailApply || ApplyCount == FailOnApplyNumber)
+                    return new SettingsOperationResult(SettingsOperationStatus.DisplayApplyFailed, "Display failed.");
                 LastApplied = settings;
-                return FailApply
-                    ? new SettingsOperationResult(SettingsOperationStatus.DisplayApplyFailed, "Display failed.")
-                    : SettingsOperationResult.Success();
+                return SettingsOperationResult.Success();
             }
         }
 
@@ -380,7 +489,7 @@ namespace ApexRivals.Tests.EditMode.Settings
                 return new SaveStorageReadResult(false, string.Empty, "No backup.");
             }
 
-            public SaveStorageWriteResult WriteSave(string payload)
+            public SaveStorageWriteResult WriteSave(string payload, bool preserveBackup = false)
             {
                 return new SaveStorageWriteResult(true, string.Empty);
             }

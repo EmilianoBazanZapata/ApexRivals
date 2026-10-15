@@ -49,6 +49,8 @@ namespace ApexRivals.Race.Runtime
         private readonly List<RaceParticipant> _participants = new List<RaceParticipant>();
         private readonly List<RacerPositionSnapshot> _positionSnapshots = new List<RacerPositionSnapshot>();
         private readonly List<Vector3> _checkpointPositions = new List<Vector3>();
+        private readonly List<Vector3> _positionRoutePoints = new List<Vector3>();
+        private RacePositionRoute _positionRoute;
         private readonly Dictionary<string, int> _livePositionsByRacerId = new Dictionary<string, int>();
         private readonly List<RaceResult> _results = new List<RaceResult>();
 
@@ -179,6 +181,15 @@ namespace ApexRivals.Race.Runtime
         public void SetSessionDrivingAllowed(bool isAllowed)
         {
             SetDrivingAllowed(isAllowed);
+        }
+
+        public void ConfigurePositionRoute(IReadOnlyList<Vector3> points)
+        {
+            _positionRoutePoints.Clear();
+            if (points != null)
+                for (var i = 0; i < points.Count; i++) _positionRoutePoints.Add(points[i]);
+            CacheCheckpointPositions();
+            RecalculatePositions();
         }
 
         public void RegisterRacer(RaceParticipant participant)
@@ -336,6 +347,7 @@ namespace ApexRivals.Race.Runtime
                     _checkpointPositions.Add(orderedCheckpoints[index].Position);
                 }
             }
+            _positionRoute = new RacePositionRoute(_checkpointPositions, _positionRoutePoints);
         }
 
         private void RecalculatePositions()
@@ -353,7 +365,7 @@ namespace ApexRivals.Race.Runtime
                 _positionSnapshots.Add(new RacerPositionSnapshot(progress, participant.ProgressTransform.position));
             }
 
-            _positionSnapshots.Sort((left, right) => RaceRules.CompareRacePosition(left, right, _checkpointPositions));
+            _positionSnapshots.Sort((left, right) => RaceRules.CompareRacePosition(left, right, _checkpointPositions, _positionRoute));
 
             for (var index = 0; index < _positionSnapshots.Count; index++)
             {

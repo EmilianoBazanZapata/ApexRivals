@@ -71,7 +71,9 @@ namespace ApexRivals.UI.Runtime
             SetButton(applyButton, viewModel.CanApply);
             SetButton(cancelButton, true);
             SetButton(restoreDefaultsButton, true);
-            UguiViewText.Set(statusText, viewModel.MessageKey);
+            UguiViewText.Set(statusText, viewModel.MessageKey == "ui.settings.display.rollbackFailed"
+                ? "Display mode not saved. Apply again."
+                : viewModel.MessageKey);
             ConfigureNavigation();
             _rendering = false;
         }

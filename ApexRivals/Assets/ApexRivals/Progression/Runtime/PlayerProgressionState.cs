@@ -42,6 +42,11 @@ namespace ApexRivals.Progression.Runtime
                 return new CurrencyTransactionResult(CurrencyTransactionStatus.InvalidAmount, Currency);
             }
 
+            if (amount > int.MaxValue - Currency)
+            {
+                return new CurrencyTransactionResult(CurrencyTransactionStatus.BalanceLimitExceeded, Currency);
+            }
+
             Currency += amount;
             RaiseChanged();
             return new CurrencyTransactionResult(CurrencyTransactionStatus.Succeeded, Currency);

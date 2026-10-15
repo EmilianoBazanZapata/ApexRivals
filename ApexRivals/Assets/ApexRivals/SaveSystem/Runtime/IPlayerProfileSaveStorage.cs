@@ -6,7 +6,9 @@ namespace ApexRivals.SaveSystem.Runtime
         bool BackupExists();
         SaveStorageReadResult ReadSave();
         SaveStorageReadResult ReadBackup();
-        SaveStorageWriteResult WriteSave(string payload);
+        // Preserve the validated recovery copy while replacing a missing/invalid primary.
+        // On failure, leave existing primary and backup files intact.
+        SaveStorageWriteResult WriteSave(string payload, bool preserveBackup = false);
         SaveStorageWriteResult DeleteSave();
     }
 }

@@ -1,5 +1,6 @@
 using ApexRivals.Vehicle.Runtime;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace ApexRivals.Camera.Runtime
 {
@@ -94,6 +95,12 @@ namespace ApexRivals.Camera.Runtime
 
         private UnityEngine.Camera _camera;
         private bool _isReverseCamera;
+        private readonly RaycastHit[] _obstructionHits = new RaycastHit[32];
+
+        [Header("Obstacles")]
+        [SerializeField] private LayerMask obstructionMask = ~0;
+        [SerializeField, Min(0.05f)] private float obstructionRadius = 0.3f;
+        [SerializeField, Min(0f)] private float obstructionPadding = 0.05f;
 
         public float CurrentPlanarSpeed { get; private set; }
         public float CurrentSignedForwardSpeed { get; private set; }
@@ -140,9 +147,9 @@ namespace ApexRivals.Camera.Runtime
 
             UpdateDirections();
             UpdateReverseCameraState();
+            UpdateFieldOfView();
             UpdatePosition();
             UpdateRotation();
-            UpdateFieldOfView();
         }
 
         private void UpdateDirections()
@@ -188,7 +195,10 @@ namespace ApexRivals.Camera.Runtime
         {
             CurrentDesiredCameraPosition = CalculateDesiredCameraPosition();
             var followAmount = CalculateFollowAmount(positionFollowSpeed);
-            transform.position = Vector3.Lerp(transform.position, CurrentDesiredCameraPosition, followAmount);
+            var candidate = Vector3.Lerp(transform.position, CurrentDesiredCameraPosition, followAmount);
+            // Constrain the smoothed pose too: smoothing alone can leave the camera
+            // behind a wall when reversing, recovering, or moving alongside geometry.
+            transform.position = ResolveObstruction(candidate);
             CurrentCameraDistance = Vector3.Distance(transform.position, cameraTarget.position);
             CurrentDistanceFromDesiredPosition = Vector3.Distance(transform.position, CurrentDesiredCameraPosition);
             CurrentDesiredCameraSideDot = Vector3.Dot(
@@ -211,6 +221,30 @@ namespace ApexRivals.Camera.Runtime
             return cameraTarget.position
                 + Vector3.up * followHeight
                 - CurrentEffectiveFollowDirection * Mathf.Max(0f, followDistance);
+        }
+
+        private Vector3 ResolveObstruction(Vector3 candidate)
+        {
+            var origin = cameraTarget.position;
+            var offset = candidate - origin;
+            var distance = offset.magnitude;
+            if (distance < 0.0001f) return candidate;
+            var direction = offset / distance;
+            // Include the near-plane corners, so the lens does not clip while
+            // the camera centre is still outside the obstacle.
+            var nearHeight = _camera.nearClipPlane * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            var radius = Mathf.Max(obstructionRadius, Mathf.Sqrt(nearHeight * nearHeight * (1f + _camera.aspect * _camera.aspect)));
+            var count = gameObject.scene.GetPhysicsScene().SphereCast(origin, radius, direction,
+                _obstructionHits, distance, obstructionMask, QueryTriggerInteraction.Ignore);
+            var allowedDistance = distance;
+            for (var i = 0; i < count; i++)
+            {
+                var hit = _obstructionHits[i];
+                if (hit.collider == null || hit.collider.attachedRigidbody == vehicleRigidbody
+                    || hit.collider.transform.IsChildOf(vehicleRigidbody.transform)) continue;
+                allowedDistance = Mathf.Min(allowedDistance, Mathf.Max(0f, hit.distance - obstructionPadding));
+            }
+            return origin + direction * allowedDistance;
         }
 
         private void UpdateRotation()

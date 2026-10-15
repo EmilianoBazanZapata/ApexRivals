@@ -54,7 +54,7 @@ namespace ApexRivals.SaveSystem.Runtime
             return ReadPath(_backupPath);
         }
 
-        public SaveStorageWriteResult WriteSave(string payload)
+        public SaveStorageWriteResult WriteSave(string payload, bool preserveBackup = false)
         {
             if (string.IsNullOrWhiteSpace(payload))
             {
@@ -73,8 +73,9 @@ namespace ApexRivals.SaveSystem.Runtime
 
                 if (File.Exists(_savePath))
                 {
-                    TryDeletePath(_backupPath);
-                    File.Replace(_temporaryPath, _savePath, _backupPath, true);
+                    // Replace can overwrite an existing backup atomically. Never delete
+                    // the last good copy before the replacement has succeeded.
+                    File.Replace(_temporaryPath, _savePath, preserveBackup ? null : _backupPath, true);
                     return new SaveStorageWriteResult(true, string.Empty);
                 }
 
@@ -83,8 +84,17 @@ namespace ApexRivals.SaveSystem.Runtime
             }
             catch (Exception exception)
             {
-                TryDeleteTemporaryFile();
-                return new SaveStorageWriteResult(false, exception.Message);
+                var error = exception.Message;
+                try
+                {
+                    TryDeleteTemporaryFile();
+                }
+                catch (Exception cleanupException)
+                {
+                    error += " Temporary save cleanup failed: " + cleanupException.Message;
+                }
+
+                return new SaveStorageWriteResult(false, error);
             }
         }
 

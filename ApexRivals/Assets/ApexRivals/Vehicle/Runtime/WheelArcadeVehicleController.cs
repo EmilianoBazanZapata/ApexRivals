@@ -86,6 +86,8 @@ namespace ApexRivals.Vehicle.Runtime
         private WheelVehicleTuning _lastAppliedPhysicsTuning;
         private bool _hasAppliedPhysicsTuning;
         private VehiclePerformanceStats _currentPerformanceStats;
+        private bool _performanceStatsApplied;
+        private float _performanceSteeringMultiplier = 1f;
 
         public float CurrentForwardSpeed { get; private set; }
         public float CurrentLateralSpeed { get; private set; }
@@ -156,6 +158,8 @@ namespace ApexRivals.Vehicle.Runtime
         public void ApplyPerformanceStats(VehiclePerformanceStats performanceStats)
         {
             _currentPerformanceStats = performanceStats;
+            _performanceStatsApplied = true;
+            RefreshEffectiveTuning();
         }
 
         [ContextMenu("Copy Configuration To Runtime Tuning Overrides")]
@@ -189,7 +193,8 @@ namespace ApexRivals.Vehicle.Runtime
             ApplySteering(input.Steering);
             ApplyBrakes(input);
             ApplyRearSidewaysFriction();
-            ApplyRearMotorTorque(input);
+            var canSelectGear = AdvanceGearboxTiming();
+            ApplyRearMotorTorque(input, canSelectGear);
             UpdateWheelSlipDiagnostics();
         }
 
@@ -200,10 +205,15 @@ namespace ApexRivals.Vehicle.Runtime
         /// </summary>
         public bool TryResetVehicle()
         {
-            var resetApplied = resetter != null;
-            resetter?.ResetVehicle();
+            if (!HasRequiredReferences() || resetter == null || !resetter.TryResetVehicle())
+            {
+                return false;
+            }
+
             ResetDrivetrain();
-            return resetApplied;
+            UpdateVehicleDiagnostics();
+            ApplyRearSidewaysFriction();
+            return true;
         }
 
         private void LateUpdate()
@@ -226,7 +236,7 @@ namespace ApexRivals.Vehicle.Runtime
             // Rigidbody every rendered frame. Interpolate the rendered Rigidbody pose so
             // its CameraTarget child is continuous between physics steps.
             _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
-            _rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             _rigidbody.constraints = RigidbodyConstraints.None;
             _rigidbody.ResetCenterOfMass();
             _rigidbody.ResetInertiaTensor();
@@ -245,6 +255,13 @@ namespace ApexRivals.Vehicle.Runtime
             _effectiveTuning = useRuntimeTuningOverrides
                 ? runtimeTuningOverrides
                 : configuration.CreateTuning();
+
+            if (_performanceStatsApplied)
+            {
+                var baseline = configuration.CreatePerformanceStats();
+                _effectiveTuning = VehiclePerformanceTuningRules.Apply(_effectiveTuning, baseline, _currentPerformanceStats);
+                _performanceSteeringMultiplier = VehiclePerformanceTuningRules.RelativeMultiplier(baseline.Steering, _currentPerformanceStats.Steering);
+            }
 
             if (_hasAppliedPhysicsTuning && _effectiveTuning.HasSamePhysicsSettings(_lastAppliedPhysicsTuning))
             {
@@ -317,7 +334,8 @@ namespace ApexRivals.Vehicle.Runtime
         private void ApplySteering(float steeringInput)
         {
             CurrentSteeringInput = Mathf.Clamp(steeringInput, -1f, 1f);
-            var baseSteer = CurrentSteeringInput * _effectiveTuning.steeringCurve.Evaluate(CurrentSteeringSpeed);
+            var baseSteer = CurrentSteeringInput * _effectiveTuning.steeringCurve.Evaluate(CurrentSteeringSpeed)
+                * _performanceSteeringMultiplier;
             CurrentCountersteerCorrection = CalculateCountersteerCorrection();
             CurrentFrontWheelSteerAngle = Mathf.Clamp(
                 baseSteer + CurrentCountersteerCorrection,
@@ -363,9 +381,13 @@ namespace ApexRivals.Vehicle.Runtime
             rearRightWheel.brakeTorque = rearBrakeTorque;
         }
 
-        private void ApplyRearMotorTorque(DrivingInput input)
+        private void ApplyRearMotorTorque(DrivingInput input, bool canSelectGear)
         {
             var motorInput = ResolveMotorInput(input);
+            if (_performanceStatsApplied && motorInput > 0f)
+            {
+                motorInput *= VehiclePerformanceTuningRules.ForwardMotorFactor(CurrentForwardSpeed, _currentPerformanceStats.TopSpeed);
+            }
             if (HandbrakeActive)
             {
                 var torqueMultiplier = ForwardDriftActive
@@ -385,7 +407,7 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
-            UpdateAutomaticGearbox(motorInput > 0f);
+            UpdateAutomaticGearbox(motorInput > 0f, canSelectGear);
             var torqueMagnitude = CalculateRearWheelTorque();
             CurrentTorqueBeforeShiftSuppression = torqueMagnitude;
             if (_shiftTimeRemaining > 0f)
@@ -416,7 +438,7 @@ namespace ApexRivals.Vehicle.Runtime
                 _effectiveTuning.differential);
         }
 
-        private void UpdateAutomaticGearbox(bool drivingForward)
+        private bool AdvanceGearboxTiming()
         {
             var timing = VehicleDrivetrainRules.EvaluateGearboxTiming(
                 _shiftTimeRemaining,
@@ -425,7 +447,12 @@ namespace ApexRivals.Vehicle.Runtime
                 _effectiveTuning.gearShiftCooldownDuration);
             _shiftTimeRemaining = timing.ShiftTimeRemaining;
             _shiftCooldownRemaining = timing.ShiftCooldownRemaining;
-            if (!timing.CanEvaluateGearSelection)
+            return timing.CanEvaluateGearSelection;
+        }
+
+        private void UpdateAutomaticGearbox(bool drivingForward, bool canSelectGear)
+        {
+            if (!canSelectGear)
             {
                 return;
             }
@@ -502,8 +529,25 @@ namespace ApexRivals.Vehicle.Runtime
             ForwardDriftActive = false;
             _wasForwardDriftActive = false;
             _driftHandbrakeEntryTimeRemaining = 0f;
-            rearLeftWheel.motorTorque = 0f;
-            rearRightWheel.motorTorque = 0f;
+            HandbrakeActive = false;
+            CurrentNormalBrakeTorque = 0f;
+            CurrentHandbrakeTorque = 0f;
+            CurrentDriftHandbrakeMultiplier = 0f;
+            CurrentSteeringInput = 0f;
+            CurrentFrontWheelSteerAngle = 0f;
+            CurrentCountersteerCorrection = 0f;
+            ClearWheelForces(frontLeftWheel);
+            ClearWheelForces(frontRightWheel);
+            ClearWheelForces(rearLeftWheel);
+            ClearWheelForces(rearRightWheel);
+        }
+
+        private static void ClearWheelForces(WheelCollider wheel)
+        {
+            if (wheel == null) return;
+            wheel.motorTorque = 0f;
+            wheel.brakeTorque = 0f;
+            wheel.steerAngle = 0f;
         }
 
         private void UpdateForwardDriftState(DrivingInput input)

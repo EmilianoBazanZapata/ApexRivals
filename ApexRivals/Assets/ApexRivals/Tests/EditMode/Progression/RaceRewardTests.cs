@@ -7,6 +7,18 @@ namespace ApexRivals.Tests.EditMode.Progression
 {
     public sealed class RaceRewardTests
     {
+        [TestCase(0)]
+        [TestCase(5)]
+        public void FullOrNearlyFullWalletAwardsOnlyAvailableCapacityWithoutFailingTheRace(int capacity)
+        {
+            var state = new PlayerProgressionState(int.MaxValue - capacity);
+            var service = new RaceRewardService(state, CreateRewardTable());
+
+            Assert.That(service.TryAwardReward(new RaceResult("Player", 1, 40f), out var reward), Is.True);
+            Assert.That(reward, Is.EqualTo(capacity));
+            Assert.That(state.Currency, Is.EqualTo(int.MaxValue));
+        }
+
         [TestCase(1, 500)]
         [TestCase(2, 300)]
         [TestCase(3, 200)]

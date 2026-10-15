@@ -78,6 +78,12 @@ namespace ApexRivals.RaceSetup.Runtime
                 return Failure(RaceSetupStatus.InvalidRoster, "Race coordinator is missing.");
             }
 
+            // Reuse track geometry as read-only data; driver behaviour is independent of ranking.
+            var positionRoute = new List<UnityEngine.Vector3>();
+            if (racingLine != null && racingLine.IsValid)
+                for (var i = 0; i < racingLine.WaypointCount; i++) positionRoute.Add(racingLine.GetWaypointPosition(i));
+            raceCoordinator.ConfigurePositionRoute(positionRoute);
+
             var spawned = new List<RaceVehicleComposition>();
             var opponents = new List<RaceVehicleComposition>();
             var participants = new List<RaceParticipant>();

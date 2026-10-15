@@ -1,6 +1,7 @@
 using System;
 using ApexRivals.Input.Runtime;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace ApexRivals.Vehicle.Runtime
 {
@@ -81,7 +82,7 @@ namespace ApexRivals.Vehicle.Runtime
             {
                 var direction = roofRecoveryRayOrigin != null ? roofRecoveryRayOrigin.up : transform.up;
                 var origin = roofRecoveryRayOrigin != null ? roofRecoveryRayOrigin.position : transform.position;
-                var hitCount = Physics.RaycastNonAlloc(
+                var hitCount = gameObject.scene.GetPhysicsScene().Raycast(
                     origin,
                     direction,
                     _roofRayHits,

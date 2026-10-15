@@ -148,6 +148,23 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             Assert.That(context.Navigation.ShowResultsCount, Is.EqualTo(1));
         }
 
+        [TestCase(int.MaxValue, 0)]
+        [TestCase(int.MaxValue - 5, 5)]
+        public void RaceFinishesAndSavesAtTheBalanceLimit(int balance, int credited)
+        {
+            var context = CreateContext();
+            context.Progression.SetCurrency(balance);
+            StartRace(context);
+
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 65f));
+
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.ShowingResults));
+            Assert.That(context.Navigation.LastResult.EarnedReward, Is.EqualTo(credited));
+            Assert.That(context.Progression.Currency, Is.EqualTo(int.MaxValue));
+            Assert.That(context.Progression.CompletedRaceCount, Is.EqualTo(1));
+            Assert.That(context.Save.SaveCount, Is.EqualTo(1));
+        }
+
         [Test]
         public void ResultsStateContainsExpectedValues()
         {
@@ -201,7 +218,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
         }
 
         [Test]
-        public async Task RetryClearsTransientResultAndStartsFreshAttempt()
+        public async Task RetryDisposesOldSessionWithoutPreparingTheReplacement()
         {
             var context = CreateContext();
             StartRace(context);
@@ -213,8 +230,9 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             Assert.That(context.SceneRaceState.HasResult, Is.False);
             Assert.That(context.Navigation.RetryCount, Is.EqualTo(1));
             Assert.That(context.Setup.CleanupCount, Is.EqualTo(1));
-            Assert.That(context.Setup.PrepareCount, Is.EqualTo(2));
-            Assert.That(context.RaceController.StartCountdownCount, Is.EqualTo(2));
+            Assert.That(context.Setup.PrepareCount, Is.EqualTo(1));
+            Assert.That(context.RaceController.StartCountdownCount, Is.EqualTo(1));
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Disposed));
             Assert.That(context.Progression.Currency, Is.EqualTo(500));
             Assert.That(context.Progression.CompletedRaceCount, Is.EqualTo(1));
         }
@@ -283,7 +301,104 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             var result = await context.Session.ReturnToMainMenu();
 
             Assert.That(result.Status, Is.EqualTo(RaceSessionCommandStatus.NavigationFailed));
-            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Failed));
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
+            Assert.That(context.Setup.CleanupCount, Is.Zero);
+            Assert.That(context.TimeScale.TimeScale, Is.EqualTo(1f));
+
+            Assert.That((await context.Session.ReturnToMainMenu()).Succeeded, Is.True);
+            Assert.That(context.Setup.CleanupCount, Is.EqualTo(1));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task FailedNavigationWhilePausedPreservesAttemptAndCanResume(bool retry)
+        {
+            var context = CreateContext();
+            StartRace(context);
+            context.Session.Pause();
+            context.Navigation.FailNextNavigation = true;
+
+            var result = await (retry ? context.Session.Retry() : context.Session.ReturnToMainMenu());
+
+            Assert.That(result.Status, Is.EqualTo(RaceSessionCommandStatus.NavigationFailed));
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Paused));
+            Assert.That(context.TimeScale.TimeScale, Is.Zero);
+            Assert.That(context.Setup.CleanupCount, Is.Zero);
+            Assert.That(context.Session.Resume().Succeeded, Is.True);
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 65f));
+            Assert.That(context.ResultsEventCount, Is.EqualTo(1), "The original subscriptions must remain active.");
+        }
+
+        [Test]
+        public async Task FailedRetryFromResultsPreservesResultsAndRewards()
+        {
+            var context = CreateContext();
+            StartRace(context);
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 65f));
+            context.Navigation.FailNextNavigation = true;
+
+            Assert.That((await context.Session.Retry()).Succeeded, Is.False);
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.ShowingResults));
+            Assert.That(context.SceneRaceState.HasResult, Is.True);
+            Assert.That(context.Progression.Currency, Is.EqualTo(500));
+            Assert.That(context.Setup.CleanupCount, Is.Zero);
+            Assert.That((await context.Session.Retry()).Succeeded, Is.True);
+            Assert.That(context.Progression.Currency, Is.EqualTo(500));
+        }
+
+        [Test]
+        public async Task ThrowingNavigationRestoresTheAttempt()
+        {
+            var context = CreateContext();
+            StartRace(context);
+            context.Navigation.NavigateOverride = () => throw new InvalidOperationException("Navigation exception.");
+
+            var result = await context.Session.Retry();
+
+            Assert.That(result.Status, Is.EqualTo(RaceSessionCommandStatus.NavigationFailed));
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
+            Assert.That(context.Setup.CleanupCount, Is.Zero);
+            Assert.That(context.TimeScale.TimeScale, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public async Task PendingNavigationKeepsVehiclesAndRejectsDuplicateCommands()
+        {
+            var context = CreateContext();
+            StartRace(context);
+            var pending = new TaskCompletionSource<SceneTransitionResult>();
+            context.Navigation.NavigateOverride = () => pending.Task;
+
+            var navigation = context.Session.Retry();
+            Assert.That(context.Setup.CleanupCount, Is.Zero);
+            Assert.That(context.TimeScale.TimeScale, Is.Zero);
+            Assert.That((await context.Session.ReturnToMainMenu()).Status, Is.EqualTo(RaceSessionCommandStatus.InvalidState));
+
+            pending.SetResult(new SceneTransitionResult(SceneTransitionStatus.SaveFailed,
+                ApplicationState.Race, ApplicationState.Race, ContentSceneId.Race, "Save failed."));
+            await navigation;
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
+            Assert.That(context.Setup.CleanupCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task RetryContinuationDoesNotResurrectDisposedSessionOrClearReplacementResults()
+        {
+            var context = CreateContext();
+            StartRace(context);
+            context.Navigation.OnSuccess = () =>
+            {
+                context.Session.Dispose();
+                context.SceneRaceState.SetResult(new RaceSessionResult(new RaceResult("Player", 2, 80f), 300));
+            };
+
+            var result = await context.Session.Retry();
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Disposed));
+            Assert.That(context.Setup.PrepareCount, Is.EqualTo(1));
+            Assert.That(context.Setup.CleanupCount, Is.EqualTo(1));
+            Assert.That(context.SceneRaceState.Result.EarnedReward, Is.EqualTo(300));
         }
 
         [Test]
@@ -403,6 +518,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             var save = new FakeSaveCheckpoint();
             var navigation = new FakeRaceSessionNavigation();
             var raceState = new RaceSessionState();
+            navigation.OnSuccess = raceState.Clear;
             var timeScale = new FakeTimeScaleController();
             var raceProgression = CreateRaceProgressionService(progression);
             var session = new RaceSessionCoordinator(setup, raceController, rewardService, progression, save, navigation, raceState, timeScale, raceProgression);
@@ -591,6 +707,8 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             public int ReturnToMainMenuCount { get; private set; }
             public int ShowResultsCount { get; private set; }
             public bool FailNextNavigation { get; set; }
+            public Action OnSuccess { get; set; }
+            public Func<Task<SceneTransitionResult>> NavigateOverride { get; set; }
             public RaceSessionResult LastResult { get; private set; }
 
             public Task<SceneTransitionResult> RetryRace()
@@ -630,12 +748,18 @@ namespace ApexRivals.Tests.EditMode.RaceSession
 
             private Task<SceneTransitionResult> Complete(ContentSceneId target)
             {
+                if (NavigateOverride != null)
+                {
+                    return NavigateOverride();
+                }
+
                 if (FailNextNavigation)
                 {
                     FailNextNavigation = false;
                     return Task.FromResult(new SceneTransitionResult(SceneTransitionStatus.SceneLoadFailed, ApplicationState.Race, ApplicationState.Race, target, "Navigation failed."));
                 }
 
+                OnSuccess?.Invoke();
                 return Task.FromResult(new SceneTransitionResult(SceneTransitionStatus.Succeeded, ApplicationState.Race, target == ContentSceneId.Garage ? ApplicationState.Garage : ApplicationState.MainMenu, target, string.Empty));
             }
         }
