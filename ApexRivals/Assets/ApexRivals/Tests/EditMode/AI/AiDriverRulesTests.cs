@@ -15,6 +15,27 @@ namespace ApexRivals.Tests.EditMode.AI
         }
 
         [Test]
+        public void SmoothPedal_ReleasedBrakeReachesExactlyZero()
+        {
+            var brake = 0.3f;
+            for (var step = 0; step < 200; step++)
+            {
+                brake = AiDriverRules.SmoothPedal(brake, 0f, 6f, 0.02f);
+            }
+
+            Assert.That(brake, Is.EqualTo(0f), "Any residual brake torque keeps locked wheels locked.");
+        }
+
+        [Test]
+        public void SmoothPedal_LightPressIsNotSnappedAway()
+        {
+            var brake = AiDriverRules.SmoothPedal(0f, 0.005f, 0f, 0.02f);
+
+            Assert.That(brake, Is.EqualTo(0.005f));
+            Assert.That(AiDriverRules.SmoothPedal(0.5f, 1f, 6f, 0.02f), Is.GreaterThan(0.5f).And.LessThan(1f));
+        }
+
+        [Test]
         public void UpdateStuckTimer_AccumulatesOnlyWhileExpectedToMoveAndSlow()
         {
             Assert.That(AiDriverRules.UpdateStuckTimer(true, true, 0.5f, 1.5f, 0.25f, 1f), Is.EqualTo(1.25f));

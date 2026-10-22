@@ -211,6 +211,12 @@ namespace ApexRivals.AI.Runtime
             // behind a stopped car; otherwise two cars waiting on each other would never escalate.
             var expectedToMove = _control.ThrottleCommand > 0.2f || _control.FreeSpeed > AiRacecraftRules.SlowCarSpeed;
             _recovery.UpdateStuck(expectedToMove, CurrentSpeed, tuning, deltaTime);
+            if (_recovery.UpdateMissedCheckpoint(_tracker.GetGapToNextCheckpoint(raceCoordinator, raceParticipant), _tracker.Path.LapLength, deltaTime))
+            {
+                RequestReset(AiResetReason.MissedCheckpoint);
+                return;
+            }
+
             var action = _recovery.Evaluate(IsUpsideDown, tuning, configuration, out var reason);
             if (action == AiRecoveryAction.Reset)
             {

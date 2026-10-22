@@ -171,6 +171,29 @@ namespace ApexRivals.Tests.EditMode.AI
         }
 
         [Test]
+        public void CheckpointLeftBehind_IsMissedOnlyWhenClearlyPastIt()
+        {
+            const float lap = 3600f;
+
+            Assert.That(AiRecoveryRules.IsCheckpointMissed(lap - 40f, lap, 20f, 200f), Is.True, "Went round it 40 m ago.");
+            Assert.That(AiRecoveryRules.IsCheckpointMissed(lap - 5f, lap, 20f, 200f), Is.False, "Still crossing the trigger.");
+            Assert.That(AiRecoveryRules.IsCheckpointMissed(120f, lap, 20f, 200f), Is.False, "Ahead, as usual.");
+            Assert.That(AiRecoveryRules.IsCheckpointMissed(lap - 900f, lap, 20f, 200f), Is.False, "Too far back to be a miss.");
+            Assert.That(AiRecoveryRules.IsCheckpointMissed(-1f, lap, 20f, 200f), Is.False, "Unknown or race finished.");
+        }
+
+        [Test]
+        public void MissedCheckpointReset_LandsJustBeforeTheCheckpoint()
+        {
+            const float lap = 3600f;
+            var gap = lap - 40f;
+
+            var advance = AiRecoveryRules.CalculateMissedCheckpointResetAdvance(gap, 10f);
+
+            Assert.That(lap - advance, Is.EqualTo(50f), "Ends up 10 m before a checkpoint that was 40 m behind.");
+        }
+
+        [Test]
         public void ResetLateralOffset_TriesCentreThenAlternatesWithinTrackWidth()
         {
             Assert.That(AiRecoveryRules.CalculateResetLateralOffset(0, 4f), Is.EqualTo(0f));

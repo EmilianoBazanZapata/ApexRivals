@@ -52,6 +52,29 @@ namespace ApexRivals.AI.Runtime
         }
 
         /// <summary>
+        /// The next checkpoint the race expects is already this far behind the car along the lap: the car
+        /// went round it (a wide excursion off the track) and the lap will never count unless it goes back.
+        /// The lower bound leaves room for the trigger to fire as the car crosses it; the upper bound keeps a
+        /// projection glitch on the far side of the lap from being read as a miss.
+        /// </summary>
+        public static bool IsCheckpointMissed(float gapToNextCheckpoint, float lapLength, float minimumBehind, float maximumBehind)
+        {
+            if (gapToNextCheckpoint < 0f || lapLength <= 0f)
+            {
+                return false;
+            }
+
+            var behind = lapLength - gapToNextCheckpoint;
+            return behind >= minimumBehind && behind <= maximumBehind;
+        }
+
+        /// <summary>Distance ahead along the lap that lands the car <paramref name="leadIn"/> metres before the missed checkpoint.</summary>
+        public static float CalculateMissedCheckpointResetAdvance(float gapToNextCheckpoint, float leadIn)
+        {
+            return Mathf.Max(0f, gapToNextCheckpoint - Mathf.Max(0f, leadIn));
+        }
+
+        /// <summary>
         /// Keeps a reset from jumping over the next checkpoint the car still has to cross; otherwise the
         /// lap would never count. <paramref name="gapToNextCheckpoint"/> is the distance along the lap
         /// (negative or unknown means no limit).

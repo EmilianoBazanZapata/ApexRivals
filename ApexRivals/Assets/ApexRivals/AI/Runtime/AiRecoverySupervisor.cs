@@ -63,6 +63,10 @@ namespace ApexRivals.AI.Runtime
         private const float RepeatedResetWindow = 25f;
         private const float RepeatedResetRadius = 30f;
         private const float CheckpointResetMargin = 5f;
+        private const float MissedCheckpointMinimumBehind = 20f;
+        private const float MissedCheckpointMaximumBehind = 200f;
+        private const float MissedCheckpointConfirmDuration = 0.5f;
+        private const float MissedCheckpointLeadIn = 10f;
         private const float RejoinEnterFraction = 0.6f;
         private const float RejoinExitFraction = 0.3f;
         private const float SafePoseMinimumSpeed = 2f;
@@ -78,6 +82,7 @@ namespace ApexRivals.AI.Runtime
         private float _graceRemaining;
         private float _cooldownRemaining;
         private float _safePoseTimer;
+        private float _missedCheckpointTimer;
 
         private bool _resetAttempted;
         private float _retryTimer;
@@ -116,6 +121,7 @@ namespace ApexRivals.AI.Runtime
             _offTrackTimer = 0f;
             _upsideDownTimer = 0f;
             _reverseRemaining = 0f;
+            _missedCheckpointTimer = 0f;
         }
 
         /// <summary>Advances the clocks. Returns true on the frame the post-reset grace ends.</summary>
@@ -136,6 +142,15 @@ namespace ApexRivals.AI.Runtime
         public void UpdateOffTrack(float distanceFromLine, float offTrackDistance, float deltaTime)
         {
             _offTrackTimer = AiRecoveryRules.UpdateOffTrackTimer(distanceFromLine, offTrackDistance, deltaTime, _offTrackTimer);
+        }
+
+        /// <summary>True once the car has been past its next checkpoint long enough to be sure it missed it.</summary>
+        public bool UpdateMissedCheckpoint(float gapToNextCheckpoint, float lapLength, float deltaTime)
+        {
+            _missedCheckpointTimer = AiRecoveryRules.IsCheckpointMissed(gapToNextCheckpoint, lapLength, MissedCheckpointMinimumBehind, MissedCheckpointMaximumBehind)
+                ? _missedCheckpointTimer + deltaTime
+                : 0f;
+            return _missedCheckpointTimer >= MissedCheckpointConfirmDuration;
         }
 
         public void UpdateStuck(bool expectedToMove, float speed, AiDriverTuning tuning, float deltaTime)
@@ -223,10 +238,14 @@ namespace ApexRivals.AI.Runtime
             _repeatedResets = repeated ? _repeatedResets + 1 : 0;
             _lastResetSpot = spot;
             _lastResetTime = Time.time;
-            _resetAdvance = AiRecoveryRules.ClampResetAdvanceToCheckpoint(
-                AiRecoveryRules.CalculateResetAdvance(reason, _repeatedResets),
-                tracker.GetGapToNextCheckpoint(context.Coordinator, context.Participant),
-                CheckpointResetMargin);
+            var gapToNextCheckpoint = tracker.GetGapToNextCheckpoint(context.Coordinator, context.Participant);
+            _resetAdvance = reason == AiResetReason.MissedCheckpoint
+                ? AiRecoveryRules.CalculateMissedCheckpointResetAdvance(gapToNextCheckpoint, MissedCheckpointLeadIn)
+                : AiRecoveryRules.ClampResetAdvanceToCheckpoint(
+                    AiRecoveryRules.CalculateResetAdvance(reason, _repeatedResets),
+                    gapToNextCheckpoint,
+                    CheckpointResetMargin);
+            _missedCheckpointTimer = 0f;
             PlaceResetPose(context);
         }
 

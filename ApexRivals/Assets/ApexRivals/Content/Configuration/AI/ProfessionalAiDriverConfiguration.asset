@@ -31,7 +31,7 @@ MonoBehaviour:
   cornerSpeedFactor: 0.92
   curvatureSpeedScale: 4
   corneringGrip: 6
-  brakingPreviewDistance: 80
+  brakingPreviewDistance: 160
   brakingConfidence: 0.95
   throttleGain: 5
   brakeGain: 1.2

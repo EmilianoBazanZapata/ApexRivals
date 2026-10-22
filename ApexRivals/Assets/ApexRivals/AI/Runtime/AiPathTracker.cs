@@ -89,7 +89,7 @@ namespace ApexRivals.AI.Runtime
         public float GetGapToNextCheckpoint(RaceCoordinator coordinator, RaceParticipant participant)
         {
             if (coordinator == null || participant == null || _checkpointDistances == null || !HasProjection
-                || !coordinator.TryGetProgress(participant, out var progress))
+                || !coordinator.TryGetProgress(participant, out var progress) || progress.HasFinished)
             {
                 return -1f;
             }

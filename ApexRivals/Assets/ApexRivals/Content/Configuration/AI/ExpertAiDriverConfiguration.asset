@@ -28,10 +28,10 @@ MonoBehaviour:
   brakeSmoothing: 10
   lookAheadWaypointCount: 3
   waypointReachDistance: 5
-  cornerSpeedFactor: 0.95
+  cornerSpeedFactor: 0.97
   curvatureSpeedScale: 4
   corneringGrip: 6
-  brakingPreviewDistance: 80
+  brakingPreviewDistance: 180
   brakingConfidence: 1
   throttleGain: 6
   brakeGain: 1.2

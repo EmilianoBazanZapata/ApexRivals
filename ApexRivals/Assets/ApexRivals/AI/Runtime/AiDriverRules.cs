@@ -8,6 +8,9 @@ namespace ApexRivals.AI.Runtime
         public const float MinimumReachDistance = 0.1f;
         public const float MinimumDifficultyMultiplier = 0.1f;
 
+        /// <summary>Below this a smoothed pedal that is being released snaps to exactly zero.</summary>
+        public const float PedalReleaseThreshold = 0.01f;
+
         public static int WrapWaypointIndex(int index, int waypointCount)
         {
             if (waypointCount <= 0)
@@ -71,6 +74,17 @@ namespace ApexRivals.AI.Runtime
         public static float CalculateRejoinLookahead(float distanceFromLine, float minimumLookahead)
         {
             return Mathf.Clamp(distanceFromLine * 2f, Mathf.Max(0f, minimumLookahead), 25f);
+        }
+
+        /// <summary>
+        /// Exponential smoothing of a pedal toward its target. A pedal being released only approaches zero,
+        /// and PhysX keeps a locked wheel locked under any brake torque at all, so a car that locked its
+        /// wheels braking for a corner would slide on locked wheels until it stopped. Releasing snaps to zero.
+        /// </summary>
+        public static float SmoothPedal(float current, float target, float smoothing, float deltaTime)
+        {
+            var value = smoothing <= 0f ? target : Mathf.Lerp(current, target, 1f - Mathf.Exp(-smoothing * deltaTime));
+            return target <= 0f && value < PedalReleaseThreshold ? 0f : value;
         }
 
         /// <summary>

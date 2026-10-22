@@ -180,8 +180,8 @@ namespace ApexRivals.AI.Runtime
         private void ApplySmoothed(AiDriverTuning tuning, float deltaTime)
         {
             _smoothedSteering = Smooth(_smoothedSteering, SteeringCommand, tuning.SteeringSmoothing, deltaTime);
-            _smoothedThrottle = Smooth(_smoothedThrottle, ThrottleCommand, tuning.ThrottleSmoothing, deltaTime);
-            _smoothedBrake = Smooth(_smoothedBrake, BrakeCommand, tuning.BrakeSmoothing, deltaTime);
+            _smoothedThrottle = AiDriverRules.SmoothPedal(_smoothedThrottle, ThrottleCommand, tuning.ThrottleSmoothing, deltaTime);
+            _smoothedBrake = AiDriverRules.SmoothPedal(_smoothedBrake, BrakeCommand, tuning.BrakeSmoothing, deltaTime);
             Input = new DrivingInput(_smoothedThrottle, _smoothedBrake, _smoothedSteering, false, false);
         }
 
