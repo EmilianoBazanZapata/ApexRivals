@@ -19,43 +19,6 @@ namespace ApexRivals.AI.Runtime
             return wrapped < 0 ? wrapped + waypointCount : wrapped;
         }
 
-        public static float CalculateSteering(Vector3 localTarget, float steeringSensitivity)
-        {
-            var forwardDistance = Mathf.Max(Mathf.Abs(localTarget.z), 0.001f);
-            var angle = Mathf.Atan2(localTarget.x, forwardDistance) * Mathf.Rad2Deg;
-            return Mathf.Clamp(angle / 45f * steeringSensitivity, -1f, 1f);
-        }
-
-        public static float CalculateCornerSeverity(Vector3 currentDirection, Vector3 nextDirection)
-        {
-            var currentPlanar = Vector3.ProjectOnPlane(currentDirection, Vector3.up);
-            var nextPlanar = Vector3.ProjectOnPlane(nextDirection, Vector3.up);
-
-            if (currentPlanar.sqrMagnitude < 0.0001f || nextPlanar.sqrMagnitude < 0.0001f)
-            {
-                return 0f;
-            }
-
-            var alignment = Vector3.Dot(currentPlanar.normalized, nextPlanar.normalized);
-            return Mathf.Clamp01((1f - alignment) * 0.5f);
-        }
-
-        public static float CalculateCornerTargetSpeed(AiDriverTuning tuning, float cornerSeverity)
-        {
-            return Mathf.Lerp(tuning.TargetSpeed, tuning.MinimumCornerSpeed, Mathf.Clamp01(cornerSeverity));
-        }
-
-        public static AiDrivingDecision CreateDecision(float currentSpeed, float steering, float cornerSeverity, AiDriverTuning tuning)
-        {
-            var targetSpeed = CalculateCornerTargetSpeed(tuning, cornerSeverity);
-            var overspeed = currentSpeed - targetSpeed;
-            var brake = overspeed > 0f ? Mathf.Clamp01(overspeed / Mathf.Max(targetSpeed, 0.001f) * tuning.BrakingSensitivity) : 0f;
-            var throttle = brake > 0.01f ? 0f : Mathf.Clamp01((targetSpeed - currentSpeed) / Mathf.Max(targetSpeed, 0.001f) + 0.35f);
-            var drift = cornerSeverity >= tuning.DriftCornerThreshold && currentSpeed >= tuning.DriftMinimumSpeed;
-
-            return new AiDrivingDecision(throttle, brake, Mathf.Clamp(steering, -1f, 1f), drift);
-        }
-
         public static float UpdateStuckTimer(
             bool raceActive,
             bool expectedToMove,
@@ -72,9 +35,53 @@ namespace ApexRivals.AI.Runtime
             return currentTimer + Mathf.Max(0f, deltaTime);
         }
 
-        public static bool ShouldRequestRecovery(float stuckTimer, float stuckDuration, float timeSinceLastRecovery, float recoveryCooldown)
+        /// <summary>
+        /// Caps the steering command at low speed. The vehicle turns its front wheels very far when slow,
+        /// and a rear-driven car with wheels near perpendicular scrubs instead of moving; half lock is
+        /// already a tight turn there.
+        /// </summary>
+        public static float LimitLowSpeedSteering(float steering, float speed)
         {
-            return stuckTimer >= stuckDuration && timeSinceLastRecovery >= recoveryCooldown;
+            var limit = Mathf.Lerp(0.5f, 1f, Mathf.InverseLerp(4f, 15f, Mathf.Abs(speed)));
+            return Mathf.Clamp(steering, -limit, limit);
+        }
+
+        /// <summary>
+        /// Shares the tyres between braking and cornering: hard braking while steering hard spins the
+        /// car on low grip, so braking is reduced in proportion to the steering demand.
+        /// </summary>
+        public static float BlendBrakeWithSteering(float brake, float steering)
+        {
+            return Mathf.Clamp01(brake) * Mathf.Lerp(1f, 0.4f, Mathf.Clamp01((Mathf.Abs(steering) - 0.4f) / 0.6f));
+        }
+
+        /// <summary>
+        /// Stability aid: while the car slides sideways, heavy braking or power keeps it spinning, so both
+        /// are eased in proportion to the slide until the tyres grip again. Returns the input scale (0.3–1).
+        /// </summary>
+        public static float CalculateSlideInputScale(float lateralSpeed)
+        {
+            return Mathf.Lerp(1f, 0.3f, Mathf.InverseLerp(2.5f, 6f, Mathf.Abs(lateralSpeed)));
+        }
+
+        /// <summary>
+        /// Rejoin aim distance: the further off the line, the further ahead the merge point, so the car
+        /// returns at a shallow angle instead of crossing the line and overshooting.
+        /// </summary>
+        public static float CalculateRejoinLookahead(float distanceFromLine, float minimumLookahead)
+        {
+            return Mathf.Clamp(distanceFromLine * 2f, Mathf.Max(0f, minimumLookahead), 25f);
+        }
+
+        /// <summary>
+        /// Launch control: from a standstill full throttle spins one rear wheel through the open
+        /// differential and the car barely moves, so throttle is capped at low speed and released as the
+        /// car picks up speed.
+        /// </summary>
+        public static float LimitLaunchThrottle(float throttle, float speed)
+        {
+            var limit = Mathf.Lerp(0.45f, 1f, Mathf.InverseLerp(1f, 8f, Mathf.Abs(speed)));
+            return Mathf.Min(Mathf.Clamp01(throttle), limit);
         }
 
         public static float ApplyDifficulty(float value, float difficultyMultiplier)
@@ -82,14 +89,5 @@ namespace ApexRivals.AI.Runtime
             return Mathf.Max(0f, value * Mathf.Max(MinimumDifficultyMultiplier, difficultyMultiplier));
         }
 
-        public static int ClampLookAheadWaypointCount(int lookAheadWaypointCount)
-        {
-            return Mathf.Max(1, lookAheadWaypointCount);
-        }
-
-        public static float ClampReachDistance(float reachDistance)
-        {
-            return Mathf.Max(MinimumReachDistance, reachDistance);
-        }
     }
 }

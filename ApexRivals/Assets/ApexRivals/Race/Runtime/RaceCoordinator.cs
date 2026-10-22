@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using ApexRivals.Input.Runtime;
 using ApexRivals.Race.Configuration;
 using UnityEngine;
@@ -47,6 +48,7 @@ namespace ApexRivals.Race.Runtime
 
         private readonly Dictionary<RaceParticipant, RacerProgress> _progressByParticipant = new Dictionary<RaceParticipant, RacerProgress>();
         private readonly List<RaceParticipant> _participants = new List<RaceParticipant>();
+        private ReadOnlyCollection<RaceParticipant> _participantsView;
         private readonly List<RacerPositionSnapshot> _positionSnapshots = new List<RacerPositionSnapshot>();
         private readonly List<Vector3> _checkpointPositions = new List<Vector3>();
         private readonly List<Vector3> _positionRoutePoints = new List<Vector3>();
@@ -76,6 +78,9 @@ namespace ApexRivals.Race.Runtime
         // presentation-only systems (e.g. checkpoint visuals) can identify the
         // player's progress without a second, duplicate notion of "who is the player".
         public RaceParticipant PlayerParticipant => raceCompletionParticipant;
+
+        /// <summary>Registered racers, in registration order. Used by AI drivers to perceive traffic.</summary>
+        public IReadOnlyList<RaceParticipant> Participants => _participantsView ??= _participants.AsReadOnly();
 
         // Read-only view of the authoritative ordered checkpoint list, for
         // presentation systems that need to map a checkpoint index to its

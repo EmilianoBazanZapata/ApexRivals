@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24af6431ea222444eabfb3bdafaa2ba4, type: 3}
   m_Name: ExpertAiDriverConfiguration
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   difficultyName: Expert
-  difficultyMultiplier: 1.3
-  targetSpeed: 26
-  minimumCornerSpeed: 10
+  difficultyMultiplier: 1
+  targetSpeed: 48
+  minimumCornerSpeed: 14
   steeringSensitivity: 1.2
   brakingSensitivity: 1.08
   driftCornerThreshold: 0.58
@@ -28,3 +28,26 @@ MonoBehaviour:
   brakeSmoothing: 10
   lookAheadWaypointCount: 3
   waypointReachDistance: 5
+  cornerSpeedFactor: 0.95
+  curvatureSpeedScale: 4
+  corneringGrip: 6
+  brakingPreviewDistance: 80
+  brakingConfidence: 1
+  throttleGain: 6
+  brakeGain: 1.2
+  headingGain: 1
+  crossTrackGain: 1.6
+  minimumLookahead: 10
+  maximumLookahead: 40
+  lineWanderAmplitude: 0
+  reactionTime: 0.1
+  mistakeInterval: 0
+  mistakeDuration: 1
+  aggression: 0.85
+  followTimeGap: 0.4
+  overtakeLateralOffset: 3.5
+  maximumLateralOffset: 5
+  offTrackDistance: 10
+  offTrackResetDuration: 5
+  reverseDuration: 1.2
+  postResetGraceDuration: 2

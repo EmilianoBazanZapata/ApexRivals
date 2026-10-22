@@ -7,6 +7,7 @@ using ApexRivals.Input.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.Race.Runtime;
 using ApexRivals.VehicleSelection.Runtime;
+using UnityEngine;
 
 namespace ApexRivals.RaceSetup.Runtime
 {
@@ -202,6 +203,11 @@ namespace ApexRivals.RaceSetup.Runtime
             }
 
             composition.ConfigureValidatedAI(raceCoordinator, entry.ParticipantId, aiConfiguration, racingLine);
+            if (!Mathf.Approximately(entry.PerformanceMultiplier, 1f))
+            {
+                composition.VehicleRuntime.ApplyPerformanceStats(vehicleLookup.Vehicle.BasePerformanceStats.WithPowerScale(entry.PerformanceMultiplier));
+            }
+
             return RaceSetupStatus.Succeeded;
         }
 

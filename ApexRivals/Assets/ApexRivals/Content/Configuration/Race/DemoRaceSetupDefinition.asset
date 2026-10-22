@@ -11,14 +11,28 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6f2b046ca88c0f444ab786cab4ffb8ce, type: 3}
   m_Name: DemoRaceSetupDefinition
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   raceDefinition: {fileID: 11400000, guid: b9884eff0c024391b88c917f6a992e9a, type: 2}
   playerParticipantId: Player
   playerVehicleId: starter
   playerStartingGridIndex: 0
   aiOpponents:
   - participantId: AI_01
-    vehicleId: striker
+    vehicleId: vanguard
     startingGridIndex: 1
-    aiConfigurationId: standard
-    aiConfiguration: {fileID: 11400000, guid: e0557076b8ca4cb2b677d810d02bd687, type: 2}
+    aiConfigurationId: rookie
+    aiConfiguration: {fileID: 11400000, guid: 99329d2f00e34b53b7c0c78490f0242e, type: 2}
+    performanceMultiplier: 0.92
+  - participantId: AI_02
+    vehicleId: vanguard
+    startingGridIndex: 2
+    aiConfigurationId: professional
+    aiConfiguration: {fileID: 11400000, guid: 5cfa4f012fce411196f13d7619f8f52b, type: 2}
+    performanceMultiplier: 1
+  - participantId: AI_03
+    vehicleId: vanguard
+    startingGridIndex: 3
+    aiConfigurationId: expert
+    aiConfiguration: {fileID: 11400000, guid: 6bf5342210d24013967b86a79abfa659, type: 2}
+    performanceMultiplier: 1.08
+  usePerOpponentDifficulty: 1

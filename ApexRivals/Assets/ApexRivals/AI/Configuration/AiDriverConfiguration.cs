@@ -3,6 +3,10 @@ using UnityEngine;
 
 namespace ApexRivals.AI.Configuration
 {
+    /// <summary>
+    /// Driver profile: how fast, precise, aggressive and error-prone one AI rival is, plus how it recovers.
+    /// Every value that distinguishes difficulty lives here so a rival's skill is authored in one asset.
+    /// </summary>
     [CreateAssetMenu(fileName = "AiDriverConfiguration", menuName = "Apex Rivals/AI/AI Driver Configuration")]
     public sealed class AiDriverConfiguration : ScriptableObject
     {
@@ -18,17 +22,9 @@ namespace ApexRivals.AI.Configuration
         [SerializeField, Min(0f)]
         private float minimumCornerSpeed = 8f;
 
-        [SerializeField, Min(0f)]
-        private float steeringSensitivity = 1.1f;
 
-        [SerializeField, Min(0f)]
-        private float brakingSensitivity = 1.2f;
 
-        [SerializeField, Range(0f, 1f)]
-        private float driftCornerThreshold = 0.65f;
 
-        [SerializeField, Min(0f)]
-        private float driftMinimumSpeed = 12f;
 
         [SerializeField, Min(0f)]
         private float stuckSpeedThreshold = 1.5f;
@@ -36,8 +32,6 @@ namespace ApexRivals.AI.Configuration
         [SerializeField, Min(0f)]
         private float stuckDetectionDuration = 2.5f;
 
-        [SerializeField, Min(0f)]
-        private float recoveryCooldown = 5f;
 
         [SerializeField, Min(0f)]
         private float steeringSmoothing = 8f;
@@ -48,29 +42,116 @@ namespace ApexRivals.AI.Configuration
         [SerializeField, Min(0f)]
         private float brakeSmoothing = 10f;
 
-        [SerializeField, Min(1)]
-        private int lookAheadWaypointCount = 2;
 
-        [SerializeField, Min(AiDriverRules.MinimumReachDistance)]
-        private float waypointReachDistance = 5f;
+
+        [Header("Driving Skill")]
+        [SerializeField, Range(0.5f, 1.2f), Tooltip("Fraction of the ideal corner speed this driver carries.")]
+        private float cornerSpeedFactor = 1f;
+
+        [SerializeField, Min(0f), Tooltip("Higher values slow the driver more in tight corners.")]
+        private float curvatureSpeedScale = 18f;
+
+        [SerializeField, Min(0f), Tooltip("Lateral grip (m/s²) the driver trusts in corners; caps corner speed at sqrt(grip × radius). 0 disables the cap.")]
+        private float corneringGrip = 9f;
+
+        [SerializeField, Min(0f), Tooltip("How far ahead the driver looks for slower corners to brake for.")]
+        private float brakingPreviewDistance = 80f;
+
+        [SerializeField, Range(0.4f, 1.5f), Tooltip("Scales the braking deceleration the driver relies on; higher brakes later.")]
+        private float brakingConfidence = 1f;
+
+        [SerializeField, Min(0f)]
+        private float throttleGain = 1.4f;
+
+        [SerializeField, Min(0f)]
+        private float brakeGain = 1.2f;
+
+        [SerializeField, Min(0f)]
+        private float headingGain = 1f;
+
+        [SerializeField, Min(0f)]
+        private float crossTrackGain = 1.6f;
+
+        [SerializeField, Min(0f)]
+        private float minimumLookahead = 10f;
+
+        [SerializeField, Min(0f)]
+        private float maximumLookahead = 18f;
+
+        [SerializeField, Min(0f), Tooltip("Metres the driver drifts off the ideal line; 0 is a perfect line.")]
+        private float lineWanderAmplitude;
+
+        [SerializeField, Min(0f), Tooltip("Seconds between tactical re-evaluations; slower drivers react later.")]
+        private float reactionTime = 0.15f;
+
+        [SerializeField, Min(0f), Tooltip("Mean seconds between driving mistakes; 0 disables mistakes.")]
+        private float mistakeInterval;
+
+        [SerializeField, Min(0f)]
+        private float mistakeDuration = 1.2f;
+
+        [Header("Racecraft")]
+        [SerializeField, Range(0f, 1f), Tooltip("Willingness to overtake, defend and close gaps.")]
+        private float aggression = 0.5f;
+
+        [SerializeField, Min(0f), Tooltip("Seconds of gap kept behind a slower car while following.")]
+        private float followTimeGap = 0.6f;
+
+        [SerializeField, Min(0f), Tooltip("Lateral metres used to pass a car.")]
+        private float overtakeLateralOffset = 3f;
+
+        [SerializeField, Min(0f), Tooltip("Largest lateral offset from the ideal line the track allows.")]
+        private float maximumLateralOffset = 4f;
+
+        [Header("Recovery")]
+        [SerializeField, Min(0f), Tooltip("Distance from the ideal line considered off track.")]
+        private float offTrackDistance = 10f;
+
+        [SerializeField, Min(0f), Tooltip("Seconds off track before the driver resets.")]
+        private float offTrackResetDuration = 5f;
+
+        [SerializeField, Min(0f)]
+        private float reverseDuration = 1.2f;
+
+        [SerializeField, Min(0f)]
+        private float postResetGraceDuration = 2f;
 
         public string DifficultyName => difficultyName;
         public float DifficultyMultiplier => difficultyMultiplier;
-        public int LookAheadWaypointCount => lookAheadWaypointCount;
-        public float WaypointReachDistance => waypointReachDistance;
+
+        public float CornerSpeedFactor => cornerSpeedFactor;
+        public float CurvatureSpeedScale => curvatureSpeedScale;
+        public float CorneringGrip => corneringGrip;
+        public float BrakingPreviewDistance => brakingPreviewDistance;
+        public float BrakingConfidence => brakingConfidence;
+        public float ThrottleGain => throttleGain;
+        public float BrakeGain => brakeGain;
+        public float HeadingGain => headingGain;
+        public float CrossTrackGain => crossTrackGain;
+        public float MinimumLookahead => minimumLookahead;
+        public float MaximumLookahead => maximumLookahead;
+        public float LineWanderAmplitude => lineWanderAmplitude;
+        public float ReactionTime => reactionTime;
+        public float MistakeInterval => mistakeInterval;
+        public float MistakeDuration => mistakeDuration;
+
+        public float Aggression => aggression;
+        public float FollowTimeGap => followTimeGap;
+        public float OvertakeLateralOffset => overtakeLateralOffset;
+        public float MaximumLateralOffset => maximumLateralOffset;
+
+        public float OffTrackDistance => offTrackDistance;
+        public float OffTrackResetDuration => offTrackResetDuration;
+        public float ReverseDuration => reverseDuration;
+        public float PostResetGraceDuration => postResetGraceDuration;
 
         public AiDriverTuning CreateTuning()
         {
             return new AiDriverTuning(
                 AiDriverRules.ApplyDifficulty(targetSpeed, difficultyMultiplier),
                 Mathf.Min(minimumCornerSpeed, AiDriverRules.ApplyDifficulty(targetSpeed, difficultyMultiplier)),
-                steeringSensitivity,
-                brakingSensitivity,
-                driftCornerThreshold,
-                driftMinimumSpeed,
                 stuckSpeedThreshold,
                 stuckDetectionDuration,
-                recoveryCooldown,
                 steeringSmoothing,
                 throttleSmoothing,
                 brakeSmoothing);
@@ -86,18 +167,14 @@ namespace ApexRivals.AI.Configuration
             difficultyMultiplier = Mathf.Max(AiDriverRules.MinimumDifficultyMultiplier, difficultyMultiplier);
             targetSpeed = Mathf.Max(0f, targetSpeed);
             minimumCornerSpeed = Mathf.Clamp(minimumCornerSpeed, 0f, targetSpeed);
-            steeringSensitivity = Mathf.Max(0f, steeringSensitivity);
-            brakingSensitivity = Mathf.Max(0f, brakingSensitivity);
-            driftCornerThreshold = Mathf.Clamp01(driftCornerThreshold);
-            driftMinimumSpeed = Mathf.Max(0f, driftMinimumSpeed);
             stuckSpeedThreshold = Mathf.Max(0f, stuckSpeedThreshold);
             stuckDetectionDuration = Mathf.Max(0f, stuckDetectionDuration);
-            recoveryCooldown = Mathf.Max(0f, recoveryCooldown);
             steeringSmoothing = Mathf.Max(0f, steeringSmoothing);
             throttleSmoothing = Mathf.Max(0f, throttleSmoothing);
             brakeSmoothing = Mathf.Max(0f, brakeSmoothing);
-            lookAheadWaypointCount = AiDriverRules.ClampLookAheadWaypointCount(lookAheadWaypointCount);
-            waypointReachDistance = AiDriverRules.ClampReachDistance(waypointReachDistance);
+            maximumLookahead = Mathf.Max(minimumLookahead, maximumLookahead);
+            maximumLateralOffset = Mathf.Max(0f, maximumLateralOffset);
+            overtakeLateralOffset = Mathf.Min(overtakeLateralOffset, maximumLateralOffset);
         }
     }
 }

@@ -5,6 +5,7 @@ namespace ApexRivals.AI.Runtime
         None,
         UpsideDown,
         StuckNoProgress,
-        RecoveryFailed
+        RecoveryFailed,
+        OffTrack
     }
 }

@@ -110,6 +110,8 @@ namespace ApexRivals.RaceSetup.Runtime
             AiDriverConfiguration aiConfiguration,
             RacingLine racingLine)
         {
+            // Identity first: the driver seeds its personality from the racer id when it is configured.
+            raceParticipant.Configure(raceCoordinator, participantId, progressTransform != null ? progressTransform : transform);
             aiInputProvider.Configure(
                 aiConfiguration,
                 racingLine,
@@ -120,7 +122,6 @@ namespace ApexRivals.RaceSetup.Runtime
                 transform,
                 aiRecoveryPose);
             drivingInputGate.Configure(aiInputProvider, false);
-            raceParticipant.Configure(raceCoordinator, participantId, progressTransform != null ? progressTransform : transform);
             _vehicleRuntime.ConfigureRuntime(drivingInputGate, vehicleResetter);
         }
 

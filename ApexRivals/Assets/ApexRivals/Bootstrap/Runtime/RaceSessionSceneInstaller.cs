@@ -46,7 +46,7 @@ namespace ApexRivals.Bootstrap.Runtime
                 handlingUpgradeDefinition.CreateData(),
                 new UnityRaceVehicleFactory(),
                 raceSetupDefinition.CreateAiConfigurationMap(),
-                context.RaceProgressionService);
+                raceSetupDefinition.UsePerOpponentDifficulty ? null : context.RaceProgressionService);
             var setup = new RaceSetupSessionAdapter(
                 setupService,
                 raceSetupDefinition,

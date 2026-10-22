@@ -4,180 +4,97 @@ namespace ApexRivals.AI.Runtime
 {
     public static class AiRecoveryRules
     {
-        private const float CandidateHeadingPenalty = 12f;
-        private const float MergeAnglePenalty = 8f;
-        private const float BehindCandidatePenalty = 10f;
-        private const float ForwardProgressPenalty = 0.1f;
 
-        public static bool ShouldEnterRejoin(float distanceFromRacingLine, float enterDistance)
+        /// <summary>
+        /// Escalation used by the driver: a flipped car resets at once; a stuck car first reverses and
+        /// resets only if it is still stuck after reversing; a car that stays off track too long resets.
+        /// </summary>
+        public static AiRecoveryAction ResolveRecoveryAction(
+            bool isUpsideDown,
+            float stuckTimer,
+            float stuckDuration,
+            bool reversedRecently,
+            float offTrackTimer,
+            float offTrackResetDuration,
+            out AiResetReason reason)
         {
-            return distanceFromRacingLine > Mathf.Max(0f, enterDistance);
-        }
-
-        public static int GetForwardRejoinTargetIndex(int nearestLineIndex, int lookAheadWaypointCount, int waypointCount)
-        {
-            return AiDriverRules.WrapWaypointIndex(nearestLineIndex + Mathf.Max(1, lookAheadWaypointCount), waypointCount);
-        }
-
-        public static int GetForwardIndexDistance(int fromIndex, int toIndex, int waypointCount)
-        {
-            if (waypointCount <= 0)
+            if (isUpsideDown)
             {
-                return 0;
+                reason = AiResetReason.UpsideDown;
+                return AiRecoveryAction.Reset;
             }
 
-            return AiDriverRules.WrapWaypointIndex(toIndex - fromIndex, waypointCount);
-        }
-
-        public static bool IsWaypointIndexWithinProgressSegment(int waypointIndex, int segmentStartIndex, int segmentEndIndex, int forwardMargin, int waypointCount)
-        {
-            if (waypointCount <= 0)
+            if (stuckTimer >= Mathf.Max(0f, stuckDuration))
             {
-                return false;
+                reason = reversedRecently ? AiResetReason.RecoveryFailed : AiResetReason.StuckNoProgress;
+                return reversedRecently ? AiRecoveryAction.Reset : AiRecoveryAction.Reverse;
             }
 
-            var segmentLength = GetForwardIndexDistance(segmentStartIndex, segmentEndIndex, waypointCount);
-            var candidateDistance = GetForwardIndexDistance(segmentStartIndex, waypointIndex, waypointCount);
-            return candidateDistance <= segmentLength + Mathf.Max(0, forwardMargin);
-        }
-
-        public static bool IsWaypointIndexWithinContinuityWindow(int waypointIndex, int currentWaypointIndex, int backwardWindow, int forwardWindow, int waypointCount)
-        {
-            if (waypointCount <= 0)
+            if (offTrackResetDuration > 0f && offTrackTimer >= offTrackResetDuration)
             {
-                return false;
+                reason = AiResetReason.OffTrack;
+                return AiRecoveryAction.Reset;
             }
 
-            var forwardDistance = GetForwardIndexDistance(currentWaypointIndex, waypointIndex, waypointCount);
-            var backwardDistance = GetForwardIndexDistance(waypointIndex, currentWaypointIndex, waypointCount);
-            return forwardDistance <= Mathf.Max(0, forwardWindow) || backwardDistance <= Mathf.Max(0, backwardWindow);
+            reason = AiResetReason.None;
+            return AiRecoveryAction.None;
         }
 
-        public static bool IsWaypointIndexInsideRecoveryWindow(int waypointIndex, int trustedWaypointIndex, int backwardAllowance, int forwardAllowance, int waypointCount)
+        /// <summary>
+        /// Metres ahead of the trouble spot where a reset places the car. A stuck car is moved past the
+        /// obstacle that trapped it, and each repeated reset at the same spot moves it further.
+        /// </summary>
+        public static float CalculateResetAdvance(AiResetReason reason, int repeatedResets)
         {
-            return IsWaypointIndexWithinContinuityWindow(waypointIndex, trustedWaypointIndex, Mathf.Max(0, backwardAllowance), Mathf.Max(0, forwardAllowance), waypointCount);
+            var repeats = Mathf.Max(0, repeatedResets);
+            var baseAdvance = reason == AiResetReason.StuckNoProgress || reason == AiResetReason.RecoveryFailed ? 10f : 4f;
+            return Mathf.Min(60f, baseAdvance + 15f * repeats);
         }
 
-        public static int GetSequentialRecoveryTargetIndex(int trustedWaypointIndex, int lookAheadWaypointCount, int forwardAllowance, int waypointCount)
+        /// <summary>
+        /// Keeps a reset from jumping over the next checkpoint the car still has to cross; otherwise the
+        /// lap would never count. <paramref name="gapToNextCheckpoint"/> is the distance along the lap
+        /// (negative or unknown means no limit).
+        /// </summary>
+        public static float ClampResetAdvanceToCheckpoint(float advance, float gapToNextCheckpoint, float margin)
         {
-            if (waypointCount <= 0)
+            if (gapToNextCheckpoint <= 0f || float.IsNaN(gapToNextCheckpoint))
             {
-                return 0;
+                return advance;
             }
 
-            var forwardDistance = Mathf.Min(Mathf.Max(1, lookAheadWaypointCount), Mathf.Max(1, forwardAllowance));
-            return AiDriverRules.WrapWaypointIndex(trustedWaypointIndex + forwardDistance, waypointCount);
+            return Mathf.Min(advance, Mathf.Max(0f, gapToNextCheckpoint - Mathf.Max(0f, margin)));
         }
 
-        public static bool CanAdvanceSequentialRecoveryTarget(int nextTargetIndex, int trustedWaypointIndex, int forwardAllowance, int waypointCount)
+        /// <summary>
+        /// Sideways offset for successive reset attempts: centre first, then alternating right/left in
+        /// growing steps, never beyond the usable track width.
+        /// </summary>
+        public static float CalculateResetLateralOffset(int attempt, float maximumOffset)
         {
-            return GetForwardIndexDistance(trustedWaypointIndex, nextTargetIndex, waypointCount) <= Mathf.Max(1, forwardAllowance);
-        }
-
-        public static bool IsRecoveryTargetDistanceSane(float distanceToTarget, float averageWaypointSpacing, int forwardIndexDelta, float spacingMultiplier)
-        {
-            var expectedDistance = Mathf.Max(averageWaypointSpacing, 0.001f) * Mathf.Max(1, forwardIndexDelta) * Mathf.Max(1f, spacingMultiplier);
-            return distanceToTarget <= expectedDistance;
-        }
-
-        public static float CalculateAdaptiveArcLookahead(float speed, float speedForMaximumLookahead, float minimumLookahead, float maximumLookahead, float upcomingCurvature)
-        {
-            var minimum = Mathf.Max(0f, minimumLookahead);
-            var maximum = Mathf.Max(minimum, maximumLookahead);
-            var speedFactor = Mathf.Clamp01(speed / Mathf.Max(speedForMaximumLookahead, 0.001f));
-            var speedLookahead = Mathf.Lerp(minimum, maximum, speedFactor);
-            return Mathf.Lerp(speedLookahead, minimum, Mathf.Clamp01(upcomingCurvature));
-        }
-
-        public static bool ShouldShortenArcLookahead(float chordRatio, float minimumChordRatio)
-        {
-            return chordRatio < Mathf.Clamp01(minimumChordRatio);
-        }
-
-        public static int GetConstrainedForwardRejoinTargetIndex(int candidateIndex, int segmentStartIndex, int segmentEndIndex, int forwardMargin, int lookAheadWaypointCount, int waypointCount)
-        {
-            if (waypointCount <= 0)
-            {
-                return 0;
-            }
-
-            var maximumDistance = GetForwardIndexDistance(segmentStartIndex, segmentEndIndex, waypointCount) + Mathf.Max(0, forwardMargin);
-            var candidateDistance = Mathf.Min(GetForwardIndexDistance(segmentStartIndex, candidateIndex, waypointCount), maximumDistance);
-            var targetDistance = Mathf.Min(candidateDistance + Mathf.Max(1, lookAheadWaypointCount), maximumDistance);
-            return AiDriverRules.WrapWaypointIndex(segmentStartIndex + targetDistance, waypointCount);
-        }
-
-        public static bool IsCandidateHeadingAcceptable(float headingAlignment, float minimumHeadingAlignment)
-        {
-            return headingAlignment >= Mathf.Clamp(minimumHeadingAlignment, -1f, 1f);
-        }
-
-        public static float ScoreRecoveryCandidate(float distance, float headingAlignment, bool isBehindCurrentProgress, int forwardProgressDistance)
-        {
-            return ScoreRecoveryCandidate(distance, headingAlignment, 1f, isBehindCurrentProgress, forwardProgressDistance);
-        }
-
-        public static float ScoreRecoveryCandidate(float distance, float headingAlignment, float mergeAlignment, bool isBehindCurrentProgress, int forwardProgressDistance)
-        {
-            var headingPenalty = (1f - Mathf.Clamp(headingAlignment, -1f, 1f)) * CandidateHeadingPenalty;
-            var mergePenalty = (1f - Mathf.Clamp(mergeAlignment, -1f, 1f)) * MergeAnglePenalty;
-            var behindPenalty = isBehindCurrentProgress ? BehindCandidatePenalty : 0f;
-            return Mathf.Max(0f, distance) + headingPenalty + mergePenalty + behindPenalty + Mathf.Max(0, forwardProgressDistance) * ForwardProgressPenalty;
-        }
-
-        public static bool CanResumeRacing(float distanceFromRacingLine, float exitDistance, float headingError, float maximumHeadingError, bool hasMadeProgress)
-        {
-            return hasMadeProgress && distanceFromRacingLine <= Mathf.Max(0f, exitDistance) && headingError <= Mathf.Clamp(maximumHeadingError, 0f, 180f);
-        }
-
-        public static float UpdateNoProgressTimer(bool recoveryIsMakingProgress, bool expectedToMove, float deltaTime, float currentTimer)
-        {
-            if (recoveryIsMakingProgress || !expectedToMove)
+            if (attempt <= 0)
             {
                 return 0f;
             }
 
-            return currentTimer + Mathf.Max(0f, deltaTime);
+            var step = 3f * ((attempt + 1) / 2);
+            var side = attempt % 2 == 1 ? 1f : -1f;
+            return side * Mathf.Min(step, Mathf.Max(0f, maximumOffset));
         }
 
-        public static bool HasMadeProgress(float previousTargetDistance, float currentTargetDistance, float minimumDistanceImprovement)
+        /// <summary>Accumulates time spent beyond the off-track distance; returning to the track clears it.</summary>
+        public static float UpdateOffTrackTimer(float distanceFromLine, float offTrackDistance, float deltaTime, float currentTimer)
         {
-            return currentTargetDistance <= previousTargetDistance - Mathf.Max(0f, minimumDistanceImprovement);
+            return distanceFromLine > Mathf.Max(0f, offTrackDistance) ? currentTimer + Mathf.Max(0f, deltaTime) : 0f;
         }
 
-        public static bool HasMeaningfulRecoveryProgress(float referenceDistanceToLine, float currentDistanceToLine, float referenceDistanceToTarget, float currentDistanceToTarget, float referenceHeadingError, float currentHeadingError, Vector3 referencePosition, Vector3 currentPosition, float distanceImprovementThreshold, float headingImprovementThreshold, float movementThreshold)
+        /// <summary>
+        /// Steering while reversing: the front wheels turn opposite to the heading error so the nose
+        /// swings back toward the ideal line.
+        /// </summary>
+        public static float CalculateReverseSteering(float signedHeadingErrorDegrees)
         {
-            var distanceThreshold = Mathf.Max(0f, distanceImprovementThreshold);
-            var lineImproved = HasMadeProgress(referenceDistanceToLine, currentDistanceToLine, distanceThreshold);
-            var targetImproved = HasMadeProgress(referenceDistanceToTarget, currentDistanceToTarget, distanceThreshold);
-            var headingImproved = currentHeadingError <= referenceHeadingError - Mathf.Max(0f, headingImprovementThreshold);
-            var hasMoved = (currentPosition - referencePosition).sqrMagnitude >= Mathf.Max(0f, movementThreshold) * Mathf.Max(0f, movementThreshold);
-            return lineImproved || targetImproved || headingImproved || hasMoved;
-        }
-
-        public static bool ShouldReverse(float noProgressTimer, float timeout, bool hasAlreadyReversed)
-        {
-            return !hasAlreadyReversed && noProgressTimer >= Mathf.Max(0f, timeout);
-        }
-
-        public static bool ShouldReset(float noProgressTimer, float timeout, bool hasAlreadyReversed, bool isUpsideDown)
-        {
-            return isUpsideDown || (hasAlreadyReversed && noProgressTimer >= Mathf.Max(0f, timeout));
-        }
-
-        public static AiResetReason GetResetReason(float noProgressTimer, float timeout, bool hasAlreadyReversed, bool isUpsideDown)
-        {
-            if (isUpsideDown)
-            {
-                return AiResetReason.UpsideDown;
-            }
-
-            return hasAlreadyReversed && noProgressTimer >= Mathf.Max(0f, timeout) ? AiResetReason.RecoveryFailed : AiResetReason.None;
-        }
-
-        public static bool CanRequestPhysicalReset(bool resetConditionMet, float postResetGraceRemaining, float resetCooldownRemaining)
-        {
-            return resetConditionMet && postResetGraceRemaining <= 0f && resetCooldownRemaining <= 0f;
+            return Mathf.Clamp(-signedHeadingErrorDegrees / 45f, -1f, 1f);
         }
 
         public static bool IsUpsideDown(float upAlignment, float invertedThreshold)

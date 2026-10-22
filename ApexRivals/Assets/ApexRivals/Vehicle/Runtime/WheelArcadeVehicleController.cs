@@ -56,6 +56,18 @@ namespace ApexRivals.Vehicle.Runtime
         [Tooltip("Rear-right WheelCollider. It receives RWD motor torque, rear normal braking, and handbrake torque.")]
         private WheelCollider rearRightWheel;
 
+        [SerializeField, Min(0f)]
+        [Tooltip("Speed (m/s) below which the wheels use the low-speed substep count.")]
+        private float lowSpeedSubstepThreshold = 5f;
+
+        [SerializeField, Min(1)]
+        [Tooltip("Physics substeps per step for the wheels below the threshold speed.")]
+        private int substepsBelowThreshold = 12;
+
+        [SerializeField, Min(1)]
+        [Tooltip("Physics substeps per step for the wheels above the threshold speed.")]
+        private int substepsAboveThreshold = 15;
+
         [Header("Wheel Visuals")]
         [SerializeField]
         [Tooltip("Visual transform synchronized from the front-left WheelCollider world pose.")]
@@ -288,7 +300,28 @@ namespace ApexRivals.Vehicle.Runtime
             ConfigureWheel(frontRightWheel, true, tuning);
             ConfigureWheel(rearLeftWheel, false, tuning);
             ConfigureWheel(rearRightWheel, false, tuning);
+            ConfigureLowSpeedSubsteps();
             _appliedRearSidewaysFrictionStiffness = float.NaN;
+        }
+
+        /// <summary>
+        /// WheelColliders simulate poorly near standstill: undriven wheels stop turning and are dragged,
+        /// and a car pulling away from a slow corner barely moves. More physics substeps below the
+        /// threshold keep wheel and tyre contact stable at low speed. The setting is per vehicle, so it is
+        /// applied through any one of its wheels.
+        /// </summary>
+        private void ConfigureLowSpeedSubsteps()
+        {
+            var wheel = frontLeftWheel != null ? frontLeftWheel : rearLeftWheel;
+            if (wheel == null)
+            {
+                return;
+            }
+
+            wheel.ConfigureVehicleSubsteps(
+                Mathf.Max(0f, lowSpeedSubstepThreshold),
+                Mathf.Max(1, substepsBelowThreshold),
+                Mathf.Max(1, substepsAboveThreshold));
         }
 
         private static void ConfigureWheel(WheelCollider wheel, bool isFrontWheel, WheelVehicleTuning tuning)
@@ -403,6 +436,7 @@ namespace ApexRivals.Vehicle.Runtime
                 CurrentPowerCurveEvaluation = 0f;
                 rearLeftWheel.motorTorque = 0f;
                 rearRightWheel.motorTorque = 0f;
+                UpdateCoastingGear(canSelectGear);
                 UpdateIdleRpm();
                 return;
             }
@@ -479,6 +513,29 @@ namespace ApexRivals.Vehicle.Runtime
                 _effectiveTuning.gearRatios != null ? _effectiveTuning.gearRatios.Length : 0,
                 rpm.TargetEngineRpm,
                 _effectiveTuning.upshiftRpm,
+                _effectiveTuning.downshiftRpm);
+            if (!shiftDecision.ShouldShift)
+            {
+                return;
+            }
+
+            _currentGearIndex = shiftDecision.RequestedGearIndex;
+            CurrentRequestedGear = shiftDecision.RequestedGearIndex + 1;
+            _shiftTimeRemaining = Mathf.Max(0f, _effectiveTuning.gearShiftDuration);
+        }
+
+        private void UpdateCoastingGear(bool canSelectGear)
+        {
+            if (!canSelectGear)
+            {
+                return;
+            }
+
+            ClampCurrentGearIndex();
+            var shiftDecision = VehicleDrivetrainRules.EvaluateCoastingDownshift(
+                _currentGearIndex,
+                CurrentForwardSpeed,
+                CalculateRawEngineRpm(_effectiveTuning.GetGearRatio(_currentGearIndex)),
                 _effectiveTuning.downshiftRpm);
             if (!shiftDecision.ShouldShift)
             {

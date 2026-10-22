@@ -113,6 +113,25 @@ namespace ApexRivals.Vehicle.Runtime
             return new GearShiftDecision(requestedGearIndex, requestedGearIndex != currentGearIndex);
         }
 
+        /// <summary>
+        /// Downshift while coasting or braking: without power the gearbox would otherwise keep the gear it
+        /// had at speed, and the car would pull away from a slow corner in a tall gear with little torque.
+        /// Only shifts down, one gear per evaluation, and only while rolling forward.
+        /// </summary>
+        public static GearShiftDecision EvaluateCoastingDownshift(
+            int currentGearIndex,
+            float signedForwardSpeed,
+            float rawEngineRpm,
+            float downshiftRpm)
+        {
+            if (currentGearIndex <= 0 || signedForwardSpeed <= 0f || rawEngineRpm >= downshiftRpm)
+            {
+                return new GearShiftDecision(currentGearIndex, false);
+            }
+
+            return new GearShiftDecision(currentGearIndex - 1, true);
+        }
+
         private static float Max(float first, float second)
         {
             return first > second ? first : second;

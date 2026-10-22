@@ -5,6 +5,11 @@ namespace ApexRivals.AI.Runtime
         Racing,
         Rejoining,
         Reversing,
-        PostResetGrace
+        PostResetGrace,
+        Following,
+        Overtaking,
+        Defending,
+        Avoiding,
+        Resetting
     }
 }

@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24af6431ea222444eabfb3bdafaa2ba4, type: 3}
   m_Name: ProfessionalAiDriverConfiguration
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   difficultyName: Professional
-  difficultyMultiplier: 1.15
-  targetSpeed: 24
-  minimumCornerSpeed: 9
+  difficultyMultiplier: 1
+  targetSpeed: 44
+  minimumCornerSpeed: 12
   steeringSensitivity: 1.14
   brakingSensitivity: 1.12
   driftCornerThreshold: 0.6
@@ -28,3 +28,26 @@ MonoBehaviour:
   brakeSmoothing: 10
   lookAheadWaypointCount: 3
   waypointReachDistance: 5
+  cornerSpeedFactor: 0.92
+  curvatureSpeedScale: 4
+  corneringGrip: 6
+  brakingPreviewDistance: 80
+  brakingConfidence: 0.95
+  throttleGain: 5
+  brakeGain: 1.2
+  headingGain: 1
+  crossTrackGain: 1.6
+  minimumLookahead: 10
+  maximumLookahead: 36
+  lineWanderAmplitude: 0.4
+  reactionTime: 0.25
+  mistakeInterval: 45
+  mistakeDuration: 1.2
+  aggression: 0.6
+  followTimeGap: 0.6
+  overtakeLateralOffset: 3.5
+  maximumLateralOffset: 5
+  offTrackDistance: 10
+  offTrackResetDuration: 5
+  reverseDuration: 1.2
+  postResetGraceDuration: 2

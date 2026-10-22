@@ -185,6 +185,23 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
         }
 
         [Test]
+        public void SetupRace_SeedsEachOpponentPersonalityFromItsOwnRacerId()
+        {
+            var context = CreateContext(opponentCount: 2);
+
+            var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
+
+            Assert.That(result.Succeeded, Is.True);
+            for (var index = 0; index < result.Output.Opponents.Count; index++)
+            {
+                var opponent = result.Output.Opponents[index];
+                Assert.That(opponent.AiInputProvider.PersonalityId, Is.EqualTo(opponent.RaceParticipant.RacerId));
+            }
+
+            Assert.That(result.Output.Opponents[0].AiInputProvider.PersonalityId, Is.Not.EqualTo(result.Output.Opponents[1].AiInputProvider.PersonalityId));
+        }
+
+        [Test]
         public void SetupRace_FailedDifficultyResolutionPreventsIncompleteSetup()
         {
             var context = CreateContext(raceDifficultyProvider: new FakeDifficultyProvider(null, "Difficulty failed."));

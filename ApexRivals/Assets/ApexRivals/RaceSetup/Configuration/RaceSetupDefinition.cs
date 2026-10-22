@@ -17,9 +17,12 @@ namespace ApexRivals.RaceSetup.Configuration
 #pragma warning restore CS0414
         [SerializeField, Min(0)] private int playerStartingGridIndex;
         [SerializeField] private RaceAiOpponentDefinition[] aiOpponents = Array.Empty<RaceAiOpponentDefinition>();
+        [SerializeField, Tooltip("Each opponent keeps its own driver configuration instead of the progression tier's.")]
+        private bool usePerOpponentDifficulty;
 
         public RaceDefinition RaceDefinition => raceDefinition;
         public IReadOnlyList<RaceAiOpponentDefinition> AiOpponents => aiOpponents;
+        public bool UsePerOpponentDifficulty => usePerOpponentDifficulty;
 
         public RaceRoster CreateRoster(string selectedPlayerVehicleId)
         {
@@ -41,7 +44,8 @@ namespace ApexRivals.RaceSetup.Configuration
                     RaceEntryType.AI,
                     opponent.VehicleId,
                     opponent.StartingGridIndex,
-                    opponent.AiConfigurationId));
+                    opponent.AiConfigurationId,
+                    opponent.PerformanceMultiplier));
             }
 
             return new RaceRoster(entries);

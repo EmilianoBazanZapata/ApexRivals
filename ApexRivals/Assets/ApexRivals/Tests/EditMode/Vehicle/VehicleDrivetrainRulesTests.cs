@@ -14,6 +14,26 @@ namespace ApexRivals.Tests.EditMode.Vehicle
         }
 
         [Test]
+        public void EvaluateCoastingDownshift_DropsOneGearWhenRpmFallsWhileRollingForward()
+        {
+            var decision = VehicleDrivetrainRules.EvaluateCoastingDownshift(3, 6f, 2000f, 3300f);
+
+            Assert.That(decision.ShouldShift, Is.True);
+            Assert.That(decision.RequestedGearIndex, Is.EqualTo(2));
+        }
+
+        [TestCase(0, 6f, 1000f)]
+        [TestCase(3, 6f, 4000f)]
+        [TestCase(3, -1f, 1000f)]
+        public void EvaluateCoastingDownshift_KeepsGearInFirstAboveThresholdOrWhenNotRollingForward(int gear, float speed, float rpm)
+        {
+            var decision = VehicleDrivetrainRules.EvaluateCoastingDownshift(gear, speed, rpm, 3300f);
+
+            Assert.That(decision.ShouldShift, Is.False);
+            Assert.That(decision.RequestedGearIndex, Is.EqualTo(gear));
+        }
+
+        [Test]
         public void CalculateRawEngineRpm_AppliesGearRatioAndDifferentialMagnitude()
         {
             var engineRpm = VehicleDrivetrainRules.CalculateRawEngineRpm(100f, -3f, -4f);

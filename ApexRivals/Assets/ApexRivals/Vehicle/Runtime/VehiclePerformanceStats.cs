@@ -25,5 +25,11 @@ namespace ApexRivals.Vehicle.Runtime
         public float Steering { get; }
         public float Handling { get; }
         public float DriftHandling { get; }
+
+        /// <summary>Scales acceleration and top speed only; steering and grip are left unchanged.</summary>
+        public VehiclePerformanceStats WithPowerScale(float multiplier)
+        {
+            return new VehiclePerformanceStats(Acceleration * multiplier, TopSpeed * multiplier, Steering, Handling, DriftHandling);
+        }
     }
 }

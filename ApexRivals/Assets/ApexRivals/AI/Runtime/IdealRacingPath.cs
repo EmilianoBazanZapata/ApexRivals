@@ -55,7 +55,13 @@ namespace ApexRivals.AI.Runtime
         private readonly float[] _targetSpeeds;
         private readonly float[] _segmentLengths;
 
-        private IdealRacingPath(Vector3[] positions, float targetSpeed, float minimumCornerSpeed, float curvatureSpeedScale)
+        /// <summary>Half-width of the window used to measure how sharply the line really turns.</summary>
+        private const float SmoothedCurvatureHalfWindow = 15f;
+
+        /// <summary>Corner speeds are never capped below this, so the car keeps moving through hairpins.</summary>
+        private const float MinimumGripLimitedSpeed = 5f;
+
+        private IdealRacingPath(Vector3[] positions, float targetSpeed, float minimumCornerSpeed, float curvatureSpeedScale, float lateralAcceleration)
         {
             _positions = positions;
             _forwards = new Vector3[positions.Length];
@@ -90,6 +96,33 @@ namespace ApexRivals.AI.Runtime
                     curvatureSpeedScale,
                     1f);
             }
+
+            if (lateralAcceleration <= 0f || float.IsInfinity(lateralAcceleration))
+            {
+                return;
+            }
+
+            // The source line is a polyline, so per-sample curvature spikes at every waypoint. Measure the
+            // heading change over a window instead and cap speed so lateral acceleration stays within grip:
+            // v = sqrt(a / k).
+            var halfWindow = Mathf.Max(1, Mathf.RoundToInt(SmoothedCurvatureHalfWindow / Mathf.Max(0.1f, AverageSpacing)));
+            for (var index = 0; index < positions.Length; index++)
+            {
+                var before = _forwards[IdealRacingDriverRules.WrapIndex(index - halfWindow, positions.Length)];
+                var after = _forwards[IdealRacingDriverRules.WrapIndex(index + halfWindow, positions.Length)];
+                var window = 0f;
+                for (var offset = -halfWindow; offset < halfWindow; offset++)
+                {
+                    window += _segmentLengths[IdealRacingDriverRules.WrapIndex(index + offset, positions.Length)];
+                }
+
+                var smoothedCurvature = Vector3.Angle(before, after) * Mathf.Deg2Rad / Mathf.Max(0.01f, window);
+                if (smoothedCurvature > 0.0001f)
+                {
+                    var gripLimit = Mathf.Max(MinimumGripLimitedSpeed, Mathf.Sqrt(lateralAcceleration / smoothedCurvature));
+                    _targetSpeeds[index] = Mathf.Min(_targetSpeeds[index], gripLimit);
+                }
+            }
         }
 
         public int SampleCount => _positions.Length;
@@ -103,6 +136,12 @@ namespace ApexRivals.AI.Runtime
         }
 
         public static bool TryBuild(RacingLine source, float sampleSpacing, float targetSpeed, float minimumCornerSpeed, float curvatureSpeedScale, out IdealRacingPath path)
+        {
+            return TryBuild(source, sampleSpacing, targetSpeed, minimumCornerSpeed, curvatureSpeedScale, float.PositiveInfinity, out path);
+        }
+
+        /// <param name="lateralAcceleration">Cornering grip in m/s² used to cap corner speeds; infinity disables the cap.</param>
+        public static bool TryBuild(RacingLine source, float sampleSpacing, float targetSpeed, float minimumCornerSpeed, float curvatureSpeedScale, float lateralAcceleration, out IdealRacingPath path)
         {
             path = null;
             if (source == null || !source.IsValid)
@@ -137,7 +176,7 @@ namespace ApexRivals.AI.Runtime
                 }
             }
 
-            path = new IdealRacingPath(positions, targetSpeed, minimumCornerSpeed, curvatureSpeedScale);
+            path = new IdealRacingPath(positions, targetSpeed, minimumCornerSpeed, curvatureSpeedScale, lateralAcceleration);
             return true;
         }
 
@@ -156,6 +195,30 @@ namespace ApexRivals.AI.Runtime
             }
 
             return nearestIndex;
+        }
+
+        /// <summary>
+        /// Projects near a remembered anchor, falling back to a full search when the local result is far
+        /// from the point (the car was reset or teleported out of the window). The fallback is only taken
+        /// when it is closer, so a car on the track never jumps to a parallel straight.
+        /// </summary>
+        public bool TryProjectTracked(Vector3 position, int anchorIndex, int window, float relocateDistance, out Projection projection)
+        {
+            var hasLocal = TryProjectLocal(position, anchorIndex >= 0 ? anchorIndex : FindNearestSegment(position), window, window, out var local);
+            if (hasLocal && local.Distance <= relocateDistance)
+            {
+                projection = local;
+                return true;
+            }
+
+            if (TryProjectLocal(position, FindNearestSegment(position), 1, 1, out var relocated) && (!hasLocal || relocated.Distance < local.Distance))
+            {
+                projection = relocated;
+                return true;
+            }
+
+            projection = local;
+            return hasLocal;
         }
 
         public bool TryProjectLocal(Vector3 position, int anchorIndex, int backwardWindow, int forwardWindow, out Projection projection)
@@ -229,71 +292,28 @@ namespace ApexRivals.AI.Runtime
         }
 
         /// <summary>
-        /// Selects a real sequential sample rather than a point interpolated inside a segment.
-        /// This is intentionally used for persistent steering targets: once selected, the sample
-        /// index is stable until the driver reaches or passes it.
+        /// Highest speed from which the car can still slow down to every upcoming sample's target speed
+        /// (scaled by <paramref name="speedFactor"/>) within <paramref name="previewDistance"/>, braking at
+        /// <paramref name="deceleration"/>: v = sqrt(v_target² + 2·a·d).
         /// </summary>
-        public int GetForwardSampleAtArcDistance(Projection projection, float minimumArcDistance, out float actualArcDistance)
-        {
-            var requiredDistance = Mathf.Max(0f, minimumArcDistance);
-            var segmentIndex = projection.SegmentIndex;
-            var interpolation = projection.SegmentInterpolation;
-            actualArcDistance = 0f;
-
-            for (var traversed = 0; traversed < SampleCount; traversed++)
-            {
-                var availableDistance = _segmentLengths[segmentIndex] * (1f - interpolation);
-                actualArcDistance += availableDistance;
-                var sampleIndex = IdealRacingDriverRules.WrapIndex(segmentIndex + 1, SampleCount);
-                if (actualArcDistance + 0.0001f >= requiredDistance)
-                {
-                    return sampleIndex;
-                }
-
-                segmentIndex = sampleIndex;
-                interpolation = 0f;
-            }
-
-            return IdealRacingDriverRules.WrapIndex(segmentIndex + 1, SampleCount);
-        }
-
-        public float GetArcDistanceToSample(Projection projection, int targetSampleIndex)
-        {
-            var targetIndex = IdealRacingDriverRules.WrapIndex(targetSampleIndex, SampleCount);
-            var segmentIndex = projection.SegmentIndex;
-            var interpolation = projection.SegmentInterpolation;
-            var distance = 0f;
-
-            for (var traversed = 0; traversed < SampleCount; traversed++)
-            {
-                distance += _segmentLengths[segmentIndex] * (1f - interpolation);
-                if (IdealRacingDriverRules.WrapIndex(segmentIndex + 1, SampleCount) == targetIndex)
-                {
-                    return distance;
-                }
-
-                segmentIndex = IdealRacingDriverRules.WrapIndex(segmentIndex + 1, SampleCount);
-                interpolation = 0f;
-            }
-
-            return LapLength;
-        }
-
-        public float GetMinimumTargetSpeedAhead(Projection projection, float previewDistance)
+        public float GetBrakingLimitedSpeed(Projection projection, float previewDistance, float deceleration, float speedFactor)
         {
             var remaining = Mathf.Max(0f, previewDistance);
+            var safeDeceleration = Mathf.Max(0.1f, deceleration);
+            var factor = Mathf.Max(0f, speedFactor);
             var index = projection.SegmentIndex;
-            var interpolation = projection.SegmentInterpolation;
-            var minimum = _targetSpeeds[index];
-            for (var traversed = 0; traversed < SampleCount && remaining > 0f; traversed++)
+            var distance = -_segmentLengths[index] * projection.SegmentInterpolation;
+            var limit = float.PositiveInfinity;
+            for (var traversed = 0; traversed < SampleCount && distance <= remaining; traversed++)
             {
-                minimum = Mathf.Min(minimum, _targetSpeeds[index]);
-                remaining -= _segmentLengths[index] * (1f - interpolation);
+                var sampleSpeed = _targetSpeeds[index] * factor;
+                var reachable = Mathf.Sqrt(sampleSpeed * sampleSpeed + 2f * safeDeceleration * Mathf.Max(0f, distance));
+                limit = Mathf.Min(limit, reachable);
+                distance += _segmentLengths[index];
                 index = IdealRacingDriverRules.WrapIndex(index + 1, SampleCount);
-                interpolation = 0f;
             }
 
-            return minimum;
+            return float.IsPositiveInfinity(limit) ? _targetSpeeds[projection.SegmentIndex] * factor : limit;
         }
 
         private void EvaluateSegment(Vector3 position, int index, out float interpolation, out Vector3 point, out float distanceSquared, out Vector3 tangent)
