@@ -67,8 +67,15 @@ namespace ApexRivals.UI.Runtime
                 text.font = approvedFont;
             }
 
-            var name = text.name;
             text.resizeTextForBestFit = false;
+            var role = text.GetComponent<ApexUiTextRole>();
+            if (role != null)
+            {
+                ApplyRole(text, role.Role);
+                return;
+            }
+
+            var name = text.name;
             if (Contains(name, "APEX"))
             {
                 SetText(text, ApexUiVisualStyle.PrimaryText, 72, FontStyle.Bold);
@@ -96,6 +103,52 @@ namespace ApexRivals.UI.Runtime
             else
             {
                 SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.FieldLabelSize, FontStyle.Normal);
+            }
+        }
+
+        private static void ApplyRole(Text text, ApexUiTextRoleKind role)
+        {
+            switch (role)
+            {
+                case ApexUiTextRoleKind.ButtonTitle:
+                    SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.MenuButtonTitleSize, FontStyle.Bold);
+                    break;
+                case ApexUiTextRoleKind.ButtonSubtitle:
+                    SetText(text, ApexUiVisualStyle.SecondaryText, ApexUiVisualStyle.MenuButtonSubtitleSize, FontStyle.Normal);
+                    break;
+                case ApexUiTextRoleKind.PanelTitle:
+                    SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.SectionTitleSize, FontStyle.Bold);
+                    break;
+                case ApexUiTextRoleKind.HudLabel:
+                    SetText(text, ApexUiVisualStyle.SecondaryText, ApexUiVisualStyle.SecondaryTextSize, FontStyle.Bold);
+                    break;
+                case ApexUiTextRoleKind.HudValue:
+                    SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.HudValueSize, FontStyle.Bold);
+                    break;
+                case ApexUiTextRoleKind.Hint:
+                    SetText(text, ApexUiVisualStyle.SecondaryText, ApexUiVisualStyle.SecondaryTextSize, FontStyle.Normal);
+                    break;
+                case ApexUiTextRoleKind.Countdown:
+                    SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.CountdownSize, FontStyle.BoldAndItalic);
+                    break;
+                case ApexUiTextRoleKind.AccentValue:
+                    SetText(text, ApexUiVisualStyle.AccentText, ApexUiVisualStyle.HudValueSize, FontStyle.Bold);
+                    break;
+                case ApexUiTextRoleKind.AccentLabel:
+                    SetText(text, ApexUiVisualStyle.AccentText, ApexUiVisualStyle.FieldLabelSize + 2, FontStyle.Bold);
+                    break;
+                case ApexUiTextRoleKind.StatLabel:
+                    SetText(text, ApexUiVisualStyle.SecondaryText, ApexUiVisualStyle.StatTextSize, FontStyle.Normal);
+                    break;
+                case ApexUiTextRoleKind.StatValue:
+                    SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.StatTextSize, FontStyle.Normal);
+                    break;
+                case ApexUiTextRoleKind.LogoPrimary:
+                    SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.LogoPrimarySize, FontStyle.BoldAndItalic);
+                    break;
+                case ApexUiTextRoleKind.LogoAccent:
+                    SetText(text, ApexUiVisualStyle.PrimaryRed, ApexUiVisualStyle.LogoAccentSize, FontStyle.BoldAndItalic);
+                    break;
             }
         }
 

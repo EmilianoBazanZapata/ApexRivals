@@ -38864,6 +38864,7 @@ GameObject:
   - component: {fileID: 427066348}
   - component: {fileID: 427066350}
   - component: {fileID: 427066349}
+  - component: {fileID: 427066351}
   m_Layer: 0
   m_Name: PositionLabel
   m_TagString: Untagged
@@ -38903,7 +38904,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -38912,7 +38913,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 15
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -38932,6 +38933,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 427066347}
   m_CullTransparentMesh: 1
+--- !u!114 &427066351
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 427066347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 5
 --- !u!1001 &427796607
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -42308,8 +42322,7 @@ GameObject:
   m_Component:
   - component: {fileID: 470186417}
   - component: {fileID: 470186420}
-  - component: {fileID: 470186419}
-  - component: {fileID: 470186418}
+  - component: {fileID: 470186421}
   m_Layer: 0
   m_Name: LapPanel
   m_TagString: Untagged
@@ -42339,51 +42352,6 @@ RectTransform:
   m_AnchoredPosition: {x: 155, y: -220}
   m_SizeDelta: {x: 240, y: 96}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &470186418
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 470186416}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
---- !u!114 &470186419
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 470186416}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &470186420
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -42392,6 +42360,32 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 470186416}
   m_CullTransparentMesh: 1
+--- !u!114 &470186421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 470186416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 0
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 14
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &470892599
 Mesh:
   m_ObjectHideFlags: 0
@@ -43366,9 +43360,9 @@ GameObject:
   - component: {fileID: 483290375}
   - component: {fileID: 483290379}
   - component: {fileID: 483290378}
-  - component: {fileID: 483290377}
   - component: {fileID: 483290376}
   - component: {fileID: 483290380}
+  - component: {fileID: 483290381}
   m_Layer: 0
   m_Name: RetryButton
   m_TagString: Untagged
@@ -43436,40 +43430,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 483290377}
+  m_TargetGraphic: {fileID: 483290381}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &483290377
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 483290374}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &483290378
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -43511,10 +43475,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 483290376}
-  background: {fileID: 483290377}
+  background: {fileID: 483290381}
   labels:
   - {fileID: 0}
+  icons: []
   primaryAction: 1
+--- !u!114 &483290381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 483290374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &484671395
 Mesh:
   m_ObjectHideFlags: 0
@@ -47845,6 +47836,7 @@ GameObject:
   - component: {fileID: 543345804}
   - component: {fileID: 543345806}
   - component: {fileID: 543345805}
+  - component: {fileID: 543345807}
   m_Layer: 0
   m_Name: BestLapLabel
   m_TagString: Untagged
@@ -47884,7 +47876,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -47893,7 +47885,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 15
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -47913,6 +47905,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 543345803}
   m_CullTransparentMesh: 1
+--- !u!114 &543345807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 543345803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 5
 --- !u!43 &543450404
 Mesh:
   m_ObjectHideFlags: 0
@@ -54788,6 +54793,7 @@ GameObject:
   - component: {fileID: 646967401}
   - component: {fileID: 646967403}
   - component: {fileID: 646967402}
+  - component: {fileID: 646967404}
   m_Layer: 0
   m_Name: SpeedUnit
   m_TagString: Untagged
@@ -54827,7 +54833,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -54836,7 +54842,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 15
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -54856,6 +54862,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 646967400}
   m_CullTransparentMesh: 1
+--- !u!114 &646967404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 646967400}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 5
 --- !u!43 &652038676
 Mesh:
   m_ObjectHideFlags: 0
@@ -61657,10 +61676,9 @@ GameObject:
   m_Component:
   - component: {fileID: 728367288}
   - component: {fileID: 728367292}
-  - component: {fileID: 728367291}
-  - component: {fileID: 728367290}
   - component: {fileID: 728367289}
   - component: {fileID: 728367293}
+  - component: {fileID: 728367294}
   m_Layer: 0
   m_Name: ConfirmButton
   m_TagString: Untagged
@@ -61728,55 +61746,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 728367291}
+  m_TargetGraphic: {fileID: 728367294}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &728367290
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 728367287}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
---- !u!114 &728367291
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 728367287}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &728367292
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -61798,11 +61771,38 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 728367289}
-  background: {fileID: 728367291}
+  background: {fileID: 728367294}
   labels:
   - {fileID: 0}
   - {fileID: 0}
+  icons: []
   primaryAction: 1
+--- !u!114 &728367294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 728367287}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &728631063
 Mesh:
   m_ObjectHideFlags: 0
@@ -65389,6 +65389,7 @@ GameObject:
   - component: {fileID: 751539053}
   - component: {fileID: 751539055}
   - component: {fileID: 751539054}
+  - component: {fileID: 751539056}
   m_Layer: 0
   m_Name: TimeLabel
   m_TagString: Untagged
@@ -65428,7 +65429,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -65437,7 +65438,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 15
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -65457,6 +65458,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 751539052}
   m_CullTransparentMesh: 1
+--- !u!114 &751539056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 751539052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 5
 --- !u!1001 &758037631
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -66270,10 +66284,9 @@ GameObject:
   m_Component:
   - component: {fileID: 766916796}
   - component: {fileID: 766916795}
-  - component: {fileID: 766916793}
-  - component: {fileID: 766916794}
   - component: {fileID: 766916792}
   - component: {fileID: 766916797}
+  - component: {fileID: 766916798}
   m_Layer: 0
   m_Name: CancelConfirmationButton
   m_TagString: Untagged
@@ -66321,55 +66334,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 766916793}
+  m_TargetGraphic: {fileID: 766916798}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &766916793
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 766916791}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!114 &766916794
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 766916791}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
 --- !u!222 &766916795
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -66411,11 +66379,38 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 766916792}
-  background: {fileID: 766916793}
+  background: {fileID: 766916798}
   labels:
   - {fileID: 0}
   - {fileID: 0}
+  icons: []
   primaryAction: 0
+--- !u!114 &766916798
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 766916791}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!1 &767685457
 GameObject:
   m_ObjectHideFlags: 0
@@ -66737,9 +66732,9 @@ GameObject:
   m_Component:
   - component: {fileID: 768600957}
   - component: {fileID: 768600960}
-  - component: {fileID: 768600959}
   - component: {fileID: 768600958}
   - component: {fileID: 768600961}
+  - component: {fileID: 768600962}
   m_Layer: 0
   m_Name: ConfirmationConfirmButton
   m_TagString: Untagged
@@ -66807,40 +66802,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 768600959}
+  m_TargetGraphic: {fileID: 768600962}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &768600959
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 768600956}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &768600960
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -66862,10 +66827,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 768600958}
-  background: {fileID: 768600959}
+  background: {fileID: 768600962}
   labels:
   - {fileID: 0}
+  icons: []
   primaryAction: 0
+--- !u!114 &768600962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 768600956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!1 &769482948
 GameObject:
   m_ObjectHideFlags: 0
@@ -68206,6 +68198,7 @@ GameObject:
   - component: {fileID: 785336922}
   - component: {fileID: 785336924}
   - component: {fileID: 785336923}
+  - component: {fileID: 785336925}
   m_Layer: 0
   m_Name: CurrentLapValue
   m_TagString: Untagged
@@ -68254,7 +68247,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 34
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -68274,6 +68267,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 785336921}
   m_CullTransparentMesh: 1
+--- !u!114 &785336925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 785336921}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 6
 --- !u!1001 &788235214
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -68813,6 +68819,7 @@ GameObject:
   - component: {fileID: 795274079}
   - component: {fileID: 795274081}
   - component: {fileID: 795274080}
+  - component: {fileID: 795274082}
   m_Layer: 0
   m_Name: StartSignal
   m_TagString: Untagged
@@ -68861,11 +68868,11 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 16
-    m_FontStyle: 0
+    m_FontSize: 120
+    m_FontStyle: 3
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 60
+    m_MaxSize: 120
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -68881,6 +68888,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 795274078}
   m_CullTransparentMesh: 1
+--- !u!114 &795274082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795274078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 8
 --- !u!1001 &797142510
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -78459,8 +78479,7 @@ GameObject:
   m_Component:
   - component: {fileID: 907063949}
   - component: {fileID: 907063952}
-  - component: {fileID: 907063951}
-  - component: {fileID: 907063950}
+  - component: {fileID: 907063953}
   m_Layer: 0
   m_Name: PositionPanel
   m_TagString: Untagged
@@ -78490,51 +78509,6 @@ RectTransform:
   m_AnchoredPosition: {x: 155, y: -92}
   m_SizeDelta: {x: 240, y: 110}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &907063950
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 907063948}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
---- !u!114 &907063951
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 907063948}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &907063952
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -78543,6 +78517,32 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 907063948}
   m_CullTransparentMesh: 1
+--- !u!114 &907063953
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907063948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 0
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 14
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &909692463
 Mesh:
   m_ObjectHideFlags: 0
@@ -81397,6 +81397,7 @@ GameObject:
   - component: {fileID: 943516363}
   - component: {fileID: 943516365}
   - component: {fileID: 943516364}
+  - component: {fileID: 943516366}
   m_Layer: 0
   m_Name: PauseInputHints
   m_TagString: Untagged
@@ -81436,7 +81437,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -81445,8 +81446,8 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 42
-    m_FontStyle: 1
+    m_FontSize: 15
+    m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
     m_MaxSize: 42
@@ -81465,6 +81466,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 943516362}
   m_CullTransparentMesh: 1
+--- !u!114 &943516366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 943516362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 7
 --- !u!1001 &944514403
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -81872,6 +81886,7 @@ GameObject:
   - component: {fileID: 953819132}
   - component: {fileID: 953819134}
   - component: {fileID: 953819133}
+  - component: {fileID: 953819135}
   m_Layer: 0
   m_Name: PositionValue
   m_TagString: Untagged
@@ -81920,7 +81935,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 34
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -81940,6 +81955,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 953819131}
   m_CullTransparentMesh: 1
+--- !u!114 &953819135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953819131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 6
 --- !u!1 &956042680
 GameObject:
   m_ObjectHideFlags: 0
@@ -84240,7 +84268,6 @@ GameObject:
   m_Component:
   - component: {fileID: 991948589}
   - component: {fileID: 991948593}
-  - component: {fileID: 991948592}
   - component: {fileID: 991948591}
   - component: {fileID: 991948590}
   - component: {fileID: 991948594}
@@ -84322,36 +84349,6 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!114 &991948592
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 991948588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &991948593
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -84369,12 +84366,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 991948588}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 0
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 0
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!1001 &993363921
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -85761,9 +85769,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1007900409}
   - component: {fileID: 1007900408}
-  - component: {fileID: 1007900407}
   - component: {fileID: 1007900406}
   - component: {fileID: 1007900410}
+  - component: {fileID: 1007900411}
   m_Layer: 0
   m_Name: ConfirmationCancelButton
   m_TagString: Untagged
@@ -85811,40 +85819,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 1007900407}
+  m_TargetGraphic: {fileID: 1007900411}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1007900407
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1007900405}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1007900408
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -85886,10 +85864,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 1007900406}
-  background: {fileID: 1007900407}
+  background: {fileID: 1007900411}
   labels:
   - {fileID: 0}
+  icons: []
   primaryAction: 0
+--- !u!114 &1007900411
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1007900405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!1001 &1009197177
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -88593,6 +88598,7 @@ GameObject:
   - component: {fileID: 1043055613}
   - component: {fileID: 1043055615}
   - component: {fileID: 1043055614}
+  - component: {fileID: 1043055616}
   m_Layer: 0
   m_Name: SpeedValue
   m_TagString: Untagged
@@ -88641,7 +88647,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 34
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -88661,6 +88667,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1043055612}
   m_CullTransparentMesh: 1
+--- !u!114 &1043055616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1043055612}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 6
 --- !u!1001 &1043146061
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -90699,8 +90718,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1064988008}
   - component: {fileID: 1064988011}
-  - component: {fileID: 1064988010}
-  - component: {fileID: 1064988009}
+  - component: {fileID: 1064988012}
   m_Layer: 0
   m_Name: SpeedPanel
   m_TagString: Untagged
@@ -90729,51 +90747,6 @@ RectTransform:
   m_AnchoredPosition: {x: -130, y: 100}
   m_SizeDelta: {x: 190, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1064988009
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1064988007}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
---- !u!114 &1064988010
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1064988007}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1064988011
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -90782,6 +90755,32 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1064988007}
   m_CullTransparentMesh: 1
+--- !u!114 &1064988012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1064988007}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 0
+  leftBottomInset: 14
+  rightTopInset: 0
+  rightBottomInset: 0
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1066522885
 Mesh:
   m_ObjectHideFlags: 0
@@ -92413,6 +92412,7 @@ GameObject:
   - component: {fileID: 1077333849}
   - component: {fileID: 1077333851}
   - component: {fileID: 1077333850}
+  - component: {fileID: 1077333852}
   m_Layer: 0
   m_Name: CurrentTimeValue
   m_TagString: Untagged
@@ -92461,7 +92461,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 34
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -92481,6 +92481,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1077333848}
   m_CullTransparentMesh: 1
+--- !u!114 &1077333852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1077333848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 6
 --- !u!43 &1077734304
 Mesh:
   m_ObjectHideFlags: 0
@@ -141275,9 +141288,9 @@ GameObject:
   - component: {fileID: 1162016833}
   - component: {fileID: 1162016837}
   - component: {fileID: 1162016836}
-  - component: {fileID: 1162016835}
   - component: {fileID: 1162016834}
   - component: {fileID: 1162016838}
+  - component: {fileID: 1162016839}
   m_Layer: 0
   m_Name: ReturnToGarageButton
   m_TagString: Untagged
@@ -141345,40 +141358,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 1162016835}
+  m_TargetGraphic: {fileID: 1162016839}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1162016835
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1162016832}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1162016836
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -141420,10 +141403,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 1162016834}
-  background: {fileID: 1162016835}
+  background: {fileID: 1162016839}
   labels:
   - {fileID: 0}
+  icons: []
   primaryAction: 0
+--- !u!114 &1162016839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1162016832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1165024873
 Mesh:
   m_ObjectHideFlags: 0
@@ -145408,9 +145418,9 @@ GameObject:
   - component: {fileID: 1198153826}
   - component: {fileID: 1198153830}
   - component: {fileID: 1198153829}
-  - component: {fileID: 1198153828}
   - component: {fileID: 1198153827}
   - component: {fileID: 1198153831}
+  - component: {fileID: 1198153832}
   m_Layer: 0
   m_Name: ReturnToMainMenuButton
   m_TagString: Untagged
@@ -145478,40 +145488,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 1198153828}
+  m_TargetGraphic: {fileID: 1198153832}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1198153828
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1198153825}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1198153829
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -145553,10 +145533,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 1198153827}
-  background: {fileID: 1198153828}
+  background: {fileID: 1198153832}
   labels:
   - {fileID: 0}
+  icons: []
   primaryAction: 0
+--- !u!114 &1198153832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1198153825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!1001 &1198292760
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -156073,9 +156080,9 @@ GameObject:
   - component: {fileID: 1329984629}
   - component: {fileID: 1329984633}
   - component: {fileID: 1329984632}
-  - component: {fileID: 1329984631}
   - component: {fileID: 1329984630}
   - component: {fileID: 1329984634}
+  - component: {fileID: 1329984635}
   m_Layer: 0
   m_Name: PitCenterButton
   m_TagString: Untagged
@@ -156143,40 +156150,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 0
-  m_TargetGraphic: {fileID: 1329984631}
+  m_TargetGraphic: {fileID: 1329984635}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1329984631
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1329984628}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.2784314, g: 0.29803923, b: 0.32941177, a: 0.7529412}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1329984632
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -156218,11 +156195,38 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 1329984630}
-  background: {fileID: 1329984631}
+  background: {fileID: 1329984635}
   labels:
   - {fileID: 0}
   - {fileID: 0}
+  icons: []
   primaryAction: 0
+--- !u!114 &1329984635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1329984628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.2784314, g: 0.29803923, b: 0.32941177, a: 0.7529412}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1334834038
 Mesh:
   m_ObjectHideFlags: 0
@@ -200710,6 +200714,11 @@ MonoBehaviour:
   baseFieldOfView: 60
   speedFovIncrease: 0
   speedForMaximumFov: 50
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  obstructionRadius: 0.3
+  obstructionPadding: 0.05
 --- !u!43 &1428511249
 Mesh:
   m_ObjectHideFlags: 0
@@ -215023,6 +215032,7 @@ GameObject:
   - component: {fileID: 1592781856}
   - component: {fileID: 1592781858}
   - component: {fileID: 1592781857}
+  - component: {fileID: 1592781859}
   m_Layer: 0
   m_Name: LapLabel
   m_TagString: Untagged
@@ -215062,7 +215072,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -215071,7 +215081,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 15
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -215091,6 +215101,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1592781855}
   m_CullTransparentMesh: 1
+--- !u!114 &1592781859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1592781855}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 5
 --- !u!1 &1593684633
 GameObject:
   m_ObjectHideFlags: 0
@@ -218316,6 +218339,7 @@ GameObject:
   - component: {fileID: 1641538945}
   - component: {fileID: 1641538944}
   - component: {fileID: 1641538943}
+  - component: {fileID: 1641538946}
   m_Layer: 0
   m_Name: Header
   m_TagString: Untagged
@@ -218375,7 +218399,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -218384,7 +218408,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 42
+    m_FontSize: 15
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -218404,6 +218428,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1641538941}
   m_CullTransparentMesh: 1
+--- !u!114 &1641538946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1641538941}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 5
 --- !u!1 &1643283075
 GameObject:
   m_ObjectHideFlags: 0
@@ -223389,9 +223426,9 @@ GameObject:
   - component: {fileID: 1686859023}
   - component: {fileID: 1686859022}
   - component: {fileID: 1686859021}
-  - component: {fileID: 1686859020}
   - component: {fileID: 1686859019}
   - component: {fileID: 1686859025}
+  - component: {fileID: 1686859026}
   m_Layer: 0
   m_Name: ContinueButton
   m_TagString: Untagged
@@ -223439,40 +223476,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 1686859020}
+  m_TargetGraphic: {fileID: 1686859026}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1686859020
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1686859018}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1686859021
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -223534,10 +223541,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 1686859019}
-  background: {fileID: 1686859020}
+  background: {fileID: 1686859026}
   labels:
   - {fileID: 1992516108}
+  icons: []
   primaryAction: 1
+--- !u!114 &1686859026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1686859018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1687815868
 Mesh:
   m_ObjectHideFlags: 0
@@ -234360,6 +234394,7 @@ GameObject:
   - component: {fileID: 1804716338}
   - component: {fileID: 1804716337}
   - component: {fileID: 1804716336}
+  - component: {fileID: 1804716339}
   m_Layer: 0
   m_Name: SpeedValue
   m_TagString: Untagged
@@ -234402,7 +234437,7 @@ MonoBehaviour:
   m_MinWidth: -1
   m_MinHeight: -1
   m_PreferredWidth: 720
-  m_PreferredHeight: 41.600002
+  m_PreferredHeight: 44
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
@@ -234428,7 +234463,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 34
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -234448,6 +234483,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1804716334}
   m_CullTransparentMesh: 1
+--- !u!114 &1804716339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1804716334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 6
 --- !u!43 &1807177252
 Mesh:
   m_ObjectHideFlags: 0
@@ -235424,6 +235472,7 @@ GameObject:
   - component: {fileID: 1826639273}
   - component: {fileID: 1826639275}
   - component: {fileID: 1826639274}
+  - component: {fileID: 1826639276}
   m_Layer: 0
   m_Name: ConfirmationTitle
   m_TagString: Untagged
@@ -235472,7 +235521,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 42
+    m_FontSize: 26
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -235492,6 +235541,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1826639272}
   m_CullTransparentMesh: 1
+--- !u!114 &1826639276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1826639272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 4
 --- !u!1001 &1831311084
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -236400,9 +236462,9 @@ GameObject:
   - component: {fileID: 1841831144}
   - component: {fileID: 1841831143}
   - component: {fileID: 1841831142}
-  - component: {fileID: 1841831141}
   - component: {fileID: 1841831140}
   - component: {fileID: 1841831146}
+  - component: {fileID: 1841831147}
   m_Layer: 0
   m_Name: ExitToMainMenuButton
   m_TagString: Untagged
@@ -236450,40 +236512,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 1841831141}
+  m_TargetGraphic: {fileID: 1841831147}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1841831141
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1841831139}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1841831142
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -236545,10 +236577,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 1841831140}
-  background: {fileID: 1841831141}
+  background: {fileID: 1841831147}
   labels:
   - {fileID: 885244493}
+  icons: []
   primaryAction: 0
+--- !u!114 &1841831147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1841831139}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1842184277
 Mesh:
   m_ObjectHideFlags: 0
@@ -237392,8 +237451,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1850052040}
   - component: {fileID: 1850052043}
-  - component: {fileID: 1850052042}
-  - component: {fileID: 1850052041}
+  - component: {fileID: 1850052044}
   m_Layer: 0
   m_Name: TimePanel
   m_TagString: Untagged
@@ -237424,51 +237482,6 @@ RectTransform:
   m_AnchoredPosition: {x: -195, y: -90}
   m_SizeDelta: {x: 310, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1850052041
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1850052039}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
---- !u!114 &1850052042
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1850052039}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1850052043
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -237477,6 +237490,32 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1850052039}
   m_CullTransparentMesh: 1
+--- !u!114 &1850052044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850052039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 0
+  leftBottomInset: 14
+  rightTopInset: 0
+  rightBottomInset: 0
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1851037646
 Mesh:
   m_ObjectHideFlags: 0
@@ -238644,6 +238683,7 @@ GameObject:
   - component: {fileID: 1868415400}
   - component: {fileID: 1868415402}
   - component: {fileID: 1868415401}
+  - component: {fileID: 1868415403}
   m_Layer: 0
   m_Name: CountdownValue
   m_TagString: Untagged
@@ -238692,11 +238732,11 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
-    m_FontStyle: 1
+    m_FontSize: 120
+    m_FontStyle: 3
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 92
+    m_MaxSize: 120
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -238712,6 +238752,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1868415399}
   m_CullTransparentMesh: 1
+--- !u!114 &1868415403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1868415399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 8
 --- !u!1 &1869008752
 GameObject:
   m_ObjectHideFlags: 0
@@ -284337,9 +284390,9 @@ GameObject:
   - component: {fileID: 1977225829}
   - component: {fileID: 1977225831}
   - component: {fileID: 1977225830}
-  - component: {fileID: 1977225828}
   - component: {fileID: 1977225827}
   - component: {fileID: 1977225833}
+  - component: {fileID: 1977225834}
   m_Layer: 0
   m_Name: RestartRaceButton
   m_TagString: Untagged
@@ -284387,40 +284440,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 1977225828}
+  m_TargetGraphic: {fileID: 1977225834}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1977225828
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1977225826}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!224 &1977225829
 RectTransform:
   m_ObjectHideFlags: 0
@@ -284482,10 +284505,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.UguiMenuButtonVisualState
   button: {fileID: 1977225827}
-  background: {fileID: 1977225828}
+  background: {fileID: 1977225834}
   labels:
   - {fileID: 1547186782}
+  icons: []
   primaryAction: 0
+--- !u!114 &1977225834
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1977225826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 10
+  leftBottomInset: 0
+  rightTopInset: 0
+  rightBottomInset: 10
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1977890924
 Mesh:
   m_ObjectHideFlags: 0
@@ -284852,9 +284902,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1980383305}
   - component: {fileID: 1980383309}
-  - component: {fileID: 1980383308}
   - component: {fileID: 1980383307}
   - component: {fileID: 1980383306}
+  - component: {fileID: 1980383310}
   m_Layer: 0
   m_Name: VehicleTelemetryPanel
   m_TagString: Untagged
@@ -284924,36 +284974,6 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!114 &1980383308
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1980383304}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1980383309
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -284962,6 +284982,32 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1980383304}
   m_CullTransparentMesh: 1
+--- !u!114 &1980383310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1980383304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2733723989a8b8e41b39029cd4ceadfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.AngledPanelGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  leftTopInset: 0
+  leftBottomInset: 14
+  rightTopInset: 0
+  rightBottomInset: 0
+  borderThickness: 1.5
+  borderColor: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
 --- !u!43 &1981040911
 Mesh:
   m_ObjectHideFlags: 0
@@ -286385,6 +286431,7 @@ GameObject:
   - component: {fileID: 1997374518}
   - component: {fileID: 1997374517}
   - component: {fileID: 1997374516}
+  - component: {fileID: 1997374519}
   m_Layer: 0
   m_Name: SpeedLabel
   m_TagString: Untagged
@@ -286444,7 +286491,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  m_Color: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -286453,7 +286500,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 22
+    m_FontSize: 15
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -286473,6 +286520,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1997374514}
   m_CullTransparentMesh: 1
+--- !u!114 &1997374519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1997374514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbfab518af91fb4382a4775758d7b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiTextRole
+  role: 5
 --- !u!1 &1998637113
 GameObject:
   m_ObjectHideFlags: 0

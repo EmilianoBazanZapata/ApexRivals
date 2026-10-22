@@ -191,6 +191,26 @@ namespace ApexRivals.Tests.EditMode.UI
         }
 
         [Test]
+        public void Garage_EquipNextAndPreviousCycleSelectableVehiclesAndWrap()
+        {
+            var context = CreateUiContext(vehicleCommitted: true);
+            var presenter = new GaragePresenter(new FakeGarageView(), context.Garage, context.VehicleSelection, context.SceneFlow);
+            presenter.Present();
+            Assert.That(context.VehicleSelection.CurrentSelectedVehicleId, Is.EqualTo("vanguard"));
+
+            presenter.EquipNextVehicle();
+            Assert.That(context.VehicleSelection.CurrentSelectedVehicleId, Is.EqualTo("striker"));
+            Assert.That(context.VehicleSelection.HasCommittedVehicleSelection, Is.True);
+
+            presenter.EquipNextVehicle();
+            Assert.That(context.VehicleSelection.CurrentSelectedVehicleId, Is.EqualTo("vanguard"), "Next wraps past the last selectable vehicle.");
+
+            presenter.EquipPreviousVehicle();
+            Assert.That(context.VehicleSelection.CurrentSelectedVehicleId, Is.EqualTo("striker"), "Previous wraps before the first selectable vehicle.");
+            Assert.That(presenter.Current.SelectedVehicleName, Is.EqualTo("striker"));
+        }
+
+        [Test]
         public void RaceHud_MapsLapPositionCountdownAndRaceTime()
         {
             var source = new FakeRaceHudSource();

@@ -29,5 +29,13 @@ namespace ApexRivals.UI.Runtime
         public const int FieldLabelSize = 16;
         public const int ValueSize = 22;
         public const int SecondaryTextSize = 15;
+        public const int MenuButtonTitleSize = 34;
+        public const int MenuButtonSubtitleSize = 17;
+        public const int LogoPrimarySize = 104;
+        public const int LogoAccentSize = 44;
+        public const int HudValueSize = 34;
+        public const int CountdownSize = 120;
+        public const int StatTextSize = 18;
+        public const float PanelBorderThickness = 1.5f;
     }
 }

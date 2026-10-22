@@ -10,10 +10,12 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Button button;
         [SerializeField] private Graphic background;
         [SerializeField] private Text[] labels;
+        [SerializeField, Tooltip("Non-text graphics (icons) tinted like the primary label.")] private Graphic[] icons;
         [SerializeField, Tooltip("Accents the label only. The red fill is reserved for the focused control.")] private bool primaryAction;
 
         private bool _pressed;
         private bool _isCurrent;
+        private bool[] _secondaryLabels;
 
         public bool PrimaryAction
         {
@@ -138,20 +140,52 @@ namespace ApexRivals.UI.Runtime
                 background.color = backgroundColor;
             }
 
-            if (labels == null)
+            if (background is AngledPanelGraphic angledBackground && angledBackground.BorderThickness > 0f)
+            {
+                // The focus fill already separates the control; the border only outlines resting panels.
+                angledBackground.BorderColor = interactable && !focused ? ApexUiVisualStyle.PanelOutline : Color.clear;
+            }
+
+            var restingSecondary = interactable && !focused;
+            if (labels != null)
+            {
+                EnsureSecondaryLabelCache();
+                for (var index = 0; index < labels.Length; index++)
+                {
+                    var color = restingSecondary && _secondaryLabels[index] ? ApexUiVisualStyle.SecondaryText : textColor;
+                    SetColor(labels[index], color);
+                }
+            }
+
+            if (icons != null)
+            {
+                for (var index = 0; index < icons.Length; index++)
+                {
+                    SetColor(icons[index], textColor);
+                }
+            }
+        }
+
+        private void EnsureSecondaryLabelCache()
+        {
+            if (_secondaryLabels != null && _secondaryLabels.Length == labels.Length)
             {
                 return;
             }
 
+            _secondaryLabels = new bool[labels.Length];
             for (var index = 0; index < labels.Length; index++)
             {
-                if (labels[index] != null)
-                {
-                    if (labels[index].color != textColor)
-                    {
-                        labels[index].color = textColor;
-                    }
-                }
+                var role = labels[index] != null ? labels[index].GetComponent<ApexUiTextRole>() : null;
+                _secondaryLabels[index] = role != null && role.UsesSecondaryRestingColor;
+            }
+        }
+
+        private static void SetColor(Graphic graphic, Color color)
+        {
+            if (graphic != null && graphic.color != color)
+            {
+                graphic.color = color;
             }
         }
 

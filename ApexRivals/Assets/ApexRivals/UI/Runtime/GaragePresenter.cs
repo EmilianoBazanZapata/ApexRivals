@@ -107,6 +107,18 @@ namespace ApexRivals.UI.Runtime
             ConfirmVehicle();
         }
 
+        /// <summary>Equips the previous selectable vehicle, wrapping around and skipping locked ones.</summary>
+        public void EquipPreviousVehicle()
+        {
+            EquipVehicleByOffset(-1);
+        }
+
+        /// <summary>Equips the next selectable vehicle, wrapping around and skipping locked ones.</summary>
+        public void EquipNextVehicle()
+        {
+            EquipVehicleByOffset(1);
+        }
+
         public void SelectPreviousVehicle()
         {
             SelectVehicleByOffset(-1);
@@ -272,6 +284,40 @@ namespace ApexRivals.UI.Runtime
             }
 
             SelectVehicle(Current.Vehicles[nextIndex].VehicleId);
+        }
+
+        private void EquipVehicleByOffset(int offset)
+        {
+            if (!CanRender || _operationActive || Current.Vehicles == null || Current.Vehicles.Count == 0)
+            {
+                return;
+            }
+
+            var vehicles = Current.Vehicles;
+            var startIndex = -1;
+            for (var index = 0; index < vehicles.Count; index++)
+            {
+                if (vehicles[index].IsSelected)
+                {
+                    startIndex = index;
+                    break;
+                }
+            }
+
+            if (startIndex < 0)
+            {
+                startIndex = Current.CandidateVehicleIndex >= 0 ? Current.CandidateVehicleIndex : (offset > 0 ? -1 : 0);
+            }
+
+            for (var step = 1; step <= vehicles.Count; step++)
+            {
+                var index = ((startIndex + offset * step) % vehicles.Count + vehicles.Count) % vehicles.Count;
+                if (vehicles[index].CanSelect && !vehicles[index].IsSelected)
+                {
+                    EquipVehicle(vehicles[index].VehicleId);
+                    return;
+                }
+            }
         }
 
         private static GarageUpgradeViewModel MapUpgrade(GarageUpgradeState upgrade)

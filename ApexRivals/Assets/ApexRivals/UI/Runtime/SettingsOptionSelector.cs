@@ -16,6 +16,8 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Text previousArrowText;
         [SerializeField] private Text valueText;
         [SerializeField] private Text nextArrowText;
+        [SerializeField, Tooltip("Optional vector arrow drawn instead of the previous arrow glyph.")] private Graphic previousArrowIcon;
+        [SerializeField, Tooltip("Optional vector arrow drawn instead of the next arrow glyph.")] private Graphic nextArrowIcon;
         [SerializeField] private RectTransform previousHitTarget;
         [SerializeField] private RectTransform nextHitTarget;
         [SerializeField] private Graphic background;
@@ -221,19 +223,27 @@ namespace ApexRivals.UI.Runtime
 
             var textColor = !enabledRow ? ApexUiVisualStyle.DisabledText : ApexUiVisualStyle.PrimaryText;
             SetGraphicColor(background, !enabledRow ? ApexUiVisualStyle.Disabled : highlighted ? ApexUiVisualStyle.PrimaryRed : ApexUiVisualStyle.PanelElevated);
+            if (background is AngledPanelGraphic angledBackground && angledBackground.BorderThickness > 0f)
+            {
+                angledBackground.BorderColor = enabledRow && !highlighted ? ApexUiVisualStyle.PanelOutline : Color.clear;
+            }
+
             SetTextColor(labelText, ApexUiVisualStyle.SecondaryText);
             SetTextColor(valueText, textColor);
             SetTextColor(previousArrowText, textColor);
             SetTextColor(nextArrowText, textColor);
+            SetGraphicColor(previousArrowIcon, textColor);
+            SetGraphicColor(nextArrowIcon, textColor);
 
+            // The arrow texts stay as hit targets; an icon replaces their glyph.
             if (previousArrowText != null)
             {
-                previousArrowText.text = "<";
+                previousArrowText.text = previousArrowIcon != null ? string.Empty : "<";
             }
 
             if (nextArrowText != null)
             {
-                nextArrowText.text = ">";
+                nextArrowText.text = nextArrowIcon != null ? string.Empty : ">";
             }
         }
 

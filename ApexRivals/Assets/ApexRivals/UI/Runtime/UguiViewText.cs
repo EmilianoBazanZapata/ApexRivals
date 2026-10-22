@@ -62,6 +62,26 @@ namespace ApexRivals.UI.Runtime
                 stats.DriftHandling);
         }
 
+        public const string StatLabels = "Acceleration\nTop Speed\nSteering\nGrip";
+
+        /// <summary>Values column matching <see cref="StatLabels"/> line by line.</summary>
+        public static string FormatStatValues(VehiclePerformanceStats stats)
+        {
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "{0:0.0}\n{1:0.0}\n{2:0.0}\n{3:0.00} / {4:0.00}",
+                stats.Acceleration,
+                stats.TopSpeed,
+                stats.Steering,
+                stats.Handling,
+                stats.DriftHandling);
+        }
+
+        public static string FormatVehicleCounter(int index, int count)
+        {
+            return count <= 0 ? "- / -" : string.Format(CultureInfo.InvariantCulture, "{0} / {1}", index + 1, count);
+        }
+
         public static string FormatTime(float seconds)
         {
             var minutes = (int)(seconds / 60f);

@@ -1,12 +1,15 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ApexRivals.UI.Runtime
 {
+    /// <summary>
+    /// Single-screen garage: equipped vehicle selector, stats, both upgrade cards and race/back actions.
+    /// Previous/next (arrows, Q/E, LB/RB) equip the adjacent selectable vehicle directly.
+    /// </summary>
     [DisallowMultipleComponent]
-    public sealed class GarageUguiView : MonoBehaviour, IGarageView, ICancelHandler
+    public sealed class GarageUguiView : MonoBehaviour, IGarageView, IUiVehicleSelectionNavigation, ICancelHandler
     {
         [SerializeField] private Text currencyText;
         [SerializeField] private Text vehicleNameText;
@@ -25,12 +28,16 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Button handlingUpgradeButton;
         [SerializeField] private Text handlingUpgradeButtonLabel;
 
-        [SerializeField] private Text statsText;
+        [SerializeField, Tooltip("Single-column fallback used when the label/value columns are not assigned.")] private Text statsText;
+        [SerializeField] private Text statsLabelsText;
+        [SerializeField] private Text statsValuesText;
+
+        [SerializeField] private Button previousVehicleButton;
+        [SerializeField] private Button nextVehicleButton;
+        [SerializeField] private Text vehicleCounterText;
 
         [SerializeField] private Button startRaceButton;
         [SerializeField] private Button returnToMainMenuButton;
-        [SerializeField] private Transform vehicleListRoot;
-        [SerializeField] private GarageSectionTabController sectionTabs;
         [SerializeField] private GarageVehiclePreviewController vehiclePreview;
 
         [SerializeField] private Text statusText;
@@ -41,9 +48,6 @@ namespace ApexRivals.UI.Runtime
 
         private GaragePresenter _presenter;
         private bool _subscribed;
-        private readonly List<Button> _vehicleButtons = new List<Button>();
-        private Button _preferredVehicleButton;
-        private bool _previewingVehicle;
 
         public void Bind(GaragePresenter presenter)
         {
@@ -61,12 +65,7 @@ namespace ApexRivals.UI.Runtime
 
             UguiViewText.Set(currencyText, UguiViewText.FormatCurrency(viewModel.Currency));
             UguiViewText.Set(vehicleNameText, string.IsNullOrEmpty(viewModel.SelectedVehicleName) ? "NO VEHICLE SELECTED" : viewModel.SelectedVehicleName);
-            RenderVehicleOptions(viewModel);
-            ResolveSectionTabs();
-            if (sectionTabs != null)
-            {
-                sectionTabs.SetVehicleSelectionState(viewModel.HasValidSelectedVehicle);
-            }
+            RenderVehicleSelector(viewModel);
 
             RenderUpgrade(
                 viewModel.Engine,
@@ -90,17 +89,24 @@ namespace ApexRivals.UI.Runtime
                 UguiViewText.FormatHandlingBenefit(viewModel.Handling.BenefitModifier),
                 viewModel.OperationActive || !viewModel.HasValidSelectedVehicle);
 
-            // Stats follow the previewed vehicle so browsing the list shows what each car offers.
-            var previewStats = viewModel.Vehicles != null
+            var stats = viewModel.Vehicles != null
                 && viewModel.CandidateVehicleIndex >= 0
                 && viewModel.CandidateVehicleIndex < viewModel.Vehicles.Count
                     ? viewModel.Vehicles[viewModel.CandidateVehicleIndex].EffectiveStats
                     : viewModel.EffectiveStats;
-            UguiViewText.Set(statsText, UguiViewText.FormatStats(previewStats));
+            if (statsValuesText != null)
+            {
+                UguiViewText.Set(statsLabelsText, UguiViewText.StatLabels);
+                UguiViewText.Set(statsValuesText, UguiViewText.FormatStatValues(stats));
+            }
+            else
+            {
+                UguiViewText.Set(statsText, UguiViewText.FormatStats(stats));
+            }
 
-            // Equipping reuses the Succeeded status; tell it apart from an upgrade purchase by its key.
+            // The selector already shows the equipped vehicle, so only purchase results need a banner.
             var feedback = viewModel.MessageKey == VehicleEquippedMessageKey
-                ? "VEHICLE EQUIPPED"
+                ? string.Empty
                 : UguiViewText.FormatPurchaseStatus(viewModel.PurchaseStatus);
             UguiViewText.Set(statusText, feedback);
             if (feedbackRoot != null)
@@ -111,287 +117,83 @@ namespace ApexRivals.UI.Runtime
             SetButton(startRaceButton, !viewModel.OperationActive && viewModel.HasValidSelectedVehicle);
             SetButton(returnToMainMenuButton, !viewModel.OperationActive);
             ConfigureNavigation();
+            EnsureFocus();
+        }
+
+        public void SelectPreviousVehicle()
+        {
+            _presenter?.EquipPreviousVehicle();
+        }
+
+        public void SelectNextVehicle()
+        {
+            _presenter?.EquipNextVehicle();
         }
 
         /// <summary>
-        /// Explicit arrow/stick graph, rebuilt whenever interactability or the section changes:
-        /// tabs on top, section content in the middle (vehicle list, or Engine ⇄ Handling cards),
-        /// Back ⇄ Start Race at the bottom. Unusable targets are skipped (e.g. cards you cannot afford,
-        /// so Back/Start Race go straight up to the tab).
+        /// Explicit arrow/stick graph: vehicle arrows on top, Engine ⇄ Handling in the middle and
+        /// Back ⇄ Start Race at the bottom. Unusable targets are skipped (e.g. upgrades you cannot afford,
+        /// so Back/Start Race go straight up to the vehicle arrows).
         /// </summary>
         private void ConfigureNavigation()
         {
-            ResolveSectionTabs();
-            var vehiclesTab = sectionTabs != null ? sectionTabs.VehiclesTabButton : null;
-            var upgradesTab = sectionTabs != null ? sectionTabs.UpgradesTabButton : null;
-            var showingUpgrades = sectionTabs != null && sectionTabs.CurrentSection == GarageSection.Upgrades;
-            var currentTab = showingUpgrades
-                ? UiNavigation.First(upgradesTab, vehiclesTab)
-                : UiNavigation.First(vehiclesTab, upgradesTab);
+            var previous = previousVehicleButton;
+            var next = nextVehicleButton;
+            var engine = engineUpgradeButton;
+            var handling = handlingUpgradeButton;
             var back = returnToMainMenuButton;
             var start = startRaceButton;
 
-            Selectable belowTabs;
-            Selectable aboveBack;
-            Selectable aboveStart;
-
-            if (showingUpgrades)
-            {
-                var engine = engineUpgradeButton;
-                var handling = handlingUpgradeButton;
-                UiNavigation.Set(engine, currentTab, UiNavigation.First(back, start), null, UiNavigation.First(handling));
-                UiNavigation.Set(handling, currentTab, UiNavigation.First(start, back), UiNavigation.First(engine), null);
-                belowTabs = UiNavigation.First(engine, handling, start, back);
-                aboveBack = UiNavigation.First(engine, handling, currentTab);
-                aboveStart = UiNavigation.First(handling, engine, currentTab);
-            }
-            else
-            {
-                var vehicles = new List<Selectable>(_vehicleButtons.Count);
-                for (var index = 0; index < _vehicleButtons.Count; index++)
-                {
-                    if (UiNavigation.IsNavigable(_vehicleButtons[index]))
-                    {
-                        vehicles.Add(_vehicleButtons[index]);
-                    }
-                }
-
-                var belowList = UiNavigation.First(start, back);
-                for (var index = 0; index < vehicles.Count; index++)
-                {
-                    var up = index > 0 ? vehicles[index - 1] : currentTab;
-                    var down = index < vehicles.Count - 1 ? vehicles[index + 1] : belowList;
-                    UiNavigation.Set(vehicles[index], up, down, null, null);
-                }
-
-                var firstVehicle = vehicles.Count > 0 ? vehicles[0] : null;
-                var lastVehicle = vehicles.Count > 0 ? vehicles[vehicles.Count - 1] : null;
-                belowTabs = UiNavigation.First(_preferredVehicleButton, firstVehicle, start, back);
-                aboveBack = UiNavigation.First(lastVehicle, currentTab);
-                aboveStart = aboveBack;
-            }
-
-            UiNavigation.Set(vehiclesTab, null, belowTabs, null, UiNavigation.First(upgradesTab));
-            UiNavigation.Set(upgradesTab, null, belowTabs, UiNavigation.First(vehiclesTab), null);
-            UiNavigation.Set(back, aboveBack, null, null, UiNavigation.First(start));
-            UiNavigation.Set(start, aboveStart, null, UiNavigation.First(back), null);
+            UiNavigation.Set(previous, null, UiNavigation.First(engine, handling, back, start), null, UiNavigation.First(next));
+            UiNavigation.Set(next, null, UiNavigation.First(handling, engine, start, back), UiNavigation.First(previous), null);
+            UiNavigation.Set(engine, UiNavigation.First(previous, next), UiNavigation.First(back, start), null, UiNavigation.First(handling));
+            UiNavigation.Set(handling, UiNavigation.First(next, previous), UiNavigation.First(start, back), UiNavigation.First(engine), null);
+            UiNavigation.Set(back, UiNavigation.First(engine, handling, previous, next), null, null, UiNavigation.First(start));
+            UiNavigation.Set(start, UiNavigation.First(handling, engine, next, previous), null, UiNavigation.First(back), null);
         }
 
-        private void OnSectionChanged(GarageSection section)
+        /// <summary>Gives the screen a usable focus on entry and when the focused control becomes unusable.</summary>
+        private void EnsureFocus()
         {
-            ConfigureNavigation();
-        }
-
-        private void LateUpdate()
-        {
-            // Once focus leaves the vehicle list, fall back to the equipped car so the 3D preview,
-            // stats and Start Race never disagree. Checked here because Deselect fires before the
-            // new selection is known.
-            if (!_previewingVehicle || IsVehicleButton(UiFocus.CurrentSelection))
+            if (UiFocus.IsUsable(UiFocus.SelectableOf(UiFocus.CurrentSelection)))
             {
                 return;
             }
 
-            _previewingVehicle = false;
-            _presenter?.CancelVehiclePreview();
+            UiFocus.Request(UiNavigation.First(startRaceButton, nextVehicleButton, returnToMainMenuButton));
         }
 
-        private bool IsVehicleButton(GameObject candidate)
+        private void RenderVehicleSelector(GarageViewModel viewModel)
         {
-            if (candidate == null)
+            var vehicles = viewModel.Vehicles;
+            var count = vehicles != null ? vehicles.Count : 0;
+            var equippedIndex = -1;
+            var selectableCount = 0;
+            for (var index = 0; index < count; index++)
             {
-                return false;
-            }
-
-            for (var index = 0; index < _vehicleButtons.Count; index++)
-            {
-                if (_vehicleButtons[index] != null && _vehicleButtons[index].gameObject == candidate)
+                if (vehicles[index].IsSelected)
                 {
-                    return true;
+                    equippedIndex = index;
+                }
+
+                if (vehicles[index].CanSelect)
+                {
+                    selectableCount++;
                 }
             }
 
-            return false;
-        }
+            var shownIndex = equippedIndex >= 0 ? equippedIndex : viewModel.CandidateVehicleIndex;
+            UguiViewText.Set(vehicleCounterText, UguiViewText.FormatVehicleCounter(shownIndex, count));
 
-        private void RenderVehicleOptions(GarageViewModel viewModel)
-        {
-            EnsureVehicleButtons(viewModel.Vehicles);
+            // Cycling needs another vehicle to move to.
+            var canCycle = !viewModel.OperationActive && (selectableCount > 1 || (selectableCount == 1 && equippedIndex < 0));
+            SetButton(previousVehicleButton, canCycle);
+            SetButton(nextVehicleButton, canCycle);
 
-            if (vehiclePreview != null && viewModel.CandidateVehicleIndex >= 0 && viewModel.Vehicles != null
-                && viewModel.CandidateVehicleIndex < viewModel.Vehicles.Count)
+            if (vehiclePreview != null && vehicles != null && viewModel.CandidateVehicleIndex >= 0 && viewModel.CandidateVehicleIndex < count)
             {
-                vehiclePreview.ShowVehicle(viewModel.Vehicles[viewModel.CandidateVehicleIndex].VehicleId);
+                vehiclePreview.ShowVehicle(vehicles[viewModel.CandidateVehicleIndex].VehicleId);
             }
-            for (var index = 0; index < _vehicleButtons.Count; index++)
-            {
-                var button = _vehicleButtons[index];
-                if (button == null)
-                {
-                    continue;
-                }
-
-                var hasVehicle = viewModel.Vehicles != null && index < viewModel.Vehicles.Count;
-                button.gameObject.SetActive(hasVehicle);
-                if (!hasVehicle)
-                {
-                    continue;
-                }
-
-                var vehicle = viewModel.Vehicles[index];
-                button.interactable = vehicle.CanSelect && !viewModel.OperationActive;
-                var statusLabel = !vehicle.CanSelect ? "LOCKED" : vehicle.IsSelected ? "EQUIPPED" : "EQUIP";
-                UguiViewText.Set(button.GetComponentInChildren<Text>(true), $"{vehicle.DisplayName.ToUpperInvariant()}\n{statusLabel}");
-                var visualState = button.GetComponent<UguiMenuButtonVisualState>();
-                if (visualState != null)
-                {
-                    visualState.IsCurrent = vehicle.IsSelected;
-                }
-            }
-
-            SetVehicleTabInitialSelection(viewModel);
-        }
-
-        private void SetVehicleTabInitialSelection(GarageViewModel viewModel)
-        {
-            ResolveSectionTabs();
-            if (sectionTabs == null || viewModel.Vehicles == null)
-            {
-                return;
-            }
-
-            Button fallback = null;
-            for (var index = 0; index < _vehicleButtons.Count && index < viewModel.Vehicles.Count; index++)
-            {
-                var button = _vehicleButtons[index];
-                if (button == null || !button.gameObject.activeInHierarchy || !button.interactable)
-                {
-                    continue;
-                }
-
-                fallback ??= button;
-                if (viewModel.Vehicles[index].IsSelected)
-                {
-                    _preferredVehicleButton = button;
-                    sectionTabs.SetVehiclesInitialSelection(button);
-                    return;
-                }
-            }
-
-            if (fallback != null)
-            {
-                _preferredVehicleButton = fallback;
-                sectionTabs.SetVehiclesInitialSelection(fallback);
-            }
-        }
-
-        private void EnsureVehicleButtons(IReadOnlyList<VehicleSelectionItemViewModel> vehicles)
-        {
-            if (vehicles == null || vehicles.Count == 0)
-            {
-                return;
-            }
-
-            ResolveVehicleListRoot();
-            if (vehicleListRoot == null)
-            {
-                return;
-            }
-
-            while (_vehicleButtons.Count < vehicles.Count)
-            {
-                var index = _vehicleButtons.Count;
-                var button = CreateVehicleButton(vehicles[index].DisplayName);
-                if (button == null)
-                {
-                    return;
-                }
-
-                var vehicleId = vehicles[index].VehicleId;
-                // Focus (arrows, stick, hover) previews; click / Submit equips.
-                button.onClick.AddListener(() => _presenter?.EquipVehicle(vehicleId));
-                var trigger = button.gameObject.GetComponent<EventTrigger>();
-                if (trigger == null)
-                {
-                    trigger = button.gameObject.AddComponent<EventTrigger>();
-                }
-
-                var entry = new EventTrigger.Entry { eventID = EventTriggerType.Select };
-                entry.callback.AddListener(_ =>
-                {
-                    _previewingVehicle = true;
-                    _presenter?.SelectVehicle(vehicleId);
-                });
-                trigger.triggers.Add(entry);
-                _vehicleButtons.Add(button);
-            }
-        }
-
-        private Button CreateVehicleButton(string label)
-        {
-            var template = startRaceButton != null ? startRaceButton.gameObject : returnToMainMenuButton != null ? returnToMainMenuButton.gameObject : null;
-            if (template == null)
-            {
-                return null;
-            }
-
-            var instance = Instantiate(template, vehicleListRoot);
-            instance.name = $"{label}VehicleButton";
-            var button = instance.GetComponent<Button>();
-            button.onClick.RemoveAllListeners();
-            var visualState = instance.GetComponent<UguiMenuButtonVisualState>();
-            if (visualState != null)
-            {
-                // The template is StartRace, a primary action; list entries must not inherit its accent.
-                visualState.PrimaryAction = false;
-                visualState.IsCurrent = false;
-            }
-
-            UguiViewText.Set(instance.GetComponentInChildren<Text>(true), label);
-            return button;
-        }
-
-        private void ResolveVehicleListRoot()
-        {
-            if (vehicleListRoot != null)
-            {
-                return;
-            }
-
-            var panel = FindChild(transform.root, "VehiclePanel");
-            vehicleListRoot = panel != null ? panel : transform;
-        }
-
-        private void ResolveSectionTabs()
-        {
-            if (sectionTabs == null)
-            {
-                sectionTabs = transform.root.GetComponentInChildren<GarageSectionTabController>(true);
-            }
-        }
-
-        private static Transform FindChild(Transform parent, string childName)
-        {
-            if (parent == null)
-            {
-                return null;
-            }
-
-            if (parent.name == childName)
-            {
-                return parent;
-            }
-
-            for (var index = 0; index < parent.childCount; index++)
-            {
-                var result = FindChild(parent.GetChild(index), childName);
-                if (result != null)
-                {
-                    return result;
-                }
-            }
-
-            return null;
         }
 
         private void RenderUpgrade(
@@ -446,11 +248,6 @@ namespace ApexRivals.UI.Runtime
         private void OnDisable()
         {
             Unsubscribe();
-            if (_previewingVehicle)
-            {
-                _previewingVehicle = false;
-                _presenter?.CancelVehiclePreview();
-            }
         }
 
         private void Subscribe()
@@ -480,10 +277,14 @@ namespace ApexRivals.UI.Runtime
                 returnToMainMenuButton.onClick.AddListener(OnReturnToMainMenuClicked);
             }
 
-            ResolveSectionTabs();
-            if (sectionTabs != null)
+            if (previousVehicleButton != null)
             {
-                sectionTabs.SectionChanged += OnSectionChanged;
+                previousVehicleButton.onClick.AddListener(SelectPreviousVehicle);
+            }
+
+            if (nextVehicleButton != null)
+            {
+                nextVehicleButton.onClick.AddListener(SelectNextVehicle);
             }
 
             _subscribed = true;
@@ -516,9 +317,14 @@ namespace ApexRivals.UI.Runtime
                 returnToMainMenuButton.onClick.RemoveListener(OnReturnToMainMenuClicked);
             }
 
-            if (sectionTabs != null)
+            if (previousVehicleButton != null)
             {
-                sectionTabs.SectionChanged -= OnSectionChanged;
+                previousVehicleButton.onClick.RemoveListener(SelectPreviousVehicle);
+            }
+
+            if (nextVehicleButton != null)
+            {
+                nextVehicleButton.onClick.RemoveListener(SelectNextVehicle);
             }
 
             _subscribed = false;
