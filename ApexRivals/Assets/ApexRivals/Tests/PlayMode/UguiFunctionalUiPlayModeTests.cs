@@ -498,12 +498,18 @@ namespace ApexRivals.Tests.PlayMode
             Set(view, "cancelButton", cancel);
             Set(view, "applyButton", apply);
 
+            var navigation = resolution.navigation;
+            navigation.mode = Navigation.Mode.Vertical;
+            navigation.wrapAround = true;
+            resolution.navigation = navigation;
+
             root.SetActive(true);
             yield return null;
 
             Assert.That(displayTab.navigation.selectOnDown, Is.EqualTo(resolution));
             Assert.That(resolution.navigation.selectOnUp, Is.EqualTo(displayTab));
             Assert.That(resolution.navigation.selectOnDown, Is.EqualTo(fullScreen));
+            Assert.That(resolution.navigation.wrapAround, Is.True);
             Assert.That(restore.navigation.selectOnUp, Is.EqualTo(fullScreen));
         }
 

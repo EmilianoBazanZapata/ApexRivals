@@ -65,7 +65,7 @@ namespace ApexRivals.Bootstrap.Runtime
                 saveCheckpoint,
                 navigation,
                 context.Navigation.RaceSession,
-                new UnityTimeScaleController(),
+                context.PauseCoordinator.CreateSession(),
                 context.RaceProgressionService);
 
             LastInstallResult = Session.Prepare();

@@ -1,6 +1,7 @@
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.SaveSystem.Runtime;
+using ApexRivals.RaceSession.Runtime;
 using ApexRivals.SceneFlow.Runtime;
 using ApexRivals.Settings.Runtime;
 using ApexRivals.VehicleSelection.Runtime;
@@ -19,7 +20,7 @@ namespace ApexRivals.Bootstrap.Runtime
             GarageService garageService = null,
             SettingsService settingsService = null,
             RaceProgressionService raceProgressionService = null,
-            PlayerProfileResetService profileResetService = null)
+            RacePauseCoordinator pauseCoordinator = null)
         {
             Navigation = navigation;
             ProgressionState = progressionState;
@@ -30,7 +31,7 @@ namespace ApexRivals.Bootstrap.Runtime
             VehicleSelectionService = vehicleSelectionService;
             GarageService = garageService;
             RaceProgressionService = raceProgressionService;
-            ProfileResetService = profileResetService;
+            PauseCoordinator = pauseCoordinator ?? new RacePauseCoordinator(new UnityTimeScaleController(), navigation);
         }
 
         public SceneFlowService Navigation { get; }
@@ -42,6 +43,6 @@ namespace ApexRivals.Bootstrap.Runtime
         public VehicleSelectionService VehicleSelectionService { get; }
         public GarageService GarageService { get; }
         public RaceProgressionService RaceProgressionService { get; }
-        public PlayerProfileResetService ProfileResetService { get; }
+        public RacePauseCoordinator PauseCoordinator { get; }
     }
 }

@@ -94,6 +94,17 @@ namespace ApexRivals.SceneFlow.Runtime
             }
 
             RaceSession.SetResult(result);
+            return ShowStoredRaceResults();
+        }
+
+        // Session completion already owns the retained result; navigation only presents it.
+        internal bool ShowStoredRaceResults()
+        {
+            if (State != ApplicationState.Race)
+            {
+                return false;
+            }
+
             RacePresentationState = RacePresentationState.Results;
             return true;
         }

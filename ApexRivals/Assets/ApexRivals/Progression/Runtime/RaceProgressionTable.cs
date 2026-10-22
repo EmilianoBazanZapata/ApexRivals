@@ -5,18 +5,24 @@ namespace ApexRivals.Progression.Runtime
 {
     public sealed class RaceProgressionTable
     {
-        private readonly RaceProgressionTier[] _tiers;
+        private readonly IReadOnlyList<RaceProgressionTier> _tiers;
+        private readonly RaceProgressionConfigurationResult _validation;
 
         public RaceProgressionTable(IReadOnlyList<RaceProgressionTier> tiers)
         {
-            _tiers = tiers != null ? Copy(tiers) : Array.Empty<RaceProgressionTier>();
+            _tiers = Array.AsReadOnly(tiers != null ? Copy(tiers) : Array.Empty<RaceProgressionTier>());
+            // Tiers contain only readonly values and strings. Unity configuration
+            // references remain live-validated by RaceProgressionService.
+            _validation = ValidateConfiguration();
         }
 
         public IReadOnlyList<RaceProgressionTier> Tiers => _tiers;
 
-        public RaceProgressionConfigurationResult Validate()
+        public RaceProgressionConfigurationResult Validate() => _validation;
+
+        private RaceProgressionConfigurationResult ValidateConfiguration()
         {
-            if (_tiers.Length == 0)
+            if (_tiers.Count == 0)
             {
                 return RaceProgressionConfigurationResult.Failure(RaceProgressionConfigurationStatus.MissingConfiguration, "Progression tiers are missing.");
             }
@@ -24,7 +30,7 @@ namespace ApexRivals.Progression.Runtime
             var ids = new HashSet<string>(StringComparer.Ordinal);
             var previousThreshold = -1;
             var hasInitialTier = false;
-            for (var index = 0; index < _tiers.Length; index++)
+            for (var index = 0; index < _tiers.Count; index++)
             {
                 var tier = _tiers[index];
                 if (string.IsNullOrWhiteSpace(tier.TierId))

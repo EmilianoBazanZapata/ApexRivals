@@ -8,7 +8,7 @@ namespace ApexRivals.UI.Runtime
 {
     public sealed class ResultsPresenter : IDisposable
     {
-        private readonly IResultsView _view;
+        private IResultsView _view;
         private readonly RaceSessionCoordinator _raceSession;
         private readonly SceneFlowService _sceneFlow;
         private bool _transitioning;
@@ -38,7 +38,7 @@ namespace ApexRivals.UI.Runtime
 
         public Task Retry()
         {
-            if (_disposed)
+            if (!CanRender)
             {
                 return Task.CompletedTask;
             }
@@ -48,7 +48,7 @@ namespace ApexRivals.UI.Runtime
 
         public Task ReturnToGarage()
         {
-            if (_disposed)
+            if (!CanRender)
             {
                 return Task.CompletedTask;
             }
@@ -58,7 +58,7 @@ namespace ApexRivals.UI.Runtime
 
         public Task ReturnToMainMenu()
         {
-            if (_disposed)
+            if (!CanRender)
             {
                 return Task.CompletedTask;
             }
@@ -69,11 +69,12 @@ namespace ApexRivals.UI.Runtime
         public void Dispose()
         {
             _disposed = true;
+            _view = null;
         }
 
         private async Task RunOnce(Func<Task<RaceSessionCommandResult>> command, PresentationFailure failure, string failureKey)
         {
-            if (_disposed || _transitioning)
+            if (!CanRender || _transitioning)
             {
                 return;
             }
@@ -83,7 +84,7 @@ namespace ApexRivals.UI.Runtime
             _messageKey = string.Empty;
             Present();
             var result = await command();
-            if (_disposed)
+            if (!CanRender)
             {
                 return;
             }
@@ -99,7 +100,7 @@ namespace ApexRivals.UI.Runtime
             Present();
         }
 
-        private bool CanRender => !_disposed
+        private bool CanRender => !_disposed && _view != null
             && (_view is not UnityObject unityView || unityView != null);
 
         private ResultsViewModel CreateModel()

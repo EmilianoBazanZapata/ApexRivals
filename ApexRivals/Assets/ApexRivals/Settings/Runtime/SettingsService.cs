@@ -84,8 +84,9 @@ namespace ApexRivals.Settings.Runtime
 
         public SettingsOperationResult Apply()
         {
-            if (!SettingsDisplayCatalog.ContainsResolution(_display.SupportedResolutions, Draft.Resolution)
-                && _display.SupportedResolutions.Count > 0)
+            var resolutions = _display.SupportedResolutions;
+            if (!SettingsDisplayCatalog.ContainsResolution(resolutions, Draft.Resolution)
+                && resolutions.Count > 0)
             {
                 return new SettingsOperationResult(SettingsOperationStatus.UnsupportedResolution, "Selected resolution is not supported by this display.");
             }

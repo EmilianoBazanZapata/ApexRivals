@@ -10,6 +10,14 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
 {
     public sealed class VehicleSelectionServiceTests
     {
+        private readonly FixtureObjects _objects = new FixtureObjects();
+
+        [TearDown]
+        public void TearDown()
+        {
+            _objects.Dispose();
+        }
+
         [Test]
         public void NewState_IsUncommitted()
         {
@@ -195,7 +203,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("vanguard"));
         }
 
-        private static VehicleSelectionService CreateService(
+        private VehicleSelectionService CreateService(
             SelectedVehicleState selectedVehicleState,
             FakeSelectionSaveCheckpoint saveCheckpoint,
             PlayerProgressionState progression = null)
@@ -209,7 +217,49 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
                 CreateHandlingDefinition());
         }
 
-        private static VehicleCatalog CreateCatalog()
+        [TestCase("vanguard", true, true, true)]
+        [TestCase("starter", true, true, false)]
+        [TestCase("locked", false, true, false)]
+        [TestCase("no-prefab", true, false, false)]
+        [TestCase(" ", true, true, false)]
+        public void RaceEligibilityPreservesProductionRequirements(string id, bool available, bool hasPrefab, bool expected)
+        {
+            var vehicle = CreateVehicle(id, available, hasPrefab);
+            var catalog = new VehicleCatalog(new[] { CreateVehicle("starter", true, false), vehicle }, "starter");
+            var selection = new SelectedVehicleState();
+            var save = new FakeSelectionSaveCheckpoint();
+            var service = new VehicleSelectionService(catalog, selection, save);
+
+            Assert.That(service.AvailableVehicles.Count, Is.EqualTo(expected ? 1 : 0));
+            Assert.That(service.GetState().Vehicles.Count, Is.EqualTo(expected ? 1 : 0));
+            var result = service.Select(id);
+            Assert.That(result.Succeeded, Is.EqualTo(expected));
+            Assert.That(selection.HasCommittedVehicleSelection, Is.False);
+            Assert.That(save.SaveCount, Is.Zero);
+        }
+
+        [Test]
+        public void RaceEligibilityKeepsAuthoredOrderAndRechecksDestroyedPrefabs()
+        {
+            var striker = CreateVehicle("striker", true);
+            var vanguard = CreateVehicle("vanguard", true);
+            var catalog = new VehicleCatalog(new[] { CreateVehicle("starter", true, false), striker, CreateVehicle("locked", false), vanguard }, "starter");
+            var selection = new SelectedVehicleState("vanguard", true);
+            var service = new VehicleSelectionService(catalog, selection);
+            Assert.That(service.AvailableVehicles[0], Is.SameAs(striker));
+            Assert.That(service.AvailableVehicles[1], Is.SameAs(vanguard));
+
+            Object.DestroyImmediate(vanguard.VehiclePrefab);
+            var result = service.EnsurePersistedSelectionIsValid();
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(selection.HasCommittedVehicleSelection, Is.False);
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("striker"));
+            Assert.That(service.AvailableVehicles.Count, Is.EqualTo(1));
+            Assert.That(service.GetState().Vehicles[0].VehicleId, Is.EqualTo("striker"));
+        }
+
+        private VehicleCatalog CreateCatalog()
         {
             return new VehicleCatalog(new[]
             {
@@ -220,13 +270,13 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             }, "starter");
         }
 
-        private static VehicleDefinitionData CreateVehicle(string id, bool available, bool hasPrefab = true)
+        private VehicleDefinitionData CreateVehicle(string id, bool available, bool hasPrefab = true)
         {
-            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
+            var configuration = _objects.Own(ScriptableObject.CreateInstance<WheelVehicleConfiguration>());
             configuration.performanceAcceleration = 10f;
             configuration.performanceTopSpeed = 20f;
             configuration.performanceSteering = 30f;
-            return new VehicleDefinitionData(id, id, string.Empty, configuration, hasPrefab ? new GameObject($"{id}Prefab") : null, null, available);
+            return new VehicleDefinitionData(id, id, string.Empty, configuration, hasPrefab ? _objects.Own(new GameObject($"{id}Prefab")) : null, null, available);
         }
 
         private static UpgradeDefinitionData CreateEngineDefinition()

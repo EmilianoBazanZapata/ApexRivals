@@ -6,7 +6,7 @@ namespace ApexRivals.UI.Runtime
 {
     public sealed class VehicleRecoveryPromptPresenter : IDisposable
     {
-        private readonly IVehicleRecoveryPromptView _view;
+        private IVehicleRecoveryPromptView _view;
         private readonly VehicleRoofRecoveryDetector _detector;
         private bool _disposed;
 
@@ -23,6 +23,7 @@ namespace ApexRivals.UI.Runtime
 
         public void Present()
         {
+            if (!CanRender) return;
             var isAvailable = _detector.CanRecoverVehicle;
             _view.Render(isAvailable);
             if (isAvailable)
@@ -41,12 +42,14 @@ namespace ApexRivals.UI.Runtime
             _detector.RecoveryAvailabilityChanged -= OnRecoveryAvailabilityChanged;
             _detector.RecoveryRequested -= OnRecoveryRequested;
             _detector.RecoveryCompleted -= OnRecoveryCompleted;
-            _view.Render(false);
+            if (CanRender) _view.Render(false);
             _disposed = true;
+            _view = null;
         }
 
         private void OnRecoveryAvailabilityChanged(bool isAvailable)
         {
+            if (!CanRender) return;
             _view.Render(isAvailable);
             Debug.Log(
                 isAvailable
@@ -54,6 +57,9 @@ namespace ApexRivals.UI.Runtime
                     : "[Vehicle Recovery] Recovery prompt hidden.",
                 _detector);
         }
+
+        private bool CanRender => !_disposed && _view != null
+            && (_view is not UnityEngine.Object unityView || unityView != null);
 
         private void OnRecoveryRequested(RecoveryInputSource inputSource)
         {

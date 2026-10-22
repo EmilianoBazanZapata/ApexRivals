@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -22,7 +21,8 @@ namespace ApexRivals.UI.Runtime
         public void Bind(VehicleSelectionPresenter presenter)
         {
             _presenter = presenter;
-            Subscribe();
+            if (presenter == null) Unsubscribe();
+            else Subscribe();
         }
 
         public void Render(VehicleSelectionViewModel viewModel)
@@ -127,7 +127,7 @@ namespace ApexRivals.UI.Runtime
 
             if (_current.CanContinue)
             {
-                await Run(_presenter.Continue());
+                await _presenter.Continue();
                 return;
             }
 
@@ -138,11 +138,6 @@ namespace ApexRivals.UI.Runtime
         {
             eventData?.Use();
             _presenter?.Cancel();
-        }
-
-        private static async Task Run(Task task)
-        {
-            await task;
         }
 
         private static void SetButton(Button button, bool interactable)

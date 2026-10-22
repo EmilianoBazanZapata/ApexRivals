@@ -23,8 +23,11 @@ namespace ApexRivals.RaceSession.Runtime
 
         public void Resume()
         {
-            if (!_paused && Time.timeScale > 0f)
+            // A newer positive decision must not be overwritten by an older
+            // restoration (e.g. a destination already established its scale).
+            if (Time.timeScale > 0f)
             {
+                _paused = false;
                 return;
             }
 

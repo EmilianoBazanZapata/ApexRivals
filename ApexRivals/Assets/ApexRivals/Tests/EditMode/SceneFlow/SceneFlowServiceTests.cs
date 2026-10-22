@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ApexRivals.Race.Runtime;
+using ApexRivals.RaceSession.Runtime;
 using ApexRivals.SceneFlow.Runtime;
 using NUnit.Framework;
 
@@ -10,6 +11,42 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
 {
     public sealed class SceneFlowServiceTests
     {
+        [Test]
+        public async Task SessionNavigationPresentsTheRetainedResultWithoutReplacingIt()
+        {
+            var service = CreateService();
+            await service.OpenMainMenu();
+            await service.StartRace();
+            var result = new RaceSessionResult(new RaceResult("Player", 2, 72.5f), 300, 4, 700, false, "Save failed.");
+            service.RaceSession.SetResult(result);
+
+            var shown = new SceneFlowRaceSessionNavigation(service).ShowResults();
+
+            Assert.That(shown, Is.True);
+            Assert.That(service.RaceSession.Result, Is.EqualTo(result));
+            Assert.That(service.RacePresentationState, Is.EqualTo(RacePresentationState.Results));
+        }
+
+        [Test]
+        public async Task RejectedSessionPresentationDuringTransitionKeepsTheRetainedResult()
+        {
+            var loader = new FakeSceneLoader();
+            var service = CreateService(loader);
+            await service.OpenMainMenu();
+            await service.StartRace();
+            loader.CompleteImmediately = false;
+            var exit = service.ReturnFromRaceToMainMenu();
+            var result = new RaceSessionResult(new RaceResult("Player", 2, 72.5f), 300);
+            service.RaceSession.SetResult(result);
+
+            Assert.That(new SceneFlowRaceSessionNavigation(service).ShowResults(), Is.False);
+            Assert.That(service.State, Is.EqualTo(ApplicationState.Transitioning));
+            Assert.That(service.RaceSession.Result, Is.EqualTo(result));
+            loader.CompletePendingLoad(false);
+            Assert.That((await exit).Succeeded, Is.False);
+            Assert.That(service.RaceSession.Result, Is.EqualTo(result));
+        }
+
         [Test]
         public void StartsInBootstrappingState()
         {

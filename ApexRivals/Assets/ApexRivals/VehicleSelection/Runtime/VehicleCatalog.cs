@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using ApexRivals.Garage.Runtime;
 
 namespace ApexRivals.VehicleSelection.Runtime
 {
@@ -76,9 +76,27 @@ namespace ApexRivals.VehicleSelection.Runtime
                 : new VehicleLookupResult(VehicleCatalogStatus.UnknownVehicleId, null, $"Vehicle ID '{vehicleId}' is not in the catalog.");
         }
 
-        public IReadOnlyList<VehicleDefinitionData> GetSelectableDemoVehicles()
+        public IReadOnlyList<VehicleDefinitionData> GetRaceSelectableVehicles()
         {
-            return _vehicles.Where(vehicle => vehicle != null && vehicle.HasValidId && vehicle.AvailableInDemo).ToArray();
+            var vehicles = new List<VehicleDefinitionData>();
+            foreach (var vehicle in _vehicles)
+            {
+                if (IsRaceSelectable(vehicle))
+                {
+                    vehicles.Add(vehicle);
+                }
+            }
+
+            return vehicles;
+        }
+
+        public static bool IsRaceSelectable(VehicleDefinitionData vehicle)
+        {
+            return vehicle != null
+                && vehicle.HasValidId
+                && vehicle.AvailableInDemo
+                && vehicle.VehiclePrefab != null
+                && !string.Equals(vehicle.StableId, SelectedVehicleState.DefaultVehicleId, StringComparison.Ordinal);
         }
 
         public VehicleDefinitionData ResolveSavedOrDefault(string savedVehicleId)

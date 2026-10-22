@@ -19,6 +19,7 @@ namespace ApexRivals.UI.Runtime
 
         public void Install(ApplicationContext context)
         {
+            Uninstall();
             if (context == null || context.Navigation == null || context.VehicleSelectionService == null || context.SettingsService == null)
             {
                 Debug.LogError("Main menu UI could not install because required application services are missing.", this);
@@ -55,10 +56,17 @@ namespace ApexRivals.UI.Runtime
                 _vehicleSelectionService = null;
             }
 
+            _mainMenuPresenter?.Dispose();
+            _vehicleSelectionPresenter?.Dispose();
+            if (mainMenuView != null) mainMenuView.Bind(null);
+            if (vehicleSelectionView != null) vehicleSelectionView.Bind(null);
+            if (settingsView != null) settingsView.Bind(null, null, PresentationScreenState.Main);
             _mainMenuPresenter = null;
             _vehicleSelectionPresenter = null;
             _settingsPresenter = null;
         }
+
+        private void OnDestroy() => Uninstall();
 
         private void OnVehicleSelectionCommitted(VehicleSelectionCommittedEvent committed)
         {

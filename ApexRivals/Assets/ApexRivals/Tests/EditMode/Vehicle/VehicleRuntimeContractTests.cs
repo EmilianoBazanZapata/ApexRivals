@@ -7,13 +7,11 @@ namespace ApexRivals.Tests.EditMode.Vehicle
     public sealed class VehicleRuntimeContractTests
     {
         [Test]
-        public void PlanarAndWheelControllers_SatisfyTheSharedRuntimeContract()
+        public void WheelController_ImplementsRuntimeAndTelemetryContracts()
         {
-            AssertVehicleRuntime<WheelArcadeVehicleController>();
-        }
-
-        private static void AssertVehicleRuntime<T>() where T : MonoBehaviour, IVehicleRuntime
-        {
+            Assert.That(typeof(MonoBehaviour).IsAssignableFrom(typeof(WheelArcadeVehicleController)), Is.True);
+            Assert.That(typeof(IVehicleRuntime).IsAssignableFrom(typeof(WheelArcadeVehicleController)), Is.True);
+            Assert.That(typeof(IVehicleTelemetry).IsAssignableFrom(typeof(WheelArcadeVehicleController)), Is.True);
         }
     }
 }

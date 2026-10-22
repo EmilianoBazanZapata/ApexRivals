@@ -8,6 +8,14 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
 {
     public sealed class RaceRosterTests
     {
+        private readonly FixtureObjects _objects = new FixtureObjects();
+
+        [TearDown]
+        public void TearDown()
+        {
+            _objects.Dispose();
+        }
+
         [Test]
         public void Validate_OnePlayerAndValidAiEntries_Succeeds()
         {
@@ -131,10 +139,10 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             return new RaceRosterEntry(participantId, RaceEntryType.AI, vehicleId, gridIndex, aiConfigurationId);
         }
 
-        private static VehicleCatalog CreateCatalog()
+        private VehicleCatalog CreateCatalog()
         {
-            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
-            var prefab = new GameObject("VehiclePrefab");
+            var configuration = _objects.Own(ScriptableObject.CreateInstance<WheelVehicleConfiguration>());
+            var prefab = _objects.Own(new GameObject("VehiclePrefab"));
             return new VehicleCatalog(new[]
             {
                 new VehicleDefinitionData("starter", "Starter", string.Empty, configuration, prefab, null, true)

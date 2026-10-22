@@ -31,7 +31,7 @@ namespace ApexRivals.UI.Runtime
             return null;
         }
 
-        public static void Set(Selectable selectable, Selectable up, Selectable down, Selectable left, Selectable right)
+        public static void Set(Selectable selectable, Selectable up, Selectable down, Selectable left, Selectable right, bool wrapAround = false)
         {
             if (selectable == null)
             {
@@ -40,7 +40,7 @@ namespace ApexRivals.UI.Runtime
 
             var navigation = selectable.navigation;
             navigation.mode = Navigation.Mode.Explicit;
-            navigation.wrapAround = false;
+            navigation.wrapAround = wrapAround;
             navigation.selectOnUp = up;
             navigation.selectOnDown = down;
             navigation.selectOnLeft = left;

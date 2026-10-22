@@ -55,7 +55,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             var participant = root.AddComponent<RaceParticipant>();
             var gate = root.AddComponent<DrivingInputGate>();
             var composition = root.AddComponent<RaceVehicleComposition>();
-            composition.ConfigureReferences(plainController, null, participant, gate, null, null, root.transform, root.transform, root.transform, null);
+            composition.ConfigureReferences(plainController, null, participant, gate, null, null, root.transform, root.transform, null);
 
             Assert.That(composition.VehicleTelemetry, Is.Null);
         }
@@ -104,7 +104,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             var participant = root.AddComponent<RaceParticipant>();
             var gate = root.AddComponent<DrivingInputGate>();
             var composition = root.AddComponent<RaceVehicleComposition>();
-            composition.ConfigureReferences(telemetry, null, participant, gate, null, null, root.transform, root.transform, root.transform, null);
+            composition.ConfigureReferences(telemetry, null, participant, gate, null, null, root.transform, root.transform, null);
             return composition;
         }
 

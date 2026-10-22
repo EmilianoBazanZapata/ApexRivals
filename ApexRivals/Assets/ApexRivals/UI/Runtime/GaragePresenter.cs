@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using UnityObject = UnityEngine.Object;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.SceneFlow.Runtime;
@@ -8,9 +9,9 @@ using ApexRivals.VehicleSelection.Runtime;
 
 namespace ApexRivals.UI.Runtime
 {
-    public sealed class GaragePresenter
+    public sealed class GaragePresenter : IDisposable
     {
-        private readonly IGarageView _view;
+        private IGarageView _view;
         private readonly GarageService _garageService;
         private readonly VehicleSelectionService _vehicleSelectionService;
         private readonly SceneFlowService _sceneFlow;
@@ -28,8 +29,20 @@ namespace ApexRivals.UI.Runtime
 
         public GarageViewModel Current { get; private set; }
 
+        private bool _disposed;
+        private bool CanRender => !_disposed && _view != null
+            && (_view is not UnityObject unityView || unityView != null);
+
+        public void Dispose()
+        {
+            _disposed = true;
+            _view = null;
+        }
+
         public void Present()
         {
+            if (!CanRender) return;
+
             Current = CreateModel();
             _view.Render(Current);
         }
@@ -46,7 +59,7 @@ namespace ApexRivals.UI.Runtime
 
         public void SelectVehicle(string vehicleId)
         {
-            if (_operationActive)
+            if (!CanRender || _operationActive)
             {
                 return;
             }
@@ -63,7 +76,7 @@ namespace ApexRivals.UI.Runtime
         /// </summary>
         public void CancelVehiclePreview()
         {
-            if (_operationActive
+            if (!CanRender || _operationActive
                 || !_vehicleSelectionService.HasCommittedVehicleSelection
                 || _vehicleSelectionService.CurrentCandidateVehicleId == _vehicleSelectionService.CurrentSelectedVehicleId)
             {
@@ -77,7 +90,7 @@ namespace ApexRivals.UI.Runtime
         /// <summary>Previews and equips <paramref name="vehicleId"/> in one step (click / Submit on a vehicle).</summary>
         public void EquipVehicle(string vehicleId)
         {
-            if (_operationActive)
+            if (!CanRender || _operationActive)
             {
                 return;
             }
@@ -106,7 +119,7 @@ namespace ApexRivals.UI.Runtime
 
         public void ConfirmVehicle()
         {
-            if (_operationActive)
+            if (!CanRender || _operationActive)
             {
                 return;
             }
@@ -123,6 +136,7 @@ namespace ApexRivals.UI.Runtime
 
         public async Task StartRace()
         {
+            if (!CanRender || _operationActive) return;
             if (!_vehicleSelectionService.HasValidCommittedVehicleSelection)
             {
                 var selection = _vehicleSelectionService.ConfirmSelection();
@@ -147,6 +161,7 @@ namespace ApexRivals.UI.Runtime
 
         private void Purchase(UpgradeType upgradeType)
         {
+            if (!CanRender) return;
             if (_operationActive)
             {
                 _purchaseStatus = PresentationStatus.Invalid;
@@ -166,7 +181,7 @@ namespace ApexRivals.UI.Runtime
 
         private async Task RunNavigation(Func<Task<SceneTransitionResult>> transition, string failureKey)
         {
-            if (_operationActive)
+            if (!CanRender || _operationActive)
             {
                 return;
             }
@@ -174,6 +189,7 @@ namespace ApexRivals.UI.Runtime
             _operationActive = true;
             Present();
             var result = await transition();
+            if (!CanRender) return;
             _operationActive = false;
             if (!result.Succeeded)
             {
@@ -240,7 +256,7 @@ namespace ApexRivals.UI.Runtime
 
         private void SelectVehicleByOffset(int offset)
         {
-            if (_operationActive || Current.Vehicles == null || Current.Vehicles.Count == 0)
+            if (!CanRender || _operationActive || Current.Vehicles == null || Current.Vehicles.Count == 0)
             {
                 return;
             }

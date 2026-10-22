@@ -496,9 +496,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             var progression = CreateProgression(275, 1, 2, 4);
             var selectedVehicle = new SelectedVehicleState("sport", true);
             var service = CreateService(progression, selectedVehicle, storage);
-            var resetService = new PlayerProfileResetService(service);
-
-            var result = resetService.ResetPlayerProfile();
+            var result = service.ResetProfile();
 
             Assert.That(result.Status, Is.EqualTo(PlayerProfileSaveStatus.Deleted));
             Assert.That(storage.SaveExists(), Is.False);

@@ -15,6 +15,73 @@ namespace ApexRivals.Tests.EditMode.RaceSession
 {
     public sealed class RaceSessionCoordinatorTests
     {
+        private readonly FixtureObjects _objects = new FixtureObjects();
+
+        [TearDown]
+        public void TearDown()
+        {
+            _objects.Dispose();
+        }
+
+        [TestCase(true, true)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(false, false)]
+        public void CompletionPublishesMatchingValuesInOrderEvenWhenSaveOrPresentationFails(bool saveSucceeds, bool presentationAccepted)
+        {
+            var context = CreateContext();
+            context.Progression.SetCompletedRaceCount(1);
+            context.Save.ShouldFail = !saveSucceeds;
+            context.Navigation.AcceptResults = presentationAccepted;
+            StartRace(context);
+            var calls = new System.Collections.Generic.List<string>();
+            context.Save.OnSave = () =>
+            {
+                calls.Add("save");
+                Assert.That(context.Progression.Currency, Is.EqualTo(300));
+                Assert.That(context.Progression.CompletedRaceCount, Is.EqualTo(2));
+                Assert.That(context.SceneRaceState.HasResult, Is.False);
+            };
+            context.Navigation.OnShowResults = result =>
+            {
+                calls.Add("navigation");
+                Assert.That(context.SceneRaceState.Result, Is.EqualTo(result));
+                Assert.That(context.Session.LastResults, Is.EqualTo(result));
+                Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
+            };
+            context.Session.StateChanged += (_, current) =>
+            {
+                if (current == RaceSessionLifecycleState.ShowingResults) calls.Add("state");
+            };
+            context.Session.ResultsReady += result =>
+            {
+                calls.Add("results");
+                Assert.That(context.Session.State, Is.EqualTo(RaceSessionLifecycleState.ShowingResults));
+                Assert.That(result, Is.EqualTo(context.SceneRaceState.Result));
+            };
+
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 2, 72.5f));
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 1f));
+
+            Assert.That(calls, Is.EqualTo(new[] { "save", "navigation", "state", "results" }));
+            Assert.That(context.SceneRaceState.HasResult, Is.True);
+            var retained = context.SceneRaceState.Result;
+            Assert.That(retained.FinalPosition, Is.EqualTo(2));
+            Assert.That(retained.FinishTime, Is.EqualTo(72.5f));
+            Assert.That(retained.TotalParticipants, Is.EqualTo(2));
+            Assert.That(retained.EarnedReward, Is.EqualTo(300));
+            Assert.That(retained.UpdatedCurrency, Is.EqualTo(300));
+            Assert.That(retained.CompletedRaceCount, Is.EqualTo(2));
+            Assert.That(retained.PreviousTier.TierId, Is.EqualTo("rookie"));
+            Assert.That(retained.CurrentTier.TierId, Is.EqualTo("amateur"));
+            Assert.That(retained.NewTierReached, Is.True);
+            Assert.That(retained.SaveSucceeded, Is.EqualTo(saveSucceeds));
+            Assert.That(retained.SaveMessage, Is.EqualTo(saveSucceeds ? string.Empty : "Save failed."));
+            Assert.That(context.Session.LastCommandResult.Status, Is.EqualTo(saveSucceeds ? RaceSessionCommandStatus.Succeeded : RaceSessionCommandStatus.SaveFailedAfterReward));
+            Assert.That(context.Save.SaveCount, Is.EqualTo(1));
+            Assert.That(context.ResultsEventCount, Is.EqualTo(1));
+        }
+
         [Test]
         public void StartsUninitialized()
         {
@@ -504,7 +571,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
 
         private TestContext CreateContext()
         {
-            var setup = new FakeRaceSessionSetup();
+            var setup = new FakeRaceSessionSetup(_objects);
             var raceController = new FakeRaceSessionRaceController();
             var progression = new PlayerProgressionState();
             var rewardService = new RaceRewardService(progression, new RaceRewardTable(
@@ -518,6 +585,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             var save = new FakeSaveCheckpoint();
             var navigation = new FakeRaceSessionNavigation();
             var raceState = new RaceSessionState();
+            navigation.ResultsState = raceState;
             navigation.OnSuccess = raceState.Clear;
             var timeScale = new FakeTimeScaleController();
             var raceProgression = CreateRaceProgressionService(progression);
@@ -528,7 +596,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             return context;
         }
 
-        private static RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progression)
+        private RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progression)
         {
             return new RaceProgressionService(
                 progression,
@@ -539,8 +607,8 @@ namespace ApexRivals.Tests.EditMode.RaceSession
                 }),
                 new System.Collections.Generic.Dictionary<string, AiDriverConfiguration>
                 {
-                    ["rookie"] = ScriptableObject.CreateInstance<AiDriverConfiguration>(),
-                    ["amateur"] = ScriptableObject.CreateInstance<AiDriverConfiguration>()
+                    ["rookie"] = _objects.Own(ScriptableObject.CreateInstance<AiDriverConfiguration>()),
+                    ["amateur"] = _objects.Own(ScriptableObject.CreateInstance<AiDriverConfiguration>())
                 });
         }
 
@@ -579,6 +647,13 @@ namespace ApexRivals.Tests.EditMode.RaceSession
 
         private sealed class FakeRaceSessionSetup : IRaceSessionSetup
         {
+            private readonly FixtureObjects _objects;
+
+            public FakeRaceSessionSetup(FixtureObjects objects)
+            {
+                _objects = objects;
+            }
+
             public int PrepareCount { get; private set; }
             public int CleanupCount { get; private set; }
             public bool ShouldFailPrepare { get; set; }
@@ -599,19 +674,19 @@ namespace ApexRivals.Tests.EditMode.RaceSession
                 CleanupCount++;
             }
 
-            private static RaceSetupOutput CreateOutput()
+            private RaceSetupOutput CreateOutput()
             {
-                var playerObject = new GameObject("PlayerVehicle");
+                var playerObject = _objects.Own(new GameObject("PlayerVehicle"));
                 var playerComposition = playerObject.AddComponent<RaceVehicleComposition>();
                 var playerParticipant = playerObject.AddComponent<RaceParticipant>();
                 var playerGate = playerObject.AddComponent<DrivingInputGate>();
-                playerComposition.ConfigureReferences(null, null, playerParticipant, playerGate, null, null, playerObject.transform, playerObject.transform, playerObject.transform, null);
+                playerComposition.ConfigureReferences(null, null, playerParticipant, playerGate, null, null, playerObject.transform, playerObject.transform, null);
 
-                var aiObject = new GameObject("AiVehicle");
+                var aiObject = _objects.Own(new GameObject("AiVehicle"));
                 var aiComposition = aiObject.AddComponent<RaceVehicleComposition>();
                 var aiParticipant = aiObject.AddComponent<RaceParticipant>();
                 var aiGate = aiObject.AddComponent<DrivingInputGate>();
-                aiComposition.ConfigureReferences(null, null, aiParticipant, aiGate, null, null, aiObject.transform, aiObject.transform, aiObject.transform, null);
+                aiComposition.ConfigureReferences(null, null, aiParticipant, aiGate, null, null, aiObject.transform, aiObject.transform, null);
 
                 return new RaceSetupOutput(
                     playerComposition,
@@ -692,10 +767,12 @@ namespace ApexRivals.Tests.EditMode.RaceSession
         {
             public int SaveCount { get; private set; }
             public bool ShouldFail { get; set; }
+            public Action OnSave { get; set; }
 
             public SaveCheckpointResult Save()
             {
                 SaveCount++;
+                OnSave?.Invoke();
                 return ShouldFail ? SaveCheckpointResult.Failure("Save failed.") : SaveCheckpointResult.Success();
             }
         }
@@ -710,6 +787,9 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             public Action OnSuccess { get; set; }
             public Func<Task<SceneTransitionResult>> NavigateOverride { get; set; }
             public RaceSessionResult LastResult { get; private set; }
+            public RaceSessionState ResultsState { get; set; }
+            public bool AcceptResults { get; set; } = true;
+            public Action<RaceSessionResult> OnShowResults { get; set; }
 
             public Task<SceneTransitionResult> RetryRace()
             {
@@ -729,11 +809,12 @@ namespace ApexRivals.Tests.EditMode.RaceSession
                 return Complete(ContentSceneId.MainMenu);
             }
 
-            public bool ShowResults(RaceSessionResult result)
+            public bool ShowResults()
             {
                 ShowResultsCount++;
-                LastResult = result;
-                return true;
+                LastResult = ResultsState.Result;
+                OnShowResults?.Invoke(LastResult);
+                return AcceptResults;
             }
 
             public bool PauseRace()

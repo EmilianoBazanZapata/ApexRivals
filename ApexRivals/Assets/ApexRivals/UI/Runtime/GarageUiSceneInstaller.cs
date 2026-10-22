@@ -11,8 +11,11 @@ namespace ApexRivals.UI.Runtime
 
         private GaragePresenter _garagePresenter;
 
+        private void OnDestroy() => Uninstall();
+
         public void Install(ApplicationContext context)
         {
+            Uninstall();
             if (context == null || context.GarageService == null || context.VehicleSelectionService == null || context.Navigation == null)
             {
                 Debug.LogError("Garage UI could not install because required application services are missing.", this);
@@ -33,6 +36,8 @@ namespace ApexRivals.UI.Runtime
 
         public void Uninstall()
         {
+            _garagePresenter?.Dispose();
+            if (garageView != null) garageView.Bind(null);
             _garagePresenter = null;
         }
     }

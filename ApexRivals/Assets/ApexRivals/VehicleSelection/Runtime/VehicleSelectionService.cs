@@ -43,7 +43,7 @@ namespace ApexRivals.VehicleSelection.Runtime
         public VehicleDefinitionData CurrentSelectedDefinition => _selectedVehicleState.HasCommittedVehicleSelection
             ? GetCommittedVehicleDefinition()
             : GetCandidateVehicleDefinition();
-        public IReadOnlyList<VehicleDefinitionData> AvailableVehicles => GetRaceReadyVehicles();
+        public IReadOnlyList<VehicleDefinitionData> AvailableVehicles => _catalog.GetRaceSelectableVehicles();
 
         public VehicleLookupResult EnsurePersistedSelectionIsValid()
         {
@@ -54,7 +54,7 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var lookup = _catalog.FindById(_selectedVehicleState.SelectedVehicleId);
-            if (!IsRaceReady(lookup.Vehicle))
+            if (!VehicleCatalog.IsRaceSelectable(lookup.Vehicle))
             {
                 _selectedVehicleState.ClearCommitment();
                 _candidateVehicleId = CreateInitialCandidateVehicleId();
@@ -72,11 +72,6 @@ namespace ApexRivals.VehicleSelection.Runtime
 
             foreach (var vehicle in AvailableVehicles)
             {
-                if (!IsRaceReady(vehicle))
-                {
-                    continue;
-                }
-
                 var baseStats = vehicle.BasePerformanceStats;
                 var effectiveStats = CreateEffectiveStats(baseStats);
                 items.Add(new VehicleSelectionItemState(
@@ -109,7 +104,7 @@ namespace ApexRivals.VehicleSelection.Runtime
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnknownVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, lookup.Message);
             }
 
-            if (!IsRaceReady(lookup.Vehicle))
+            if (!VehicleCatalog.IsRaceSelectable(lookup.Vehicle))
             {
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnavailableVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, "The selected vehicle is not available in the demo.");
             }
@@ -138,7 +133,7 @@ namespace ApexRivals.VehicleSelection.Runtime
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnknownVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, lookup.Message);
             }
 
-            if (!IsRaceReady(lookup.Vehicle))
+            if (!VehicleCatalog.IsRaceSelectable(lookup.Vehicle))
             {
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnavailableVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, "The selected vehicle is not available in the demo.");
             }
@@ -189,13 +184,13 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var lookup = _catalog.FindById(_selectedVehicleState.SelectedVehicleId);
-            return lookup.Succeeded && IsRaceReady(lookup.Vehicle) ? lookup.Vehicle : null;
+            return lookup.Succeeded && VehicleCatalog.IsRaceSelectable(lookup.Vehicle) ? lookup.Vehicle : null;
         }
 
         private VehicleDefinitionData GetCandidateVehicleDefinition()
         {
             var lookup = _catalog.FindById(_candidateVehicleId);
-            return lookup.Succeeded && IsRaceReady(lookup.Vehicle) ? lookup.Vehicle : null;
+            return lookup.Succeeded && VehicleCatalog.IsRaceSelectable(lookup.Vehicle) ? lookup.Vehicle : null;
         }
 
         private string CreateInitialCandidateVehicleId()
@@ -206,36 +201,13 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var defaultLookup = _catalog.FindById(_catalog.DefaultVehicleId);
-            if (defaultLookup.Succeeded && IsRaceReady(defaultLookup.Vehicle))
+            if (defaultLookup.Succeeded && VehicleCatalog.IsRaceSelectable(defaultLookup.Vehicle))
             {
                 return defaultLookup.Vehicle.StableId;
             }
 
             var vehicles = AvailableVehicles;
             return vehicles.Count > 0 ? vehicles[0].StableId : string.Empty;
-        }
-
-        private IReadOnlyList<VehicleDefinitionData> GetRaceReadyVehicles()
-        {
-            var vehicles = new List<VehicleDefinitionData>();
-            foreach (var vehicle in _catalog.Vehicles)
-            {
-                if (IsRaceReady(vehicle))
-                {
-                    vehicles.Add(vehicle);
-                }
-            }
-
-            return vehicles;
-        }
-
-        private static bool IsRaceReady(VehicleDefinitionData vehicle)
-        {
-            return vehicle != null
-                && vehicle.HasValidId
-                && vehicle.AvailableInDemo
-                && vehicle.VehiclePrefab != null
-                && !string.Equals(vehicle.StableId, SelectedVehicleState.DefaultVehicleId, StringComparison.Ordinal);
         }
 
         private VehiclePerformanceStats CreateEffectiveStats(VehiclePerformanceStats baseStats)

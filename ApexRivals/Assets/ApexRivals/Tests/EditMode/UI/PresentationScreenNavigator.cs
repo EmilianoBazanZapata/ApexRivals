@@ -1,6 +1,8 @@
-namespace ApexRivals.UI.Runtime
+using ApexRivals.UI.Runtime;
+
+namespace ApexRivals.Tests.EditMode.UI
 {
-    public sealed class PresentationScreenNavigator : IPresentationScreenNavigator
+    internal sealed class PresentationScreenNavigator : IPresentationScreenNavigator
     {
         public PresentationScreenNavigator(PresentationScreenState initialScreen = PresentationScreenState.Main)
         {

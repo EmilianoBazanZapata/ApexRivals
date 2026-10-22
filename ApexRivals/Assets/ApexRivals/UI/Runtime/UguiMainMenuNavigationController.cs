@@ -31,13 +31,7 @@ namespace ApexRivals.UI.Runtime
 
                 var previous = FindEnabled(buttons, index, -1);
                 var next = FindEnabled(buttons, index, 1);
-                var navigation = button.navigation;
-                navigation.mode = Navigation.Mode.Explicit;
-                navigation.selectOnUp = previous;
-                navigation.selectOnDown = next;
-                navigation.selectOnLeft = previous;
-                navigation.selectOnRight = next;
-                button.navigation = navigation;
+                UiNavigation.Set(button, previous, next, previous, next, wrapAround: button.navigation.wrapAround);
             }
         }
 
@@ -62,6 +56,7 @@ namespace ApexRivals.UI.Runtime
 
         private static bool IsEnabled(Button button)
         {
+            // Prepare links even while the parent menu is hidden; UiFocus gates actual selection.
             return button != null && button.gameObject.activeSelf && button.IsInteractable();
         }
     }

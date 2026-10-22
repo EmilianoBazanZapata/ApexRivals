@@ -93,14 +93,13 @@ namespace ApexRivals.RaceSetup.Runtime
             for (var index = 0; index < roster.Entries.Count; index++)
             {
                 var entry = roster.Entries[index];
-                var setupEntryResult = SetupEntry(entry, startingGrid, raceCoordinator, racingLine, spawned);
-                if (!setupEntryResult.Succeeded)
+                var status = SetupEntry(entry, startingGrid, raceCoordinator, racingLine, spawned, out var composition, out var message);
+                if (status != RaceSetupStatus.Succeeded)
                 {
                     Cleanup(spawned);
-                    return setupEntryResult;
+                    return Failure(status, message);
                 }
 
-                var composition = setupEntryResult.Output.Player ?? setupEntryResult.Output.Opponents[0];
                 participants.Add(composition.RaceParticipant);
                 gates.Add(composition.DrivingInputGate);
 
@@ -133,41 +132,48 @@ namespace ApexRivals.RaceSetup.Runtime
             Clear();
         }
 
-        private RaceSetupResult SetupEntry(
+        private RaceSetupStatus SetupEntry(
             RaceRosterEntry entry,
             StartingGrid startingGrid,
             RaceCoordinator raceCoordinator,
             RacingLine racingLine,
-            List<RaceVehicleComposition> spawned)
+            List<RaceVehicleComposition> spawned,
+            out RaceVehicleComposition composition,
+            out string message)
         {
+            composition = null;
+            message = string.Empty;
             if (!startingGrid.TryGetSpawnPose(entry.StartingGridIndex, out var spawnPose))
             {
-                return Failure(RaceSetupStatus.MissingSpawnPose, $"No spawn pose exists for grid index '{entry.StartingGridIndex}'.");
+                message = $"No spawn pose exists for grid index '{entry.StartingGridIndex}'.";
+                return RaceSetupStatus.MissingSpawnPose;
             }
 
             var vehicleLookup = _vehicleCatalog.FindById(entry.VehicleId);
             if (!vehicleLookup.Succeeded)
             {
-                return Failure(RaceSetupStatus.MissingVehicleDefinition, vehicleLookup.Message);
+                message = vehicleLookup.Message;
+                return RaceSetupStatus.MissingVehicleDefinition;
             }
 
             if (vehicleLookup.Vehicle.VehiclePrefab == null)
             {
-                return Failure(RaceSetupStatus.MissingVehiclePrefab, $"Vehicle '{entry.VehicleId}' has no prefab assigned.");
+                message = $"Vehicle '{entry.VehicleId}' has no prefab assigned.";
+                return RaceSetupStatus.MissingVehiclePrefab;
             }
 
-            if (!_vehicleFactory.TryCreate(vehicleLookup.Vehicle.VehiclePrefab, spawnPose, out var composition, out var message))
+            if (!_vehicleFactory.TryCreate(vehicleLookup.Vehicle.VehiclePrefab, spawnPose, out composition, out message))
             {
-                return Failure(RaceSetupStatus.SpawnFailed, message);
+                return RaceSetupStatus.SpawnFailed;
             }
 
             spawned.Add(composition);
 
             if (entry.IsPlayer)
             {
-                if (!composition.TryValidatePlayer(out var playerValidationMessage))
+                if (!composition.TryValidatePlayer(out message))
                 {
-                    return Failure(RaceSetupStatus.MissingVehicleComposition, playerValidationMessage);
+                    return RaceSetupStatus.MissingVehicleComposition;
                 }
 
                 var effectiveStats = VehicleUpgradeStatCalculator.Calculate(
@@ -175,29 +181,28 @@ namespace ApexRivals.RaceSetup.Runtime
                     _progressionState,
                     _engineDefinition,
                     _handlingDefinition);
-                composition.ConfigurePlayer(raceCoordinator, entry.ParticipantId, effectiveStats);
-                return Success(new RaceSetupOutput(composition, Array.Empty<RaceVehicleComposition>(), new[] { composition.RaceParticipant }, composition.CameraTarget, new[] { composition.DrivingInputGate }));
+                composition.ConfigureValidatedPlayer(raceCoordinator, entry.ParticipantId, effectiveStats);
+                return RaceSetupStatus.Succeeded;
             }
 
             if (racingLine == null)
             {
-                return Failure(RaceSetupStatus.MissingRacingLine, "AI race setup requires a racing line.");
+                message = "AI race setup requires a racing line.";
+                return RaceSetupStatus.MissingRacingLine;
             }
 
-            if (!TryResolveAiConfiguration(entry.AiConfigurationId, out var aiConfiguration, out var aiMessage))
+            if (!TryResolveAiConfiguration(entry.AiConfigurationId, out var aiConfiguration, out message))
             {
-                return Failure(
-                    _raceDifficultyProvider != null ? RaceSetupStatus.DifficultyResolutionFailed : RaceSetupStatus.MissingAiConfiguration,
-                    aiMessage);
+                return _raceDifficultyProvider != null ? RaceSetupStatus.DifficultyResolutionFailed : RaceSetupStatus.MissingAiConfiguration;
             }
 
-            if (!composition.TryValidateAI(out var aiValidationMessage))
+            if (!composition.TryValidateAI(out message))
             {
-                return Failure(RaceSetupStatus.MissingVehicleComposition, aiValidationMessage);
+                return RaceSetupStatus.MissingVehicleComposition;
             }
 
-            composition.ConfigureAI(raceCoordinator, entry.ParticipantId, aiConfiguration, racingLine);
-            return Success(new RaceSetupOutput(null, new[] { composition }, new[] { composition.RaceParticipant }, null, new[] { composition.DrivingInputGate }));
+            composition.ConfigureValidatedAI(raceCoordinator, entry.ParticipantId, aiConfiguration, racingLine);
+            return RaceSetupStatus.Succeeded;
         }
 
         private bool TryResolveAiConfiguration(string aiConfigurationId, out AiDriverConfiguration aiConfiguration, out string message)
@@ -223,11 +228,6 @@ namespace ApexRivals.RaceSetup.Runtime
             {
                 _vehicleFactory.Destroy(spawned[index]);
             }
-        }
-
-        private static RaceSetupResult Success(RaceSetupOutput output)
-        {
-            return new RaceSetupResult(RaceSetupStatus.Succeeded, output, string.Empty);
         }
 
         private static RaceSetupResult Failure(RaceSetupStatus status, string message)

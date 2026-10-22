@@ -40,10 +40,8 @@ namespace ApexRivals.RaceSetup.Runtime
             AiDrivingInputProvider aiInput,
             Transform target,
             Transform participantProgressTransform,
-            Transform groundOrigin,
             Transform recoveryPose)
         {
-            _ = groundOrigin;
             vehicleController = controller;
             _vehicleRuntime = vehicleController as IVehicleRuntime;
             vehicleResetter = resetBoundary;
@@ -70,8 +68,19 @@ namespace ApexRivals.RaceSetup.Runtime
                 throw new InvalidOperationException(validationMessage);
             }
 
+            ConfigureValidatedPlayer(raceCoordinator, participantId, effectiveStats);
+        }
+
+        // SetupEntry validates before calculating upgrades; public ConfigurePlayer validates above.
+        internal void ConfigureValidatedPlayer(
+            RaceCoordinator raceCoordinator,
+            string participantId,
+            VehiclePerformanceStats effectiveStats)
+        {
             var inputProvider = playerInputProvider as IDrivingInputProvider;
             drivingInputGate.Configure(inputProvider, false);
+            var roofRecovery = GetComponent<VehicleRoofRecoveryDetector>();
+            if (roofRecovery != null) roofRecovery.ConfigureRecoveryInput(drivingInputGate);
             raceParticipant.Configure(raceCoordinator, participantId, progressTransform != null ? progressTransform : transform);
             _vehicleRuntime.ConfigureRuntime(drivingInputGate, vehicleResetter);
             _vehicleRuntime.ApplyPerformanceStats(effectiveStats);
@@ -91,6 +100,16 @@ namespace ApexRivals.RaceSetup.Runtime
                 throw new InvalidOperationException(validationMessage);
             }
 
+            ConfigureValidatedAI(raceCoordinator, participantId, aiConfiguration, racingLine);
+        }
+
+        // Both callers validate the current composition immediately before configuration.
+        internal void ConfigureValidatedAI(
+            RaceCoordinator raceCoordinator,
+            string participantId,
+            AiDriverConfiguration aiConfiguration,
+            RacingLine racingLine)
+        {
             aiInputProvider.Configure(
                 aiConfiguration,
                 racingLine,

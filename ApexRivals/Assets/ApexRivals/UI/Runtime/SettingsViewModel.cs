@@ -7,7 +7,7 @@ namespace ApexRivals.UI.Runtime
     public readonly struct SettingsViewModel
     {
         public SettingsViewModel(
-            IReadOnlyList<SettingsResolutionViewModel> availableResolutions,
+            IReadOnlyList<SettingsResolution> availableResolutions,
             SettingsResolution selectedResolution,
             FullScreenMode fullScreenMode,
             float masterVolume,
@@ -30,7 +30,7 @@ namespace ApexRivals.UI.Runtime
             MessageKey = messageKey;
         }
 
-        public IReadOnlyList<SettingsResolutionViewModel> AvailableResolutions { get; }
+        public IReadOnlyList<SettingsResolution> AvailableResolutions { get; }
         public SettingsResolution SelectedResolution { get; }
         public FullScreenMode FullScreenMode { get; }
         public float MasterVolume { get; }

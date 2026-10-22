@@ -16,7 +16,7 @@ namespace ApexRivals.RaceSession.Runtime
         private readonly ISaveCheckpoint _saveCheckpoint;
         private readonly IRaceSessionNavigation _navigation;
         private readonly RaceSessionState _raceSessionState;
-        private readonly ITimeScaleController _timeScale;
+        private readonly RacePauseCoordinator.SessionPause _timeScale;
 
         private int _attemptId;
         private bool _hasPreparedAttempt;
@@ -27,7 +27,7 @@ namespace ApexRivals.RaceSession.Runtime
         private RaceSessionLifecycleState _stateBeforePause = RaceSessionLifecycleState.Racing;
         private string _playerParticipantId = string.Empty;
         private int _participantCount;
-        private RaceSessionResultsSnapshot _lastResults;
+        private RaceSessionResult _lastResults;
 
         public RaceSessionCoordinator(
             IRaceSessionSetup setup,
@@ -48,7 +48,8 @@ namespace ApexRivals.RaceSession.Runtime
             _saveCheckpoint = saveCheckpoint ?? throw new ArgumentNullException(nameof(saveCheckpoint));
             _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
             _raceSessionState = raceSessionState ?? throw new ArgumentNullException(nameof(raceSessionState));
-            _timeScale = timeScale ?? throw new ArgumentNullException(nameof(timeScale));
+            if (timeScale == null) throw new ArgumentNullException(nameof(timeScale));
+            _timeScale = timeScale as RacePauseCoordinator.SessionPause ?? new RacePauseCoordinator(timeScale).CreateSession();
             State = RaceSessionLifecycleState.Uninitialized;
         }
 
@@ -56,10 +57,10 @@ namespace ApexRivals.RaceSession.Runtime
 
         public event Action<PositionChangedEvent> PositionChanged;
 
-        public event Action<RaceSessionResultsSnapshot> ResultsReady;
+        public event Action<RaceSessionResult> ResultsReady;
 
         public RaceSessionLifecycleState State { get; private set; }
-        public RaceSessionResultsSnapshot LastResults => _lastResults;
+        public RaceSessionResult LastResults => _lastResults;
         public RaceSessionCommandResult LastCommandResult { get; private set; } = RaceSessionCommandResult.Success();
         public RaceHudSnapshot Hud => _raceController.CreateHudSnapshot(_playerParticipantId);
         public RacePauseSnapshot PauseState => new RacePauseSnapshot(State == RaceSessionLifecycleState.Paused, State == RaceSessionLifecycleState.Racing || State == RaceSessionLifecycleState.Paused, State == RaceSessionLifecycleState.Racing || State == RaceSessionLifecycleState.Paused || State == RaceSessionLifecycleState.ShowingResults);
@@ -67,6 +68,9 @@ namespace ApexRivals.RaceSession.Runtime
         public UnityEngine.Rigidbody PlayerVehicleRigidbody => _raceController.PlayerVehicleRigidbody;
         public ApexRivals.Vehicle.Runtime.IDrivingInputProvider PlayerInputProvider => _raceController.PlayerInputProvider;
         public ApexRivals.Vehicle.Runtime.IVehicleTelemetry PlayerVehicleTelemetry => _raceController.PlayerVehicleTelemetry;
+
+        public bool TryOpenFallbackPause() => _timeScale.TryOpenFallbackPause();
+        public void CloseFallbackPause() => _timeScale.CloseFallbackPause();
 
         public RaceSessionCommandResult Prepare()
         {
@@ -238,7 +242,7 @@ namespace ApexRivals.RaceSession.Runtime
                 return;
             }
 
-            _timeScale.Resume();
+            _timeScale.Dispose();
             CleanupAttempt();
             SetState(RaceSessionLifecycleState.Disposed);
         }
@@ -364,19 +368,10 @@ namespace ApexRivals.RaceSession.Runtime
                 progressionResult.NewTierReached,
                 saveResult.Succeeded,
                 saveResult.Message);
+            // Retain the completed payload before presentation, even if it is rejected.
             _raceSessionState.SetResult(result);
-            _lastResults = new RaceSessionResultsSnapshot(
-                racerFinished.Result,
-                _participantCount,
-                reward,
-                _progressionState.Currency,
-                progressionResult.CompletedRaceCount,
-                progressionResult.PreviousTier,
-                progressionResult.CurrentTier,
-                progressionResult.NewTierReached,
-                saveResult.Succeeded,
-                saveResult.Message);
-            _navigation.ShowResults(result);
+            _lastResults = result;
+            _navigation.ShowResults();
             SetState(RaceSessionLifecycleState.ShowingResults);
 
             if (!_resultsEmitted)

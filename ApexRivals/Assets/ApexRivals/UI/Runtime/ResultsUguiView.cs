@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -24,7 +23,8 @@ namespace ApexRivals.UI.Runtime
         public void Bind(ResultsPresenter presenter)
         {
             _presenter = presenter;
-            Subscribe();
+            if (presenter == null) Unsubscribe();
+            else Subscribe();
         }
 
         public void Render(ResultsViewModel viewModel)
@@ -114,7 +114,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (_presenter != null)
             {
-                await Run(_presenter.Retry());
+                await _presenter.Retry();
             }
         }
 
@@ -122,7 +122,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (_presenter != null)
             {
-                await Run(_presenter.ReturnToGarage());
+                await _presenter.ReturnToGarage();
             }
         }
 
@@ -130,13 +130,8 @@ namespace ApexRivals.UI.Runtime
         {
             if (_presenter != null)
             {
-                await Run(_presenter.ReturnToMainMenu());
+                await _presenter.ReturnToMainMenu();
             }
-        }
-
-        private static async Task Run(Task task)
-        {
-            await task;
         }
 
         private static void SetButton(Button button, bool interactable)

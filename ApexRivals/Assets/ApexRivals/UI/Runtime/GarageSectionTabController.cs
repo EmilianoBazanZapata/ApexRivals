@@ -115,7 +115,7 @@ namespace ApexRivals.UI.Runtime
                 && EventSystem.current != null
                 && (EventSystem.current.currentSelectedGameObject == null
                     || EventSystem.current.currentSelectedGameObject == vehiclesTabButton?.gameObject
-                    || !IsUsable(UiFocus.SelectableOf(EventSystem.current.currentSelectedGameObject))))
+                    || !IsRememberedSelectionEligible(UiFocus.SelectableOf(EventSystem.current.currentSelectedGameObject))))
             {
                 Focus(vehiclesInitialSelection, vehiclesTabButton);
             }
@@ -217,8 +217,10 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
-        private static bool IsUsable(Selectable selectable)
+        private static bool IsRememberedSelectionEligible(Selectable selectable)
         {
+            // Remembered selection keeps its existing hierarchy/interactability policy.
+            // Focus() still applies the enabled-state check through UiFocus.Request.
             return selectable != null && selectable.gameObject.activeInHierarchy && selectable.IsInteractable();
         }
 

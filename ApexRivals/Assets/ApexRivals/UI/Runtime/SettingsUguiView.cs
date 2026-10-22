@@ -43,28 +43,39 @@ namespace ApexRivals.UI.Runtime
         private SettingsResolution _selectedResolution;
         private bool _subscribed;
         private bool _rendering;
+        private bool _displayOptionsRendered;
+        private FullScreenMode _renderedFullScreenMode;
+        private bool _renderedCanApply;
 
         public void Bind(SettingsPresenter presenter, IPresentationScreenNavigator navigator, PresentationScreenState cancelTarget)
         {
             _presenter = presenter;
             _navigator = navigator;
             _cancelTarget = cancelTarget;
-            Subscribe();
+            if (presenter == null) Unsubscribe();
+            else Subscribe();
         }
 
         public void Render(SettingsViewModel viewModel)
         {
             _rendering = true;
-            _resolutions.Clear();
-            for (var index = 0; index < viewModel.AvailableResolutions.Count; index++)
+            var displayChanged = DisplayOptionsChanged(viewModel);
+            var navigationChanged = displayChanged || _renderedCanApply != viewModel.CanApply;
+            if (displayChanged)
             {
-                _resolutions.Add(viewModel.AvailableResolutions[index].Resolution);
-            }
+                _resolutions.Clear();
+                for (var index = 0; index < viewModel.AvailableResolutions.Count; index++)
+                {
+                    _resolutions.Add(viewModel.AvailableResolutions[index]);
+                }
 
-            _selectedResolution = viewModel.SelectedResolution;
-            RenderResolutionSelector(viewModel.SelectedResolution);
-            RenderRefreshRateSelector(viewModel.SelectedResolution, viewModel.FullScreenMode);
-            RenderFullScreenSelector(viewModel.FullScreenMode);
+                _selectedResolution = viewModel.SelectedResolution;
+                _renderedFullScreenMode = viewModel.FullScreenMode;
+                RenderResolutionSelector(viewModel.SelectedResolution);
+                RenderRefreshRateSelector(viewModel.SelectedResolution, viewModel.FullScreenMode);
+                RenderFullScreenSelector(viewModel.FullScreenMode);
+                _displayOptionsRendered = true;
+            }
             SetSlider(masterVolumeSlider, viewModel.MasterVolume);
             SetSlider(musicVolumeSlider, viewModel.MusicVolume);
             SetSlider(sfxVolumeSlider, viewModel.SfxVolume);
@@ -74,12 +85,34 @@ namespace ApexRivals.UI.Runtime
             UguiViewText.Set(statusText, viewModel.MessageKey == "ui.settings.display.rollbackFailed"
                 ? "Display mode not saved. Apply again."
                 : viewModel.MessageKey);
-            ConfigureNavigation();
+            if (navigationChanged) ConfigureNavigation();
+            _renderedCanApply = viewModel.CanApply;
             _rendering = false;
+        }
+
+        private bool DisplayOptionsChanged(SettingsViewModel model)
+        {
+            if (!_displayOptionsRendered || _selectedResolution != model.SelectedResolution
+                || _renderedFullScreenMode != model.FullScreenMode
+                || _resolutions.Count != model.AvailableResolutions.Count)
+            {
+                return true;
+            }
+
+            // Compare values as well as selection: callers may supply a mutable
+            // list, and a refreshed monitor catalog may contain the same modes.
+            for (var index = 0; index < _resolutions.Count; index++)
+            {
+                if (_resolutions[index] != model.AvailableResolutions[index]) return true;
+            }
+
+            return false;
         }
 
         private void OnEnable()
         {
+            Display.onDisplaysUpdated += OnDisplaysUpdated;
+            _displayOptionsRendered = false;
             Subscribe();
             ShowDisplayTab(true);
             _presenter?.Present();
@@ -87,8 +120,16 @@ namespace ApexRivals.UI.Runtime
 
         private void OnDisable()
         {
+            Display.onDisplaysUpdated -= OnDisplaysUpdated;
             Unsubscribe();
         }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (focused && isActiveAndEnabled) _presenter?.RefreshDisplayOptions();
+        }
+
+        private void OnDisplaysUpdated() => _presenter?.RefreshDisplayOptions();
 
         private void Subscribe()
         {
@@ -300,6 +341,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnDisplayTabClicked()
         {
+            _presenter?.RefreshDisplayOptions();
             ShowDisplayTab(true);
         }
 
@@ -604,13 +646,7 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            var navigation = selectable.navigation;
-            navigation.mode = Navigation.Mode.Explicit;
-            navigation.selectOnUp = up;
-            navigation.selectOnDown = down;
-            navigation.selectOnLeft = left;
-            navigation.selectOnRight = right;
-            selectable.navigation = navigation;
+            UiNavigation.Set(selectable, up, down, left, right, wrapAround: selectable.navigation.wrapAround);
         }
     }
 }

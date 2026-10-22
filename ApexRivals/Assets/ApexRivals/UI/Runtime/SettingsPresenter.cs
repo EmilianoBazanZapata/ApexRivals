@@ -9,6 +9,7 @@ namespace ApexRivals.UI.Runtime
     {
         private readonly ISettingsView _view;
         private readonly SettingsService _settings;
+        private IReadOnlyList<SettingsResolution> _resolutions;
 
         private bool _operationActive;
 
@@ -16,6 +17,7 @@ namespace ApexRivals.UI.Runtime
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            CaptureDisplayOptions();
             Current = CreateViewModel(PresentationFailure.None, string.Empty);
         }
 
@@ -23,7 +25,29 @@ namespace ApexRivals.UI.Runtime
 
         public void Present()
         {
+            // A panel open or display-change notification refreshes this owned
+            // snapshot. Audio and selection edits only reuse it.
+            CaptureDisplayOptions();
             Render(PresentationFailure.None, string.Empty);
+        }
+
+        public void RefreshDisplayOptions()
+        {
+            CaptureDisplayOptions();
+            // Monitor notifications must not erase a failed Apply's recovery UI.
+            Render(Current.Failure, Current.MessageKey);
+        }
+
+        private void CaptureDisplayOptions()
+        {
+            var available = _settings.AvailableResolutions;
+            var copy = new SettingsResolution[available.Count];
+            for (var index = 0; index < available.Count; index++)
+            {
+                copy[index] = available[index];
+            }
+
+            _resolutions = Array.AsReadOnly(copy);
         }
 
         public void SelectResolution(SettingsResolution resolution)
@@ -101,6 +125,7 @@ namespace ApexRivals.UI.Runtime
             }
 
             _settings.RestoreDefaults();
+            CaptureDisplayOptions();
             Render(PresentationFailure.None, "ui.settings.defaults.pending");
         }
 
@@ -116,6 +141,7 @@ namespace ApexRivals.UI.Runtime
 
             var result = _settings.Apply();
             _operationActive = false;
+            CaptureDisplayOptions();
 
             if (result.Succeeded)
             {
@@ -135,16 +161,8 @@ namespace ApexRivals.UI.Runtime
 
         private SettingsViewModel CreateViewModel(PresentationFailure failure, string messageKey)
         {
-            var resolutions = _settings.AvailableResolutions;
-            var models = new List<SettingsResolutionViewModel>(resolutions.Count);
-            for (var index = 0; index < resolutions.Count; index++)
-            {
-                var resolution = resolutions[index];
-                models.Add(new SettingsResolutionViewModel(resolution, resolution == _settings.Draft.Resolution));
-            }
-
             return new SettingsViewModel(
-                models,
+                _resolutions,
                 _settings.Draft.Resolution,
                 _settings.Draft.FullScreenMode,
                 _settings.Draft.MasterVolume,

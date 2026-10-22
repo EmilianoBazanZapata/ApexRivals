@@ -7,6 +7,14 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
 {
     public sealed class VehicleCatalogTests
     {
+        private readonly FixtureObjects _objects = new FixtureObjects();
+
+        [TearDown]
+        public void TearDown()
+        {
+            _objects.Dispose();
+        }
+
         [Test]
         public void FindById_KnownVehicle_ReturnsDefinition()
         {
@@ -63,18 +71,32 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
         }
 
         [Test]
-        public void GetSelectableDemoVehicles_OnlyReturnsAvailableVehicles()
+        public void GetRaceSelectableVehicles_UsesProductionEligibilityWithoutHidingCatalogEntries()
         {
             var catalog = CreateCatalog();
 
-            var vehicles = catalog.GetSelectableDemoVehicles();
+            var vehicles = catalog.GetRaceSelectableVehicles();
 
-            Assert.That(vehicles.Count, Is.EqualTo(2));
-            Assert.That(vehicles[0].StableId, Is.EqualTo("starter"));
-            Assert.That(vehicles[1].StableId, Is.EqualTo("sport"));
+            Assert.That(vehicles.Count, Is.EqualTo(1));
+            Assert.That(vehicles[0].StableId, Is.EqualTo("sport"));
+            Assert.That(catalog.Vehicles.Count, Is.EqualTo(3));
+            Assert.That(catalog.FindById("locked").Succeeded, Is.True);
         }
 
-        private static VehicleCatalog CreateCatalog()
+        [Test]
+        public void StarterWithoutPrefabRemainsAValidCatalogFallbackButCannotRace()
+        {
+            var starter = CreateVehicle("starter", true, false);
+            var catalog = new VehicleCatalog(new[] { starter }, "starter");
+
+            Assert.That(catalog.Validate().Succeeded, Is.True);
+            Assert.That(catalog.ResolveSavedOrDefault("missing"), Is.SameAs(starter));
+            Assert.That(catalog.GetRaceSelectableVehicles(), Is.Empty);
+            Assert.That(VehicleCatalog.IsRaceSelectable(starter), Is.False);
+            Assert.That(VehicleCatalog.IsRaceSelectable(null), Is.False);
+        }
+
+        private VehicleCatalog CreateCatalog()
         {
             return new VehicleCatalog(new[]
             {
@@ -84,10 +106,10 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             }, "starter");
         }
 
-        private static VehicleDefinitionData CreateVehicle(string id, bool available)
+        private VehicleDefinitionData CreateVehicle(string id, bool available, bool hasPrefab = true)
         {
-            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
-            return new VehicleDefinitionData(id, id == "sport" ? "Sport" : id, string.Empty, configuration, new GameObject($"{id}Prefab"), null, available);
+            var configuration = _objects.Own(ScriptableObject.CreateInstance<WheelVehicleConfiguration>());
+            return new VehicleDefinitionData(id, id == "sport" ? "Sport" : id, string.Empty, configuration, hasPrefab ? _objects.Own(new GameObject($"{id}Prefab")) : null, null, available);
         }
     }
 }

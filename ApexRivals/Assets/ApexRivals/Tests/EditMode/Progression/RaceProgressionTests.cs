@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ApexRivals.AI.Configuration;
 using ApexRivals.Garage.Runtime;
@@ -9,6 +10,14 @@ namespace ApexRivals.Tests.EditMode.Progression
 {
     public sealed class RaceProgressionTests
     {
+        private readonly FixtureObjects _objects = new FixtureObjects();
+
+        [TearDown]
+        public void TearDown()
+        {
+            _objects.Dispose();
+        }
+
         [Test]
         public void NewProfileStartsWithZeroCompletedRaces()
         {
@@ -104,7 +113,66 @@ namespace ApexRivals.Tests.EditMode.Progression
             Assert.That(validation.Status, Is.EqualTo(RaceProgressionConfigurationStatus.MissingAiConfiguration));
         }
 
-        private static RaceProgressionService CreateService(PlayerProgressionState state)
+        [Test]
+        public void TableOwnsAnImmutableSnapshotOfItsInput()
+        {
+            var input = new[] { Tier("rookie", 0, "rookie"), Tier("expert", 8, "expert") };
+            var table = new RaceProgressionTable(input);
+            input[0] = Tier("invalid", -1, string.Empty);
+            Assert.That(table.Validate().Succeeded, Is.True);
+            Assert.That(table.Tiers[0].TierId, Is.EqualTo("rookie"));
+            Assert.That(table.Tiers, Is.Not.InstanceOf<RaceProgressionTier[]>());
+            var exposed = table.Tiers as IList<RaceProgressionTier>;
+            Assert.That(exposed, Is.Not.Null);
+            Assert.Throws<NotSupportedException>(() => exposed[0] = input[0]);
+            for (var index = 0; index < 100; index++)
+            {
+                Assert.That(new DifficultyTierResolver().Resolve(index, table).Succeeded, Is.True);
+                Assert.That(table.Validate().Succeeded, Is.True);
+            }
+        }
+
+        [Test]
+        public void EmptyAndMissingInitialConfigurationsRetainTheirDiagnostics()
+        {
+            Assert.That(new RaceProgressionTable(null).Validate().Status, Is.EqualTo(RaceProgressionConfigurationStatus.MissingConfiguration));
+            Assert.That(new RaceProgressionTable(new[] { Tier("", 0, "rookie") }).Validate().Status, Is.EqualTo(RaceProgressionConfigurationStatus.MissingConfiguration));
+            Assert.That(new RaceProgressionTable(new[] { Tier("rookie", 1, "rookie") }).Validate().Status, Is.EqualTo(RaceProgressionConfigurationStatus.MissingInitialTier));
+        }
+
+        [TestCase(-1)]
+        [TestCase(int.MinValue)]
+        public void NegativeRuntimeRaceCountsRemainInvalid(int count)
+        {
+            var table = CreateTable();
+            Assert.That(table.Validate().Succeeded, Is.True);
+            Assert.That(new DifficultyTierResolver().Resolve(count, table).Succeeded, Is.False);
+        }
+
+        [Test]
+        public void MissingRuntimeTableRemainsInvalid()
+        {
+            Assert.That(new DifficultyTierResolver().Resolve(0, null).Succeeded, Is.False);
+        }
+
+        [Test]
+        public void DestroyedAiReferencesAreRecheckedAndCanBeReplaced()
+        {
+            var ai = CreateAiConfiguration("Rookie");
+            var map = new Dictionary<string, AiDriverConfiguration> { ["rookie"] = ai };
+            var table = new RaceProgressionTable(new[] { Tier("rookie", 0, "rookie") });
+            var service = new RaceProgressionService(new PlayerProgressionState(), table, map);
+            Assert.That(service.TryGetCurrentAiConfiguration(out _, out _), Is.True);
+            UnityEngine.Object.DestroyImmediate(ai);
+            Assert.That(table.Validate().Succeeded, Is.True, "The immutable table contains IDs, not Unity references.");
+            Assert.That(service.Validate().Status, Is.EqualTo(RaceProgressionConfigurationStatus.MissingAiConfiguration));
+            Assert.That(service.TryGetCurrentAiConfiguration(out _, out _), Is.False);
+            map["rookie"] = CreateAiConfiguration("Replacement");
+            Assert.That(service.TryGetCurrentAiConfiguration(out var replacement, out _), Is.True);
+            Assert.That(replacement, Is.SameAs(map["rookie"]));
+        }
+
+        private RaceProgressionService CreateService(PlayerProgressionState state)
         {
             return new RaceProgressionService(
                 state,
@@ -134,9 +202,9 @@ namespace ApexRivals.Tests.EditMode.Progression
             return new RaceProgressionTier(id, id, threshold, aiConfigurationId);
         }
 
-        private static AiDriverConfiguration CreateAiConfiguration(string name)
+        private AiDriverConfiguration CreateAiConfiguration(string name)
         {
-            var configuration = ScriptableObject.CreateInstance<AiDriverConfiguration>();
+            var configuration = _objects.Own(ScriptableObject.CreateInstance<AiDriverConfiguration>());
             configuration.name = name;
             return configuration;
         }

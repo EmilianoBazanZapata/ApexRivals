@@ -86,7 +86,6 @@ namespace ApexRivals.Bootstrap.Runtime
             var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
             var garageService = CreateGarageService(vehicleCatalog, vehicleSelectionService, progressionState);
             var raceProgressionService = CreateRaceProgressionService(progressionState);
-            var profileResetService = new PlayerProfileResetService(saveService);
             if (raceProgressionService == null)
             {
                 StartupStatus = BootstrapStartupStatus.Failed;
@@ -114,8 +113,7 @@ namespace ApexRivals.Bootstrap.Runtime
                 vehicleSelectionService,
                 garageService,
                 settingsService,
-                raceProgressionService,
-                profileResetService);
+                raceProgressionService);
 
             sceneLoader.ContentSceneUnloading += OnContentSceneUnloading;
             sceneLoader.ContentSceneLoaded += OnContentSceneLoaded;
@@ -134,6 +132,7 @@ namespace ApexRivals.Bootstrap.Runtime
             }
 
             UninstallActiveContentScene();
+            Context?.PauseCoordinator.Dispose();
         }
 
         private async System.Threading.Tasks.Task<BootstrapStartupResult> CompleteStartupAsync(

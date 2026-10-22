@@ -308,6 +308,92 @@ namespace ApexRivals.Tests.EditMode.Settings
         }
 
         [Test]
+        public void AudioEditsReuseThePresentedDisplaySnapshot()
+        {
+            var display = new FakeDisplaySettingsAdapter();
+            var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(display: display));
+            presenter.Present();
+            var modes = presenter.Current.AvailableResolutions;
+            var reads = display.SupportedResolutionReads;
+
+            presenter.SetMasterVolume(0.2f);
+            presenter.SetMusicVolume(0.3f);
+            presenter.SetSfxVolume(0.4f);
+
+            Assert.That(display.SupportedResolutionReads, Is.EqualTo(reads));
+            Assert.That(presenter.Current.AvailableResolutions, Is.SameAs(modes));
+            Assert.That(presenter.Current.MasterVolume, Is.EqualTo(0.2f));
+            Assert.That(presenter.Current.MusicVolume, Is.EqualTo(0.3f));
+            Assert.That(presenter.Current.SfxVolume, Is.EqualTo(0.4f));
+            Assert.That(presenter.Current.CanApply, Is.True);
+        }
+
+        [Test]
+        public void PresentRefreshesMonitorModesWithoutDiscardingDraft()
+        {
+            var display = new FakeDisplaySettingsAdapter();
+            var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(display: display));
+            presenter.SetMusicVolume(0.2f);
+            var modes = presenter.Current.AvailableResolutions;
+            var replacement = new SettingsResolution(2560, 1440, 144);
+            display.ReplaceModes(new[] { replacement });
+
+            presenter.Present();
+
+            Assert.That(presenter.Current.AvailableResolutions, Is.Not.SameAs(modes));
+            Assert.That(presenter.Current.AvailableResolutions[0], Is.EqualTo(replacement));
+            Assert.That(presenter.Current.MusicVolume, Is.EqualTo(0.2f));
+            Assert.That(presenter.Current.HasUnsavedChanges, Is.True);
+        }
+
+        [Test]
+        public void PresentedModesCannotBeMutatedThroughTheAdapterOrViewModel()
+        {
+            var display = new FakeDisplaySettingsAdapter();
+            var modes = new[] { SettingsState.Default.Resolution };
+            display.ReplaceModes(modes);
+            var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(display: display));
+            modes[0] = new SettingsResolution(2560, 1440, 144);
+
+            Assert.That(presenter.Current.AvailableResolutions[0], Is.EqualTo(SettingsState.Default.Resolution));
+            var exposed = presenter.Current.AvailableResolutions as IList<SettingsResolution>;
+            Assert.That(exposed, Is.Not.Null);
+            Assert.Throws<NotSupportedException>(() => exposed[0] = modes[0]);
+        }
+
+        [Test]
+        public void ApplyReadsOneSupportedModeSnapshot()
+        {
+            var display = new FakeDisplaySettingsAdapter();
+            var service = CreateService(display: display);
+            service.EditResolution(new SettingsResolution(1024, 768, 60));
+            var reads = display.SupportedResolutionReads;
+
+            Assert.That(service.Apply().Status, Is.EqualTo(SettingsOperationStatus.UnsupportedResolution));
+            Assert.That(display.SupportedResolutionReads - reads, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void MonitorRefreshPreservesApplyFailureAndAllowsRetry()
+        {
+            var display = new FakeDisplaySettingsAdapter { FailApply = true };
+            var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(display: display));
+            presenter.SetMusicVolume(0.2f);
+            Assert.That(presenter.Apply().Succeeded, Is.False);
+            display.ReplaceModes(new[] { SettingsState.Default.Resolution, new SettingsResolution(2560, 1440, 144) });
+
+            presenter.RefreshDisplayOptions();
+
+            Assert.That(presenter.Current.Failure, Is.EqualTo(PresentationFailure.SettingsApplyFailed));
+            Assert.That(presenter.Current.MessageKey, Is.EqualTo("ui.settings.display.failed"));
+            Assert.That(presenter.Current.MusicVolume, Is.EqualTo(0.2f));
+            Assert.That(presenter.Current.AvailableResolutions.Count, Is.EqualTo(2));
+            display.FailApply = false;
+            Assert.That(presenter.Apply().Succeeded, Is.True);
+            Assert.That(presenter.Current.Failure, Is.EqualTo(PresentationFailure.None));
+        }
+
+        [Test]
         public void PresenterReportsApplyFailures()
         {
             var display = new FakeDisplaySettingsAdapter { FailApply = true };
@@ -399,7 +485,7 @@ namespace ApexRivals.Tests.EditMode.Settings
 
         private sealed class FakeDisplaySettingsAdapter : IDisplaySettingsAdapter
         {
-            private readonly IReadOnlyList<SettingsResolution> _supportedResolutions;
+            private IReadOnlyList<SettingsResolution> _supportedResolutions;
 
             public FakeDisplaySettingsAdapter()
                 : this(new[] { SettingsState.Default.Resolution, new SettingsResolution(1280, 720, 60) }, SettingsState.Default.Resolution)
@@ -417,7 +503,12 @@ namespace ApexRivals.Tests.EditMode.Settings
             public int ThrowOnApplyNumber { get; set; }
             public int ApplyCount { get; private set; }
             public SettingsState LastApplied { get; private set; }
-            public IReadOnlyList<SettingsResolution> SupportedResolutions => _supportedResolutions;
+            public int SupportedResolutionReads { get; private set; }
+            public IReadOnlyList<SettingsResolution> SupportedResolutions
+            {
+                get { SupportedResolutionReads++; return _supportedResolutions; }
+            }
+            public void ReplaceModes(IReadOnlyList<SettingsResolution> modes) => _supportedResolutions = modes;
             public SettingsResolution CurrentResolution { get; }
 
             public SettingsOperationResult Apply(SettingsState settings)

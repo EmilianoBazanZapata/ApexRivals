@@ -1,12 +1,13 @@
 using System;
 using System.Threading.Tasks;
+using UnityObject = UnityEngine.Object;
 using ApexRivals.SceneFlow.Runtime;
 
 namespace ApexRivals.UI.Runtime
 {
-    public sealed class MainMenuPresenter
+    public sealed class MainMenuPresenter : IDisposable
     {
-        private readonly IMainMenuView _view;
+        private IMainMenuView _view;
         private readonly SceneFlowService _sceneFlow;
         private readonly IInitialVehicleSelectionProgress _selectionProgress;
         private readonly IPresentationScreenNavigator _screenNavigator;
@@ -31,8 +32,20 @@ namespace ApexRivals.UI.Runtime
 
         public MainMenuViewModel Current { get; private set; }
 
+        private bool _disposed;
+        private bool CanRender => !_disposed && _view != null
+            && (_view is not UnityObject unityView || unityView != null);
+
+        public void Dispose()
+        {
+            _disposed = true;
+            _view = null;
+        }
+
         public void Present()
         {
+            if (!CanRender) return;
+
             Current = CreateModel();
             _view.Render(Current);
         }
@@ -91,6 +104,7 @@ namespace ApexRivals.UI.Runtime
             Present();
 
             var result = await transition();
+            if (!CanRender) return;
             _transitioning = false;
 
             if (!result.Succeeded)
@@ -104,7 +118,7 @@ namespace ApexRivals.UI.Runtime
 
         private bool CanRunCommand()
         {
-            return !_transitioning && _sceneFlow.State != ApplicationState.Transitioning;
+            return CanRender && !_transitioning && _sceneFlow.State != ApplicationState.Transitioning;
         }
 
         private MainMenuViewModel CreateModel()

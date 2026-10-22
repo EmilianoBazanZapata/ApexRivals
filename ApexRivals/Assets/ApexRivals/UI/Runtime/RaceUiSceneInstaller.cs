@@ -19,6 +19,7 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private ApexRivals.Camera.Runtime.WheelVehicleFollowCamera followCamera;
 
         private ApplicationContext _context;
+        private RaceSessionCoordinator _session;
         private RaceHudPresenter _hudPresenter;
         private VehicleRecoveryPromptPresenter _vehicleRecoveryPromptPresenter;
         private PausePresenter _pausePresenter;
@@ -27,8 +28,9 @@ namespace ApexRivals.UI.Runtime
         private InputAction _pauseAction;
         private double _lastPauseInputTime = double.NegativeInfinity;
         private bool _fallbackPauseActive;
-        private float _fallbackPreviousTimeScale = 1f;
         private bool _subscribed;
+
+        private void OnDestroy() => Uninstall();
 
         private void OnEnable()
         {
@@ -42,6 +44,11 @@ namespace ApexRivals.UI.Runtime
 
         public void Install(ApplicationContext context)
         {
+            if (_subscribed)
+            {
+                Uninstall();
+                CreatePauseAction();
+            }
             _context = context;
             if (context == null || context.Navigation == null || raceSessionInstaller == null || raceSessionInstaller.Session == null)
             {
@@ -56,6 +63,7 @@ namespace ApexRivals.UI.Runtime
             }
 
             var session = raceSessionInstaller.Session;
+            _session = session;
             if (followCamera != null)
             {
                 followCamera.SetTarget(session.PlayerCameraTarget);
@@ -83,10 +91,10 @@ namespace ApexRivals.UI.Runtime
 
         public void Uninstall()
         {
-            if (_subscribed && raceSessionInstaller != null && raceSessionInstaller.Session != null)
+            if (_subscribed && _session != null)
             {
-                raceSessionInstaller.Session.StateChanged -= OnSessionStateChanged;
-                raceSessionInstaller.Session.ResultsReady -= OnResultsReady;
+                _session.StateChanged -= OnSessionStateChanged;
+                _session.ResultsReady -= OnResultsReady;
             }
 
             if (_subscribed && pauseView != null)
@@ -107,6 +115,9 @@ namespace ApexRivals.UI.Runtime
             _hudPresenter?.Dispose();
             _vehicleRecoveryPromptPresenter?.Dispose();
             _hudSource?.Dispose();
+            if (pauseView != null) pauseView.Bind(null);
+            if (resultsView != null) resultsView.Bind(null);
+            hudView?.Bind(null);
             hudView?.BindTelemetry(null);
             _hudSource = null;
             _hudPresenter = null;
@@ -114,6 +125,7 @@ namespace ApexRivals.UI.Runtime
             _pausePresenter = null;
             _resultsPresenter = null;
             _context = null;
+            _session = null;
         }
 
         private void BindHud(RaceSessionCoordinator session)
@@ -226,19 +238,24 @@ namespace ApexRivals.UI.Runtime
 
             if (current == RaceSessionLifecycleState.Paused)
             {
-                _fallbackPauseActive = false;
+                CloseFallbackPause();
                 screenNavigator.Show(PresentationScreenState.Paused);
             }
             else if (current == RaceSessionLifecycleState.Racing || current == RaceSessionLifecycleState.Starting)
             {
-                _fallbackPauseActive = false;
+                CloseFallbackPause();
                 screenNavigator.Show(PresentationScreenState.Racing);
+            }
+            else if (current == RaceSessionLifecycleState.ShowingResults || current == RaceSessionLifecycleState.Disposed)
+            {
+                CloseFallbackPause();
+                if (current == RaceSessionLifecycleState.ShowingResults) screenNavigator.Show(PresentationScreenState.Results);
             }
 
             _pausePresenter?.Present();
         }
 
-        private void OnResultsReady(RaceSessionResultsSnapshot results)
+        private void OnResultsReady(RaceSessionResult results)
         {
             screenNavigator.Show(PresentationScreenState.Results);
             _resultsPresenter?.Present();
@@ -247,6 +264,9 @@ namespace ApexRivals.UI.Runtime
 
         private void OnApplicationStateChanged(ApplicationStateChangedEvent stateChanged)
         {
+            if (stateChanged.CurrentState != ApplicationState.Transitioning && _session != null
+                && _session.State != RaceSessionLifecycleState.Retrying && _session.State != RaceSessionLifecycleState.Exiting)
+                CloseFallbackPause();
             if (_context != null && _context.Navigation.RacePresentationState == RacePresentationState.Results)
             {
                 CloseFallbackPause();
@@ -269,9 +289,8 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            _fallbackPreviousTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
+            if (_session == null || !_session.TryOpenFallbackPause()) return;
             _fallbackPauseActive = true;
-            Time.timeScale = 0f;
             screenNavigator.Show(PresentationScreenState.Paused);
 
             if (pauseView != null)
@@ -294,9 +313,11 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            Time.timeScale = _fallbackPreviousTimeScale > 0f ? _fallbackPreviousTimeScale : 1f;
             _fallbackPauseActive = false;
-            screenNavigator.Show(PresentationScreenState.Racing);
+            _session?.CloseFallbackPause();
+            var screen = _session?.State == RaceSessionLifecycleState.Paused ? PresentationScreenState.Paused
+                : _session?.State == RaceSessionLifecycleState.ShowingResults ? PresentationScreenState.Results : PresentationScreenState.Racing;
+            screenNavigator.Show(screen);
         }
 
         private sealed class RaceSessionHudSource : IRaceHudSource, System.IDisposable
@@ -310,13 +331,7 @@ namespace ApexRivals.UI.Runtime
                 _session.PositionChanged += OnPositionChanged;
             }
 
-#pragma warning disable CS0067 // Required by IRaceHudSource; the aggregate source publishes position and RaceStarted updates.
-            public event System.Action<ApexRivals.Race.Runtime.CountdownChangedEvent> CountdownChanged;
-            public event System.Action<ApexRivals.Race.Runtime.LapCompletedEvent> LapCompleted;
-            public event System.Action<ApexRivals.Race.Runtime.PositionChangedEvent> PositionChanged;
-            public event System.Action<ApexRivals.Race.Runtime.RaceStartedEvent> RaceStarted;
-            public event System.Action<ApexRivals.Race.Runtime.RacerFinishedEvent> RacerFinished;
-#pragma warning restore CS0067
+            public event System.Action RefreshRequested;
 
             public RaceHudSnapshot Snapshot => _session.Hud;
             public bool RacingInputActive => _session.State == RaceSessionLifecycleState.Racing;
@@ -329,15 +344,12 @@ namespace ApexRivals.UI.Runtime
 
             private void OnStateChanged(RaceSessionLifecycleState previous, RaceSessionLifecycleState current)
             {
-                if (current == RaceSessionLifecycleState.Racing)
-                {
-                    RaceStarted?.Invoke(new ApexRivals.Race.Runtime.RaceStartedEvent(0f));
-                }
+                RefreshRequested?.Invoke();
             }
 
             private void OnPositionChanged(ApexRivals.Race.Runtime.PositionChangedEvent positionChanged)
             {
-                PositionChanged?.Invoke(positionChanged);
+                RefreshRequested?.Invoke();
             }
         }
     }

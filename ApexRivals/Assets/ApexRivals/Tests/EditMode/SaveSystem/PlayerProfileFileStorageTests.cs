@@ -9,6 +9,75 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
 {
     public sealed class PlayerProfileFileStorageTests
     {
+        [Test]
+        public void ResetProfileDeletesPrimaryBackupAndTemporaryFiles()
+        {
+            InTemporaryDirectory(directory =>
+            {
+                var path = Path.Combine(directory, "profile.json");
+                File.WriteAllText(path, "primary");
+                File.WriteAllText(path + ".bak", "backup");
+                File.WriteAllText(path + ".tmp", "temporary");
+                var progression = new PlayerProgressionState(275, completedRaceCount: 4);
+                var selected = new SelectedVehicleState("sport", true);
+                var service = new PlayerProfileSaveService(progression, selected, new PlayerProfileFileStorage(directory, "profile.json"));
+
+                var result = service.ResetProfile();
+
+                Assert.That(result.Status, Is.EqualTo(PlayerProfileSaveStatus.Deleted));
+                Assert.That(File.Exists(path), Is.False);
+                Assert.That(File.Exists(path + ".bak"), Is.False);
+                Assert.That(File.Exists(path + ".tmp"), Is.False);
+                Assert.That(progression.Currency, Is.Zero);
+                Assert.That(progression.CompletedRaceCount, Is.Zero);
+                Assert.That(selected.HasCommittedVehicleSelection, Is.False);
+            });
+        }
+
+        [Test, Platform("Win")]
+        public void ResetProfileWhenPrimaryIsLockedPreservesProfileAndCanRetry()
+        {
+            InTemporaryDirectory(directory =>
+            {
+                var path = Path.Combine(directory, "profile.json");
+                File.WriteAllText(path, "primary");
+                File.WriteAllText(path + ".bak", "backup");
+                File.WriteAllText(path + ".tmp", "temporary");
+                var progression = new PlayerProgressionState(275, completedRaceCount: 4);
+                progression.SetUpgradeLevel(UpgradeType.Engine, 1);
+                progression.SetUpgradeLevel(UpgradeType.Handling, 2);
+                var selected = new SelectedVehicleState("sport", true);
+                var service = new PlayerProfileSaveService(progression, selected, new PlayerProfileFileStorage(directory, "profile.json"));
+
+                using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var result = service.ResetProfile();
+
+                    Assert.That(result.Status, Is.EqualTo(PlayerProfileSaveStatus.StorageFailed));
+                    Assert.That(result.Message, Is.Not.Empty);
+                    Assert.That(progression.Currency, Is.EqualTo(275));
+                    Assert.That(progression.CompletedRaceCount, Is.EqualTo(4));
+                    Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(1));
+                    Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(2));
+                    Assert.That(selected.SelectedVehicleId, Is.EqualTo("sport"));
+                    Assert.That(selected.HasCommittedVehicleSelection, Is.True);
+                    Assert.That(File.ReadAllText(path), Is.EqualTo("primary"));
+                    Assert.That(File.ReadAllText(path + ".bak"), Is.EqualTo("backup"));
+                    Assert.That(File.ReadAllText(path + ".tmp"), Is.EqualTo("temporary"));
+                }
+
+                Assert.That(service.ResetProfile().Status, Is.EqualTo(PlayerProfileSaveStatus.Deleted));
+                Assert.That(progression.Currency, Is.Zero);
+                Assert.That(progression.CompletedRaceCount, Is.Zero);
+                Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.Zero);
+                Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.Zero);
+                Assert.That(selected.HasCommittedVehicleSelection, Is.False);
+                Assert.That(File.Exists(path), Is.False);
+                Assert.That(File.Exists(path + ".bak"), Is.False);
+                Assert.That(File.Exists(path + ".tmp"), Is.False);
+            });
+        }
+
         [TestCase(0)]
         [TestCase(1)]
         [TestCase(2)]

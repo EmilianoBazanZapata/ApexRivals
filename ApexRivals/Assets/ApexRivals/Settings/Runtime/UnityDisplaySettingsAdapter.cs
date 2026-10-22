@@ -5,7 +5,7 @@ namespace ApexRivals.Settings.Runtime
 {
     public sealed class UnityDisplaySettingsAdapter : IDisplaySettingsAdapter
     {
-        public IReadOnlyList<SettingsResolution> SupportedResolutions => CreateSupportedResolutions();
+        public IReadOnlyList<SettingsResolution> SupportedResolutions => CreateSupportedResolutions(Screen.resolutions);
 
         public SettingsResolution CurrentResolution
         {
@@ -21,14 +21,16 @@ namespace ApexRivals.Settings.Runtime
 
         public SettingsOperationResult Apply(SettingsState settings)
         {
-            var supported = SettingsDisplayCatalog.ContainsResolution(SupportedResolutions, settings.Resolution);
-            if (!supported && SupportedResolutions.Count > 0)
+            var nativeResolutions = Screen.resolutions;
+            var resolutions = CreateSupportedResolutions(nativeResolutions);
+            var supported = SettingsDisplayCatalog.ContainsResolution(resolutions, settings.Resolution);
+            if (!supported && resolutions.Count > 0)
             {
                 return new SettingsOperationResult(SettingsOperationStatus.UnsupportedResolution, "Selected resolution is not supported by this display.");
             }
 
             var refreshRate = DisplayRefreshRateRules.ResolveExactRefreshRate(
-                Screen.resolutions,
+                nativeResolutions,
                 settings.Width,
                 settings.Height,
                 settings.RefreshRate);
@@ -36,9 +38,8 @@ namespace ApexRivals.Settings.Runtime
             return SettingsOperationResult.Success();
         }
 
-        private static IReadOnlyList<SettingsResolution> CreateSupportedResolutions()
+        private static IReadOnlyList<SettingsResolution> CreateSupportedResolutions(Resolution[] resolutions)
         {
-            var resolutions = Screen.resolutions;
             var mapped = new SettingsResolution[resolutions.Length];
             for (var index = 0; index < resolutions.Length; index++)
             {

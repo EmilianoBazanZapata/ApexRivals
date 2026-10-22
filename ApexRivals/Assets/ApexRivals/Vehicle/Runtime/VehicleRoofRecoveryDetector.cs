@@ -1,5 +1,4 @@
 using System;
-using ApexRivals.Input.Runtime;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -15,7 +14,8 @@ namespace ApexRivals.Vehicle.Runtime
         [Header("References")]
         [SerializeField] private Rigidbody vehicleRigidbody;
         [SerializeField] private Transform roofRecoveryRayOrigin;
-        [SerializeField] private DrivingInputGate drivingInputGate;
+        // Keep the serialized field name and object reference used by existing vehicles.
+        [SerializeField] private MonoBehaviour drivingInputGate;
         [SerializeField] private WheelArcadeVehicleController vehicleController;
 
         [Header("Detection")]
@@ -33,6 +33,7 @@ namespace ApexRivals.Vehicle.Runtime
         [SerializeField] private RecoveryInputSource lastRecoveryInput;
 
         private float _invertedTime;
+        private IDrivingInputProvider _recoveryInput;
         // Fixed-size and reused: roof recovery never allocates while sampling.
         private readonly RaycastHit[] _roofRayHits = new RaycastHit[8];
 
@@ -54,10 +55,7 @@ namespace ApexRivals.Vehicle.Runtime
                 vehicleRigidbody = GetComponent<Rigidbody>();
             }
 
-            if (drivingInputGate == null)
-            {
-                drivingInputGate = GetComponent<DrivingInputGate>();
-            }
+            _recoveryInput = drivingInputGate as IDrivingInputProvider;
 
             if (vehicleController == null)
             {
@@ -123,12 +121,13 @@ namespace ApexRivals.Vehicle.Runtime
 
         private void TryConsumeRecoveryInput()
         {
-            if (drivingInputGate == null)
+            if (_recoveryInput == null
+                || (_recoveryInput is UnityEngine.Object inputObject && inputObject == null))
             {
                 return;
             }
 
-            var input = drivingInputGate.CurrentInput;
+            var input = _recoveryInput.CurrentInput;
             if (!input.RecoverVehicleRequested)
             {
                 return;
@@ -136,7 +135,7 @@ namespace ApexRivals.Vehicle.Runtime
 
             // Consume even when unavailable, so a press made while airborne cannot
             // become a delayed reset after the car lands inverted.
-            drivingInputGate.ConsumeRecoveryRequest();
+            _recoveryInput.ConsumeRecoveryRequest();
             lastRecoveryInput = input.RecoveryRequestSource;
             if (!canRecoverVehicle || vehicleController == null)
             {
@@ -178,7 +177,8 @@ namespace ApexRivals.Vehicle.Runtime
 
         public bool TryValidateConfiguration(out string message)
         {
-            if (vehicleRigidbody == null || roofRecoveryRayOrigin == null || drivingInputGate == null || vehicleController == null)
+            if (vehicleRigidbody == null || roofRecoveryRayOrigin == null
+                || !(drivingInputGate is IDrivingInputProvider) || drivingInputGate == null || vehicleController == null)
             {
                 message = $"VehicleRoofRecoveryDetector on '{gameObject.name}' requires Rigidbody, RoofRecoveryRayOrigin, DrivingInputGate, and WheelArcadeVehicleController.";
                 return false;
@@ -186,6 +186,18 @@ namespace ApexRivals.Vehicle.Runtime
 
             message = string.Empty;
             return true;
+        }
+
+        public void ConfigureRecoveryInput(IDrivingInputProvider inputProvider)
+        {
+            _recoveryInput = inputProvider;
+            drivingInputGate = inputProvider as MonoBehaviour;
+        }
+
+        internal void ConfigureRecoveryInputIfMissing(IDrivingInputProvider inputProvider)
+        {
+            if (drivingInputGate == null && _recoveryInput == null)
+                ConfigureRecoveryInput(inputProvider);
         }
     }
 }

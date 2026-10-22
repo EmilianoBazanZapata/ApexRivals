@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -31,7 +30,8 @@ namespace ApexRivals.UI.Runtime
         public void Bind(MainMenuPresenter presenter)
         {
             _presenter = presenter;
-            Subscribe();
+            if (presenter == null) Unsubscribe();
+            else Subscribe();
         }
 
         public void Render(MainMenuViewModel viewModel)
@@ -56,7 +56,7 @@ namespace ApexRivals.UI.Runtime
                 loadingBlocker.SetActive(viewModel.IsTransitioning);
             }
 
-            UguiViewText.Set(errorText, viewModel.Failure == PresentationFailure.None ? StatusText(viewModel.MessageKey) : StatusText(viewModel.MessageKey));
+            UguiViewText.Set(errorText, StatusText(viewModel.MessageKey));
         }
 
         private void RenderMenuText(MainMenuViewModel viewModel)
@@ -154,7 +154,7 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            await Run(_presenter.StartOrContinue());
+            await _presenter.StartOrContinue();
         }
 
         private async void OnGarageClicked()
@@ -164,7 +164,7 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            await Run(_presenter.OpenGarage());
+            await _presenter.OpenGarage();
         }
 
         private void OnSettingsClicked()
@@ -181,11 +181,6 @@ namespace ApexRivals.UI.Runtime
             {
                 _presenter?.Quit();
             }
-        }
-
-        private static async Task Run(Task task)
-        {
-            await task;
         }
 
         private static void SetButton(Button button, bool interactable)

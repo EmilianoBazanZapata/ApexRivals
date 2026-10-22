@@ -59,7 +59,7 @@ namespace ApexRivals.UI.Runtime
 
         private void Update()
         {
-            _presenter?.UpdateElapsedTimeSnapshot();
+            _presenter?.UpdateContinuousSnapshot();
             RenderTelemetry();
         }
 

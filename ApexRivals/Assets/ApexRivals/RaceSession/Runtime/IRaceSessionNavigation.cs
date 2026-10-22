@@ -11,7 +11,7 @@ namespace ApexRivals.RaceSession.Runtime
 
         Task<SceneTransitionResult> ReturnToMainMenu();
 
-        bool ShowResults(RaceSessionResult result);
+        bool ShowResults();
 
         bool PauseRace();
 

@@ -35,6 +35,26 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             Assert.That(valid, Is.True, message);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void PublicConfigurationPreservesValidationAndExceptionMessages(bool player)
+        {
+            var setup = CreateValidComposition();
+            Object.DestroyImmediate(setup.Gate);
+            var valid = player
+                ? setup.Composition.TryValidatePlayer(out var message)
+                : setup.Composition.TryValidateAI(out message);
+            Assert.That(valid, Is.False);
+
+            var exception = Assert.Throws<System.InvalidOperationException>(() =>
+            {
+                if (player) setup.Composition.ConfigurePlayer(null, "Player", default);
+                else setup.Composition.ConfigureAI(null, "AI", null, null);
+            });
+
+            Assert.That(exception.Message, Is.EqualTo(message));
+        }
+
         [Test]
         public void ValidAiComposition_PassesValidation()
         {
@@ -96,7 +116,6 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 setup.AiInput,
                 setup.Root.transform,
                 setup.Root.transform,
-                setup.Root.transform,
                 null);
 
             var valid = setup.Composition.TryValidatePlayer(out var message);
@@ -117,7 +136,6 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 setup.Gate,
                 setup.PlayerInput,
                 setup.AiInput,
-                setup.Root.transform,
                 setup.Root.transform,
                 setup.Root.transform,
                 null);
@@ -141,7 +159,6 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 setup.AiInput,
                 setup.Root.transform,
                 setup.Root.transform,
-                setup.Root.transform,
                 null);
 
             var valid = setup.Composition.TryValidatePlayer(out var message);
@@ -161,7 +178,6 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 setup.Gate,
                 setup.PlayerInput,
                 setup.AiInput,
-                setup.Root.transform,
                 setup.Root.transform,
                 setup.Root.transform,
                 null);
@@ -185,7 +201,6 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 setup.AiInput,
                 setup.Root.transform,
                 setup.Root.transform,
-                setup.Root.transform,
                 null);
 
             var valid = setup.Composition.TryValidatePlayer(out var message);
@@ -205,7 +220,6 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 setup.Gate,
                 setup.PlayerInput,
                 null,
-                setup.Root.transform,
                 setup.Root.transform,
                 setup.Root.transform,
                 null);
@@ -229,13 +243,75 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 setup.AiInput,
                 null,
                 setup.Root.transform,
-                setup.Root.transform,
                 null);
 
             var valid = setup.Composition.TryValidatePlayer(out var message);
 
             Assert.That(valid, Is.False);
             Assert.That(message, Does.Contain("requires a CameraTarget"));
+        }
+
+        [Test]
+        public void UnavailableRoofRecoveryConsumesOneShotThroughTheInputContract()
+        {
+            var setup = CreateValidComposition();
+            var detector = setup.Root.AddComponent<VehicleRoofRecoveryDetector>();
+            var input = new RecoveryInput();
+            detector.ConfigureRecoveryInput(input);
+            typeof(VehicleRoofRecoveryDetector).GetMethod("TryConsumeRecoveryInput", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(detector, null);
+            typeof(VehicleRoofRecoveryDetector).GetMethod("TryConsumeRecoveryInput", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(detector, null);
+            Assert.That(input.Consumed, Is.EqualTo(1));
+            Assert.That(detector.LastRecoveryInput, Is.EqualTo(RecoveryInputSource.KeyboardE));
+            Assert.That(detector.CanRecoverVehicle, Is.False);
+        }
+
+        [Test]
+        public void RoofRecoveryRespectsTheGateAndMissingInputFailsSafely()
+        {
+            var setup = CreateValidComposition();
+            var detector = setup.Root.AddComponent<VehicleRoofRecoveryDetector>();
+            var input = new RecoveryInput();
+            setup.Gate.Configure(input, true);
+            detector.ConfigureRecoveryInput(setup.Gate);
+            setup.Gate.SetDrivingAllowed(false);
+            typeof(VehicleRoofRecoveryDetector).GetMethod("TryConsumeRecoveryInput", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(detector, null);
+            Assert.That(input.Consumed, Is.EqualTo(1), "Blocking the gate consumes the outstanding request.");
+            Assert.That(detector.LastRecoveryInput, Is.EqualTo(default(RecoveryInputSource)));
+            detector.ConfigureRecoveryInput(null);
+            Assert.DoesNotThrow(() => typeof(VehicleRoofRecoveryDetector).GetMethod("TryConsumeRecoveryInput", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(detector, null));
+            Assert.That(detector.TryValidateConfiguration(out var message), Is.False);
+            Assert.That(message, Does.Contain("DrivingInputGate"));
+        }
+
+        [Test]
+        public void PlayerCompositionSuppliesTheGatedRoofRecoveryInput()
+        {
+            var setup = CreateValidComposition();
+            var detector = setup.Root.AddComponent<VehicleRoofRecoveryDetector>();
+            setup.Composition.ConfigurePlayer(null, "Player", default);
+            using (var serialized = new SerializedObject(detector))
+                Assert.That(serialized.FindProperty("drivingInputGate").objectReferenceValue, Is.SameAs(setup.Gate));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GateAwakePreservesMissingReferenceFallbackAndExplicitInput(bool explicitInput)
+        {
+            var setup = CreateValidComposition();
+            var detector = setup.Root.AddComponent<VehicleRoofRecoveryDetector>();
+            var configured = explicitInput ? CreateValidComposition().Gate : setup.Gate;
+            if (explicitInput) detector.ConfigureRecoveryInput(configured);
+            typeof(DrivingInputGate).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(setup.Gate, null);
+            using (var serialized = new SerializedObject(detector))
+                Assert.That(serialized.FindProperty("drivingInputGate").objectReferenceValue, Is.SameAs(configured));
+        }
+
+        private sealed class RecoveryInput : IDrivingInputProvider
+        {
+            public DrivingInput CurrentInput { get; private set; } = new DrivingInput(0f, 0f, 0f, false, false, RecoveryInputSource.KeyboardE);
+            public int Consumed;
+            public void ConsumeResetRequest() { }
+            public void ConsumeRecoveryRequest() { Consumed++; CurrentInput = DrivingInput.Neutral; }
         }
 
         private CompositionSetup CreateValidComposition(bool includeRuntime = true)
@@ -261,7 +337,6 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 gate,
                 playerInput,
                 aiInput,
-                root.transform,
                 root.transform,
                 root.transform,
                 null);

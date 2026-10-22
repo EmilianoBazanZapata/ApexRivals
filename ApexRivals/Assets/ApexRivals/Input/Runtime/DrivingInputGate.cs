@@ -32,6 +32,10 @@ namespace ApexRivals.Input.Runtime
         private void Awake()
         {
             _source = sourceInputProvider as IDrivingInputProvider;
+            // Preserve local roof-recovery wiring when its serialized reference is absent.
+            // Input supplies the contract; Vehicle does not resolve a concrete Input type.
+            var recovery = GetComponent<VehicleRoofRecoveryDetector>();
+            if (recovery != null) recovery.ConfigureRecoveryInputIfMissing(this);
         }
 
         public void SetDrivingAllowed(bool isAllowed)

@@ -143,7 +143,7 @@ namespace ApexRivals.UI.Runtime
 
         public static bool IsUsable(Selectable selectable)
         {
-            return selectable != null && selectable.isActiveAndEnabled && selectable.gameObject.activeInHierarchy && selectable.IsInteractable();
+            return UiNavigation.IsNavigable(selectable);
         }
 
         public static Selectable FirstUsable(Selectable preferred, GameObject root)

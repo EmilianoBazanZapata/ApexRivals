@@ -16,8 +16,6 @@ namespace ApexRivals.RaceSession.Runtime
         private readonly RaceCoordinator _raceCoordinator;
         private readonly RacingLine _racingLine;
 
-        private RaceSetupOutput _currentOutput;
-
         public RaceSetupSessionAdapter(
             RaceSetupService raceSetupService,
             RaceSetupDefinition raceSetupDefinition,
@@ -58,14 +56,12 @@ namespace ApexRivals.RaceSession.Runtime
                 return RaceSessionSetupResult.Failure(setupResult.Message);
             }
 
-            _currentOutput = setupResult.Output;
             return RaceSessionSetupResult.Success(setupResult.Output, roster.PlayerParticipantId);
         }
 
         public void Cleanup()
         {
             _raceSetupService.CleanupCurrentSetup();
-            _currentOutput = null;
         }
     }
 }

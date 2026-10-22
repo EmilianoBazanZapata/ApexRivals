@@ -121,16 +121,6 @@ namespace ApexRivals.Vehicle.Configuration
         [Tooltip("Baseline drift-handling rating. Applied upgrade ratios scale rear lateral grip during forward drift.")]
         [Min(0f)] public float performanceDriftHandling;
 
-        public float GetGearRatio(int gearIndex)
-        {
-            if (gearRatios == null || gearRatios.Length == 0)
-            {
-                return 1f;
-            }
-
-            return Mathf.Max(0f, gearRatios[Mathf.Clamp(gearIndex, 0, gearRatios.Length - 1)]);
-        }
-
         public WheelVehicleTuning CreateTuning()
         {
             return new WheelVehicleTuning

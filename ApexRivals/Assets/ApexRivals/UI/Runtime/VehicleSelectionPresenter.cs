@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using UnityObject = UnityEngine.Object;
 using ApexRivals.SceneFlow.Runtime;
 using ApexRivals.VehicleSelection.Runtime;
 
 namespace ApexRivals.UI.Runtime
 {
-    public sealed class VehicleSelectionPresenter : IInitialVehicleSelectionProgress
+    public sealed class VehicleSelectionPresenter : IInitialVehicleSelectionProgress, IDisposable
     {
-        private readonly IVehicleSelectionView _view;
+        private IVehicleSelectionView _view;
         private readonly VehicleSelectionService _selectionService;
         private readonly SceneFlowService _sceneFlow;
         private readonly IPresentationScreenNavigator _screenNavigator;
@@ -27,15 +28,27 @@ namespace ApexRivals.UI.Runtime
         public bool HasCommittedVehicleSelection => _selectionService.HasValidCommittedVehicleSelection;
         public VehicleSelectionViewModel Current { get; private set; }
 
+        private bool _disposed;
+        private bool CanRender => !_disposed && _view != null
+            && (_view is not UnityObject unityView || unityView != null);
+
+        public void Dispose()
+        {
+            _disposed = true;
+            _view = null;
+        }
+
         public void Present()
         {
+            if (!CanRender) return;
+
             Current = CreateModel();
             _view.Render(Current);
         }
 
         public void SelectPrevious()
         {
-            if (_saving || Current.Vehicles == null || Current.Vehicles.Count == 0 || Current.SelectedIndex <= 0)
+            if (!CanRender || _saving || Current.Vehicles == null || Current.Vehicles.Count == 0 || Current.SelectedIndex <= 0)
             {
                 return;
             }
@@ -45,7 +58,7 @@ namespace ApexRivals.UI.Runtime
 
         public void SelectNext()
         {
-            if (_saving || Current.Vehicles == null || Current.Vehicles.Count == 0 || Current.SelectedIndex >= Current.Vehicles.Count - 1)
+            if (!CanRender || _saving || Current.Vehicles == null || Current.Vehicles.Count == 0 || Current.SelectedIndex >= Current.Vehicles.Count - 1)
             {
                 return;
             }
@@ -55,7 +68,7 @@ namespace ApexRivals.UI.Runtime
 
         public void Select(string vehicleId)
         {
-            if (_saving)
+            if (!CanRender || _saving)
             {
                 return;
             }
@@ -81,7 +94,8 @@ namespace ApexRivals.UI.Runtime
 
         public void ConfirmSelection()
         {
-            if (_saving || string.IsNullOrWhiteSpace(_selectionService.CurrentCandidateVehicleId))
+            if (!CanRender || _saving) return;
+            if (string.IsNullOrWhiteSpace(_selectionService.CurrentCandidateVehicleId))
             {
                 _failure = PresentationFailure.InvalidVehicleSelection;
                 _messageKey = "ui.vehicleSelection.invalidSelection";
@@ -110,7 +124,7 @@ namespace ApexRivals.UI.Runtime
 
         public async Task Continue()
         {
-            if (_saving || !_selectionService.HasValidCommittedVehicleSelection)
+            if (!CanRender || _saving || !_selectionService.HasValidCommittedVehicleSelection)
             {
                 return;
             }
@@ -118,6 +132,7 @@ namespace ApexRivals.UI.Runtime
             _saving = true;
             Present();
             var result = await _sceneFlow.StartRace();
+            if (!CanRender) return;
             _saving = false;
 
             if (!result.Succeeded)
@@ -131,7 +146,7 @@ namespace ApexRivals.UI.Runtime
 
         public void Cancel()
         {
-            if (_saving)
+            if (!CanRender || _saving)
             {
                 return;
             }

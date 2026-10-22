@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -30,7 +29,8 @@ namespace ApexRivals.UI.Runtime
         public void Bind(PausePresenter presenter)
         {
             _presenter = presenter;
-            Subscribe();
+            if (presenter == null) Unsubscribe();
+            else Subscribe();
         }
 
         public void Render(PauseViewModel viewModel)
@@ -165,7 +165,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (_presenter != null)
             {
-                await Run(_presenter.Retry());
+                await _presenter.Retry();
             }
         }
 
@@ -173,13 +173,8 @@ namespace ApexRivals.UI.Runtime
         {
             if (_presenter != null)
             {
-                await Run(_presenter.ReturnToMainMenu());
+                await _presenter.ReturnToMainMenu();
             }
-        }
-
-        private static async Task Run(Task task)
-        {
-            await task;
         }
 
         private void RequestConfirmation(string message, Action onConfirmed)
@@ -297,13 +292,7 @@ namespace ApexRivals.UI.Runtime
 
         private static void ConfigureTwoWayNavigation(Button button, Button other)
         {
-            var navigation = button.navigation;
-            navigation.mode = Navigation.Mode.Explicit;
-            navigation.selectOnUp = other;
-            navigation.selectOnDown = other;
-            navigation.selectOnLeft = other;
-            navigation.selectOnRight = other;
-            button.navigation = navigation;
+            UiNavigation.Set(button, other, other, other, other, wrapAround: button.navigation.wrapAround);
         }
 
         private void ConfigurePauseNavigation()
@@ -315,13 +304,11 @@ namespace ApexRivals.UI.Runtime
 
             for (var index = 0; index < buttons.Count; index++)
             {
-                var navigation = buttons[index].navigation;
-                navigation.mode = Navigation.Mode.Explicit;
-                navigation.selectOnUp = buttons[(index + buttons.Count - 1) % buttons.Count];
-                navigation.selectOnDown = buttons[(index + 1) % buttons.Count];
-                navigation.selectOnLeft = null;
-                navigation.selectOnRight = null;
-                buttons[index].navigation = navigation;
+                var button = buttons[index];
+                UiNavigation.Set(button,
+                    buttons[(index + buttons.Count - 1) % buttons.Count],
+                    buttons[(index + 1) % buttons.Count], null, null,
+                    wrapAround: button.navigation.wrapAround);
             }
         }
 
@@ -344,6 +331,7 @@ namespace ApexRivals.UI.Runtime
 
         private static void AddNavigableButton(ICollection<Button> buttons, Button button)
         {
+            // Link authoring uses local activity, independently of whether the pause panel is shown.
             if (button != null && button.gameObject.activeSelf && button.IsInteractable())
             {
                 buttons.Add(button);

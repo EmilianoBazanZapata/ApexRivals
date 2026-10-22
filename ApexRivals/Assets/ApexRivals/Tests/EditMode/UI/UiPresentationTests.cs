@@ -19,6 +19,14 @@ namespace ApexRivals.Tests.EditMode.UI
 {
     public sealed class UiPresentationTests
     {
+        private readonly FixtureObjects _objects = new FixtureObjects();
+
+        [TearDown]
+        public void TearDown()
+        {
+            _objects.Dispose();
+        }
+
         [Test]
         public async Task MainMenu_StartRoutesToGarageUntilVehicleIsConfirmed()
         {
@@ -190,7 +198,7 @@ namespace ApexRivals.Tests.EditMode.UI
 
             source.SnapshotValue = new RaceHudSnapshot(2, 3, 1, 4, 2.5f, 12.75f);
             source.RacingInputActiveValue = true;
-            source.RaiseLapCompleted();
+            source.RequestRefresh();
 
             Assert.That(presenter.Current.CurrentLap, Is.EqualTo(2));
             Assert.That(presenter.Current.CurrentPosition, Is.EqualTo(1));
@@ -209,10 +217,48 @@ namespace ApexRivals.Tests.EditMode.UI
             var presenter = new RaceHudPresenter(new FakeRaceHudView(), source);
 
             source.SnapshotValue = new RaceHudSnapshot(1, 1, 1, 2, 0f, 10f);
-            source.RaisePositionChanged();
+            source.RequestRefresh();
 
             Assert.That(presenter.Current.CurrentPosition, Is.EqualTo(1));
             Assert.That(presenter.Current.ParticipantCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void RaceHud_ContinuousSnapshotRefreshesCountdownClockAndProgressWithoutEvents()
+        {
+            var source = new FakeRaceHudSource { SnapshotValue = new RaceHudSnapshot(1, 3, 2, 4, 2.5f, 0f) };
+            using var presenter = new RaceHudPresenter(new FakeRaceHudView(), source);
+            presenter.UpdateContinuousSnapshot();
+            Assert.That(presenter.Current.CountdownState, Is.EqualTo(CountdownDisplayState.CountingDown));
+            Assert.That(presenter.Current.CountdownValue, Is.EqualTo(2.5f));
+
+            source.SnapshotValue = new RaceHudSnapshot(2, 3, 1, 4, 0f, 72.5f);
+            source.RacingInputActiveValue = true;
+            presenter.UpdateContinuousSnapshot();
+
+            Assert.That(presenter.Current.CountdownState, Is.EqualTo(CountdownDisplayState.Hidden));
+            Assert.That(presenter.Current.ElapsedRaceTime, Is.EqualTo(72.5f));
+            Assert.That(presenter.Current.CurrentLap, Is.EqualTo(2));
+            Assert.That(presenter.Current.CurrentPosition, Is.EqualTo(1));
+            Assert.That(presenter.Current.RacingInputActive, Is.True);
+        }
+
+        [Test]
+        public void RaceHud_DisposalDetachesRefreshNotificationsAndAllowsReplacement()
+        {
+            var source = new FakeRaceHudSource();
+            var oldView = new FakeRaceHudView();
+            var oldPresenter = new RaceHudPresenter(oldView, source);
+            source.RequestRefresh();
+            oldPresenter.Dispose();
+            oldPresenter.Dispose();
+            var newView = new FakeRaceHudView();
+            using var replacement = new RaceHudPresenter(newView, source);
+
+            source.RequestRefresh();
+
+            Assert.That(oldView.RenderCount, Is.EqualTo(1));
+            Assert.That(newView.RenderCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -320,7 +366,163 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(context.TimeScale.TimeScale, Is.EqualTo(1f));
         }
 
-        private static UiContext CreateUiContext(FakeSceneLoader loader = null, int startingCurrency = 0, bool vehicleCommitted = false)
+        [TestCase("MainMenu", false)]
+        [TestCase("Garage", false)]
+        [TestCase("VehicleSelection", false)]
+        [TestCase("MainMenu", true)]
+        [TestCase("Garage", true)]
+        [TestCase("VehicleSelection", true)]
+        public async Task PendingNavigationDoesNotRenderAfterLifetimeEnds(string screen, bool destroyView)
+        {
+            var context = CreateUiContext(vehicleCommitted: true);
+            await context.SceneFlow.OpenMainMenu();
+            var view = _objects.Own(new GameObject("LifetimeView")).AddComponent<LifetimeView>();
+            Func<Task> navigate;
+            Action present;
+            IDisposable lifetime;
+            if (screen == "MainMenu")
+            {
+                var presenter = new MainMenuPresenter(view, context.SceneFlow, new FakeSelectionProgress { HasCommittedVehicleSelection = true }, context.ScreenNavigator, new FakeApplicationExit());
+                lifetime = presenter; navigate = presenter.StartOrContinue; present = presenter.Present;
+            }
+            else if (screen == "Garage")
+            {
+                var presenter = new GaragePresenter(view, context.Garage, context.VehicleSelection, context.SceneFlow);
+                lifetime = presenter; navigate = presenter.StartRace; present = presenter.Present;
+            }
+            else
+            {
+                var presenter = new VehicleSelectionPresenter(view, context.VehicleSelection, context.SceneFlow);
+                lifetime = presenter; navigate = presenter.Continue; present = presenter.Present;
+            }
+
+            context.Loader.CompleteImmediately = false;
+            var beforeLoads = context.Loader.LoadCount;
+            var pending = navigate();
+            await navigate();
+            Assert.That(context.Loader.LoadCount, Is.EqualTo(beforeLoads + 1), "Duplicate click must not start another load.");
+            int renders = view.RenderCount;
+            if (destroyView) UnityEngine.Object.DestroyImmediate(view.gameObject);
+            else lifetime.Dispose();
+            context.Loader.CompletePendingLoad(true);
+            await pending;
+            present();
+            await navigate();
+            Assert.That(view.RenderCount, Is.EqualTo(renders));
+            Assert.That(context.Loader.LoadCount, Is.EqualTo(beforeLoads + 1));
+            lifetime.Dispose();
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public async Task RacePresenterPendingRetryCannotRenderAnExpiredView(bool results, bool destroyView)
+        {
+            var context = CreateRaceSessionContext();
+            StartRace(context);
+            if (results) context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 60f));
+            else context.Session.Pause();
+            var view = _objects.Own(new GameObject("RaceLifetimeView")).AddComponent<LifetimeView>();
+            IDisposable lifetime;
+            Func<Task> retry;
+            Action present;
+            if (results)
+            {
+                var presenter = new ResultsPresenter(view, context.Session, context.SceneFlow);
+                lifetime = presenter; retry = presenter.Retry; present = presenter.Present;
+            }
+            else
+            {
+                var presenter = new PausePresenter(view, context.Session, context.SceneFlow);
+                lifetime = presenter; retry = presenter.Retry; present = presenter.Present;
+            }
+            var pending = retry();
+            await retry();
+            int renders = view.RenderCount;
+            if (destroyView) UnityEngine.Object.DestroyImmediate(view.gameObject);
+            else lifetime.Dispose();
+            context.Navigation.CompleteRetry();
+            await pending;
+            present();
+            await retry();
+            Assert.That(view.RenderCount, Is.EqualTo(renders));
+            Assert.That(context.Navigation.RetryCount, Is.EqualTo(1));
+            lifetime.Dispose();
+            context.Session.Dispose();
+        }
+
+        [TestCase("MainMenu")]
+        [TestCase("Garage")]
+        [TestCase("VehicleSelection")]
+        public async Task FailedNavigationLeavesPresenterUsableForReentry(string screen)
+        {
+            var context = CreateUiContext(vehicleCommitted: true);
+            await context.SceneFlow.OpenMainMenu();
+            var view = _objects.Own(new GameObject("RetryView")).AddComponent<LifetimeView>();
+            Func<Task> navigate;
+            IDisposable lifetime;
+            if (screen == "MainMenu")
+            {
+                var presenter = new MainMenuPresenter(view, context.SceneFlow, new FakeSelectionProgress { HasCommittedVehicleSelection = true }, context.ScreenNavigator, new FakeApplicationExit());
+                lifetime = presenter; navigate = presenter.StartOrContinue;
+            }
+            else if (screen == "Garage")
+            {
+                var presenter = new GaragePresenter(view, context.Garage, context.VehicleSelection, context.SceneFlow);
+                lifetime = presenter; navigate = presenter.StartRace;
+            }
+            else
+            {
+                var presenter = new VehicleSelectionPresenter(view, context.VehicleSelection, context.SceneFlow);
+                lifetime = presenter; navigate = presenter.Continue;
+            }
+            context.Loader.FailNextLoad = true;
+            await navigate();
+            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.MainMenu));
+            int renders = view.RenderCount;
+            await navigate();
+            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Race));
+            Assert.That(view.RenderCount, Is.GreaterThan(renders));
+            lifetime.Dispose();
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void RaceScenePresentersIgnoreLateRefreshAndRepeatedDisposal(bool destroyView)
+        {
+            var view = _objects.Own(new GameObject("SceneView")).AddComponent<LifetimeView>();
+            var source = new FakeRaceHudSource();
+            var detector = _objects.Own(new GameObject("Detector")).AddComponent<VehicleRoofRecoveryDetector>();
+            var hud = new RaceHudPresenter(view, source);
+            var recovery = new VehicleRecoveryPromptPresenter(view, detector);
+            hud.Present();
+            recovery.Present();
+            if (destroyView) UnityEngine.Object.DestroyImmediate(view.gameObject);
+            hud.Dispose();
+            recovery.Dispose();
+            int renders = view.RenderCount;
+            source.RequestRefresh();
+            hud.Present();
+            recovery.Present();
+            hud.Dispose();
+            recovery.Dispose();
+            Assert.That(view.RenderCount, Is.EqualTo(renders));
+        }
+
+        private sealed class LifetimeView : MonoBehaviour, IMainMenuView, IGarageView, IVehicleSelectionView, IPauseView, IResultsView, IRaceHudView, IVehicleRecoveryPromptView
+        {
+            public int RenderCount;
+            public void Render(MainMenuViewModel model) => RenderCount++;
+            public void Render(GarageViewModel model) => RenderCount++;
+            public void Render(VehicleSelectionViewModel model) => RenderCount++;
+            public void Render(PauseViewModel model) => RenderCount++;
+            public void Render(ResultsViewModel model) => RenderCount++;
+            public void Render(RaceHudViewModel model) => RenderCount++;
+            public void Render(bool visible) => RenderCount++;
+        }
+
+        private UiContext CreateUiContext(FakeSceneLoader loader = null, int startingCurrency = 0, bool vehicleCommitted = false)
         {
             var activeLoader = loader ?? new FakeSceneLoader();
             var sceneFlow = new SceneFlowService(new SceneFlowSceneMap("MainMenu", "Garage", "Race"), activeLoader);
@@ -331,9 +533,9 @@ namespace ApexRivals.Tests.EditMode.UI
             return new UiContext(sceneFlow, activeLoader, new PresentationScreenNavigator(), progression, vehicleSelection, garage);
         }
 
-        private static RaceContext CreateRaceSessionContext()
+        private RaceContext CreateRaceSessionContext()
         {
-            var setup = new FakeRaceSessionSetup();
+            var setup = new FakeRaceSessionSetup(_objects);
             var raceController = new FakeRaceSessionRaceController();
             var progression = new PlayerProgressionState();
             var rewardService = new RaceRewardService(progression, new RaceRewardTable(new Dictionary<int, int> { [1] = 500 }, 100));
@@ -345,7 +547,7 @@ namespace ApexRivals.Tests.EditMode.UI
             return new RaceContext(session, setup, raceController, progression, navigation, sceneFlow, timeScale);
         }
 
-        private static RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progression)
+        private RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progression)
         {
             return new RaceProgressionService(
                 progression,
@@ -356,8 +558,8 @@ namespace ApexRivals.Tests.EditMode.UI
                 }),
                 new Dictionary<string, ApexRivals.AI.Configuration.AiDriverConfiguration>
                 {
-                    ["rookie"] = ScriptableObject.CreateInstance<ApexRivals.AI.Configuration.AiDriverConfiguration>(),
-                    ["amateur"] = ScriptableObject.CreateInstance<ApexRivals.AI.Configuration.AiDriverConfiguration>()
+                    ["rookie"] = _objects.Own(ScriptableObject.CreateInstance<ApexRivals.AI.Configuration.AiDriverConfiguration>()),
+                    ["amateur"] = _objects.Own(ScriptableObject.CreateInstance<ApexRivals.AI.Configuration.AiDriverConfiguration>())
                 });
         }
 
@@ -368,7 +570,7 @@ namespace ApexRivals.Tests.EditMode.UI
             context.RaceController.RaiseRaceStarted();
         }
 
-        private static VehicleCatalog CreateCatalog()
+        private VehicleCatalog CreateCatalog()
         {
             return new VehicleCatalog(new[]
             {
@@ -379,13 +581,13 @@ namespace ApexRivals.Tests.EditMode.UI
             }, "starter");
         }
 
-        private static VehicleDefinitionData CreateVehicle(string id, bool available, bool hasPrefab = true)
+        private VehicleDefinitionData CreateVehicle(string id, bool available, bool hasPrefab = true)
         {
-            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
+            var configuration = _objects.Own(ScriptableObject.CreateInstance<WheelVehicleConfiguration>());
             configuration.performanceAcceleration = 10f;
             configuration.performanceTopSpeed = 20f;
             configuration.performanceSteering = 30f;
-            return new VehicleDefinitionData(id, id, string.Empty, configuration, hasPrefab ? new GameObject($"{id}Prefab") : null, null, available);
+            return new VehicleDefinitionData(id, id, string.Empty, configuration, hasPrefab ? _objects.Own(new GameObject($"{id}Prefab")) : null, null, available);
         }
 
         private static UpgradeDefinitionData CreateEngineDefinition()
@@ -510,8 +712,11 @@ namespace ApexRivals.Tests.EditMode.UI
 
         private sealed class FakeRaceHudView : IRaceHudView
         {
+            public int RenderCount { get; private set; }
+
             public void Render(RaceHudViewModel viewModel)
             {
+                RenderCount++;
             }
         }
 
@@ -554,14 +759,7 @@ namespace ApexRivals.Tests.EditMode.UI
 
         private sealed class FakeRaceHudSource : IRaceHudSource
         {
-            // The test double exposes the complete contract; individual tests raise only the events they need.
-#pragma warning disable CS0067
-            public event Action<CountdownChangedEvent> CountdownChanged;
-            public event Action<LapCompletedEvent> LapCompleted;
-            public event Action<PositionChangedEvent> PositionChanged;
-            public event Action<RaceStartedEvent> RaceStarted;
-            public event Action<RacerFinishedEvent> RacerFinished;
-#pragma warning restore CS0067
+            public event Action RefreshRequested;
 
             public RaceHudSnapshot SnapshotValue { get; set; }
             public bool RacingInputActiveValue { get; set; }
@@ -569,14 +767,9 @@ namespace ApexRivals.Tests.EditMode.UI
             public RaceHudSnapshot Snapshot => SnapshotValue;
             public bool RacingInputActive => RacingInputActiveValue;
 
-            public void RaiseLapCompleted()
+            public void RequestRefresh()
             {
-                LapCompleted?.Invoke(new LapCompletedEvent("Player", 1, 3));
-            }
-
-            public void RaisePositionChanged()
-            {
-                PositionChanged?.Invoke(new PositionChangedEvent("Player", 1));
+                RefreshRequested?.Invoke();
             }
         }
 
@@ -634,13 +827,20 @@ namespace ApexRivals.Tests.EditMode.UI
 
         private sealed class FakeRaceSessionSetup : IRaceSessionSetup
         {
+            private readonly FixtureObjects _objects;
+
+            public FakeRaceSessionSetup(FixtureObjects objects)
+            {
+                _objects = objects;
+            }
+
             public RaceSessionSetupResult Prepare()
             {
-                var playerObject = new GameObject("PlayerVehicle");
+                var playerObject = _objects.Own(new GameObject("PlayerVehicle"));
                 var playerComposition = playerObject.AddComponent<RaceVehicleComposition>();
                 var playerParticipant = playerObject.AddComponent<RaceParticipant>();
                 var playerGate = playerObject.AddComponent<ApexRivals.Input.Runtime.DrivingInputGate>();
-                playerComposition.ConfigureReferences(null, null, playerParticipant, playerGate, null, null, playerObject.transform, playerObject.transform, playerObject.transform, null);
+                playerComposition.ConfigureReferences(null, null, playerParticipant, playerGate, null, null, playerObject.transform, playerObject.transform, null);
                 return RaceSessionSetupResult.Success(
                     new RaceSetupOutput(playerComposition, Array.Empty<RaceVehicleComposition>(), new[] { playerParticipant }, playerObject.transform, new[] { playerGate }),
                     "Player");
@@ -737,7 +937,7 @@ namespace ApexRivals.Tests.EditMode.UI
                 return Task.FromResult(new SceneTransitionResult(SceneTransitionStatus.Succeeded, ApplicationState.Race, ApplicationState.MainMenu, ContentSceneId.MainMenu, string.Empty));
             }
 
-            public bool ShowResults(RaceSessionResult result)
+            public bool ShowResults()
             {
                 return true;
             }

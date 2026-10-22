@@ -28,9 +28,9 @@ namespace ApexRivals.RaceSession.Runtime
             return _sceneFlow.ReturnFromRaceToMainMenu();
         }
 
-        public bool ShowResults(RaceSessionResult result)
+        public bool ShowResults()
         {
-            return _sceneFlow.ShowRaceResults(result);
+            return _sceneFlow.ShowStoredRaceResults();
         }
 
         public bool PauseRace()

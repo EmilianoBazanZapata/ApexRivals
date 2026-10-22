@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -49,7 +48,8 @@ namespace ApexRivals.UI.Runtime
         public void Bind(GaragePresenter presenter)
         {
             _presenter = presenter;
-            Subscribe();
+            if (presenter == null) Unsubscribe();
+            else Subscribe();
         }
 
         public void Render(GarageViewModel viewModel)
@@ -538,7 +538,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (_presenter != null)
             {
-                await Run(_presenter.StartRace());
+                await _presenter.StartRace();
             }
         }
 
@@ -546,7 +546,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (_presenter != null)
             {
-                await Run(_presenter.ReturnToMainMenu());
+                await _presenter.ReturnToMainMenu();
             }
         }
 
@@ -554,11 +554,6 @@ namespace ApexRivals.UI.Runtime
         {
             eventData?.Use();
             OnReturnToMainMenuClicked();
-        }
-
-        private static async Task Run(Task task)
-        {
-            await task;
         }
 
         private static void SetButton(Button button, bool interactable)
