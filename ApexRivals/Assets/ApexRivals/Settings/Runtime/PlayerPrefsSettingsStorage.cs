@@ -25,7 +25,10 @@ namespace ApexRivals.Settings.Runtime
             var rawFullScreenMode = PlayerPrefs.GetInt(SettingsPreferenceKeys.FullScreenMode, (int)SettingsState.Default.FullScreenMode);
             var rawMaster = PlayerPrefs.GetFloat(SettingsPreferenceKeys.MasterVolume, SettingsState.DefaultMasterVolume);
             var rawMusic = PlayerPrefs.GetFloat(SettingsPreferenceKeys.MusicVolume, SettingsState.DefaultMusicVolume);
-            var rawSfx = PlayerPrefs.GetFloat(SettingsPreferenceKeys.SfxVolume, SettingsState.DefaultSfxVolume);
+            // Older saves had a single effects volume: it seeds both the UI and the vehicle volumes.
+            var rawLegacySfx = PlayerPrefs.GetFloat(SettingsPreferenceKeys.LegacySfxVolume, SettingsState.DefaultUiVolume);
+            var rawUi = PlayerPrefs.GetFloat(SettingsPreferenceKeys.UiVolume, rawLegacySfx);
+            var rawVehicle = PlayerPrefs.GetFloat(SettingsPreferenceKeys.VehicleVolume, rawLegacySfx);
 
             var settings = new SettingsState(
                 rawWidth,
@@ -34,7 +37,8 @@ namespace ApexRivals.Settings.Runtime
                 (FullScreenMode)rawFullScreenMode,
                 rawMaster,
                 rawMusic,
-                rawSfx);
+                rawUi,
+                rawVehicle);
 
             var invalid = PlayerPrefs.GetInt(SettingsPreferenceKeys.SchemaVersion, CurrentVersion) != CurrentVersion
                 || rawWidth <= 0
@@ -47,9 +51,8 @@ namespace ApexRivals.Settings.Runtime
                 || float.IsNaN(rawMusic)
                 || rawMusic < 0f
                 || rawMusic > 1f
-                || float.IsNaN(rawSfx)
-                || rawSfx < 0f
-                || rawSfx > 1f;
+                || IsInvalidVolume(rawUi)
+                || IsInvalidVolume(rawVehicle);
 
             return invalid
                 ? new SettingsStorageReadResult(SettingsStorageReadStatus.Invalid, settings, "Stored preferences contained unsupported values.")
@@ -65,7 +68,8 @@ namespace ApexRivals.Settings.Runtime
             PlayerPrefs.SetInt(SettingsPreferenceKeys.FullScreenMode, (int)settings.FullScreenMode);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.MasterVolume, settings.MasterVolume);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.MusicVolume, settings.MusicVolume);
-            PlayerPrefs.SetFloat(SettingsPreferenceKeys.SfxVolume, settings.SfxVolume);
+            PlayerPrefs.SetFloat(SettingsPreferenceKeys.UiVolume, settings.UiVolume);
+            PlayerPrefs.SetFloat(SettingsPreferenceKeys.VehicleVolume, settings.VehicleVolume);
             PlayerPrefs.Save();
             return new SettingsStorageWriteResult(true, string.Empty);
         }
@@ -73,6 +77,11 @@ namespace ApexRivals.Settings.Runtime
         public SettingsStorageWriteResult RestoreDefaults(SettingsState defaults)
         {
             return Save(defaults);
+        }
+
+        private static bool IsInvalidVolume(float value)
+        {
+            return float.IsNaN(value) || value < 0f || value > 1f;
         }
 
         private static class SettingsPreferenceKeys
@@ -84,7 +93,9 @@ namespace ApexRivals.Settings.Runtime
             public const string FullScreenMode = "ApexRivals.Settings.Display.FullScreenMode";
             public const string MasterVolume = "ApexRivals.Settings.Audio.Master";
             public const string MusicVolume = "ApexRivals.Settings.Audio.Music";
-            public const string SfxVolume = "ApexRivals.Settings.Audio.Sfx";
+            public const string LegacySfxVolume = "ApexRivals.Settings.Audio.Sfx";
+            public const string UiVolume = "ApexRivals.Settings.Audio.Ui";
+            public const string VehicleVolume = "ApexRivals.Settings.Audio.Vehicles";
         }
     }
 }

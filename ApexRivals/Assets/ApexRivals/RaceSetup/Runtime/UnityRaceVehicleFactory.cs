@@ -1,3 +1,4 @@
+using ApexRivals.Audio.Runtime;
 using UnityEngine;
 
 namespace ApexRivals.RaceSetup.Runtime
@@ -20,6 +21,11 @@ namespace ApexRivals.RaceSetup.Runtime
                 Object.Destroy(instance);
                 message = "The vehicle prefab root is missing RaceVehicleComposition.";
                 return false;
+            }
+
+            if (instance.GetComponent<VehicleEngineAudio>() == null)
+            {
+                instance.AddComponent<VehicleEngineAudio>();
             }
 
             message = string.Empty;

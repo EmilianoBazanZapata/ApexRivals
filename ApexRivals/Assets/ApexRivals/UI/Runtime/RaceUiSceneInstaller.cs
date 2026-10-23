@@ -16,6 +16,7 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private VehicleRecoveryPromptUguiView vehicleRecoveryPromptView;
         [SerializeField] private PauseUguiView pauseView;
         [SerializeField] private ResultsUguiView resultsView;
+        [SerializeField, Tooltip("Optional. Settings screen opened from the pause menu; Back returns to the pause menu.")] private SettingsUguiView settingsView;
         [SerializeField] private ApexRivals.Camera.Runtime.WheelVehicleFollowCamera followCamera;
         [Header("Minimap (optional)")]
         [SerializeField] private RaceMinimapUguiView minimapView;
@@ -28,6 +29,7 @@ namespace ApexRivals.UI.Runtime
         private VehicleRecoveryPromptPresenter _vehicleRecoveryPromptPresenter;
         private PausePresenter _pausePresenter;
         private ResultsPresenter _resultsPresenter;
+        private SettingsPresenter _settingsPresenter;
         private RaceSessionHudSource _hudSource;
         private InputAction _pauseAction;
         private double _lastPauseInputTime = double.NegativeInfinity;
@@ -79,6 +81,13 @@ namespace ApexRivals.UI.Runtime
             _resultsPresenter = new ResultsPresenter(resultsView, session, context.Navigation);
             pauseView.Bind(_pausePresenter);
             pauseView.ResumeRequested += OnPauseViewResumeRequested;
+            if (settingsView != null && context.SettingsService != null)
+            {
+                _settingsPresenter = new SettingsPresenter(settingsView, context.SettingsService);
+                settingsView.Bind(_settingsPresenter, screenNavigator, PresentationScreenState.Paused);
+                pauseView.SettingsRequested += OnPauseViewSettingsRequested;
+            }
+
             resultsView.Bind(_resultsPresenter);
             BindHud(session);
             BindVehicleRecoveryPrompt(session);
@@ -104,6 +113,7 @@ namespace ApexRivals.UI.Runtime
             if (_subscribed && pauseView != null)
             {
                 pauseView.ResumeRequested -= OnPauseViewResumeRequested;
+                pauseView.SettingsRequested -= OnPauseViewSettingsRequested;
             }
 
             if (_subscribed && _context != null && _context.Navigation != null)
@@ -121,6 +131,8 @@ namespace ApexRivals.UI.Runtime
             _hudSource?.Dispose();
             if (pauseView != null) pauseView.Bind(null);
             if (resultsView != null) resultsView.Bind(null);
+            if (settingsView != null) settingsView.Bind(null, null, PresentationScreenState.Paused);
+            _settingsPresenter = null;
             hudView?.Bind(null);
             hudView?.BindTelemetry(null);
             if (minimapView != null) minimapView.Bind(null);
@@ -252,6 +264,12 @@ namespace ApexRivals.UI.Runtime
             }
             else if (current == RaceSessionLifecycleState.Racing || current == RaceSessionLifecycleState.Starting)
             {
+                // Resuming straight from Settings (gamepad Start) drops edits that were never applied.
+                if (screenNavigator.CurrentScreen == PresentationScreenState.Settings)
+                {
+                    _settingsPresenter?.Cancel();
+                }
+
                 CloseFallbackPause();
                 screenNavigator.Show(PresentationScreenState.Racing);
             }
@@ -281,6 +299,17 @@ namespace ApexRivals.UI.Runtime
                 CloseFallbackPause();
                 screenNavigator.Show(PresentationScreenState.Results);
             }
+        }
+
+        private void OnPauseViewSettingsRequested()
+        {
+            if (_settingsPresenter == null || _session == null || _session.State != RaceSessionLifecycleState.Paused)
+            {
+                return;
+            }
+
+            _settingsPresenter.Present();
+            screenNavigator.Show(PresentationScreenState.Settings);
         }
 
         private void OnPauseViewResumeRequested()

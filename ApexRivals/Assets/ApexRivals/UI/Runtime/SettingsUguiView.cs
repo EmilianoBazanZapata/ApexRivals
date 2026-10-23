@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using ApexRivals.Audio.Runtime;
 using ApexRivals.Settings.Runtime;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace ApexRivals.UI.Runtime
@@ -21,7 +23,8 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private SettingsOptionSelector fullScreenModeSelector;
         [SerializeField] private Slider masterVolumeSlider;
         [SerializeField] private Slider musicVolumeSlider;
-        [SerializeField] private Slider sfxVolumeSlider;
+        [SerializeField, FormerlySerializedAs("sfxVolumeSlider")] private Slider uiVolumeSlider;
+        [SerializeField] private Slider vehicleVolumeSlider;
         [SerializeField] private Button applyButton;
         [SerializeField] private Button cancelButton;
         [SerializeField] private Button restoreDefaultsButton;
@@ -78,7 +81,8 @@ namespace ApexRivals.UI.Runtime
             }
             SetSlider(masterVolumeSlider, viewModel.MasterVolume);
             SetSlider(musicVolumeSlider, viewModel.MusicVolume);
-            SetSlider(sfxVolumeSlider, viewModel.SfxVolume);
+            SetSlider(uiVolumeSlider, viewModel.UiVolume);
+            SetSlider(vehicleVolumeSlider, viewModel.VehicleVolume);
             SetButton(applyButton, viewModel.CanApply);
             SetButton(cancelButton, true);
             SetButton(restoreDefaultsButton, true);
@@ -173,9 +177,14 @@ namespace ApexRivals.UI.Runtime
                 musicVolumeSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
             }
 
-            if (sfxVolumeSlider != null)
+            if (uiVolumeSlider != null)
             {
-                sfxVolumeSlider.onValueChanged.AddListener(OnSfxVolumeChanged);
+                uiVolumeSlider.onValueChanged.AddListener(OnUiVolumeChanged);
+            }
+
+            if (vehicleVolumeSlider != null)
+            {
+                vehicleVolumeSlider.onValueChanged.AddListener(OnVehicleVolumeChanged);
             }
 
             if (applyButton != null)
@@ -238,9 +247,14 @@ namespace ApexRivals.UI.Runtime
                 musicVolumeSlider.onValueChanged.RemoveListener(OnMusicVolumeChanged);
             }
 
-            if (sfxVolumeSlider != null)
+            if (uiVolumeSlider != null)
             {
-                sfxVolumeSlider.onValueChanged.RemoveListener(OnSfxVolumeChanged);
+                uiVolumeSlider.onValueChanged.RemoveListener(OnUiVolumeChanged);
+            }
+
+            if (vehicleVolumeSlider != null)
+            {
+                vehicleVolumeSlider.onValueChanged.RemoveListener(OnVehicleVolumeChanged);
             }
 
             if (applyButton != null)
@@ -298,6 +312,7 @@ namespace ApexRivals.UI.Runtime
             if (!_rendering)
             {
                 _presenter?.SetMasterVolume(value);
+                UiAudioEvents.Raise(UiSound.Move);
             }
         }
 
@@ -306,14 +321,25 @@ namespace ApexRivals.UI.Runtime
             if (!_rendering)
             {
                 _presenter?.SetMusicVolume(value);
+                UiAudioEvents.Raise(UiSound.Move);
             }
         }
 
-        private void OnSfxVolumeChanged(float value)
+        private void OnUiVolumeChanged(float value)
         {
             if (!_rendering)
             {
-                _presenter?.SetSfxVolume(value);
+                _presenter?.SetUiVolume(value);
+                UiAudioEvents.Raise(UiSound.Move);
+            }
+        }
+
+        private void OnVehicleVolumeChanged(float value)
+        {
+            if (!_rendering)
+            {
+                _presenter?.SetVehicleVolume(value);
+                UiAudioEvents.Raise(UiSound.Move);
             }
         }
 
@@ -504,7 +530,7 @@ namespace ApexRivals.UI.Runtime
 
         private void ConfigureNavigation()
         {
-            var rows = new List<Selectable>(3);
+            var rows = new List<Selectable>(4);
             if (displayPanel != null && displayPanel.activeSelf)
             {
                 AddRowIfPresent(rows, resolutionSelector);
@@ -519,7 +545,8 @@ namespace ApexRivals.UI.Runtime
             {
                 AddRowIfPresent(rows, masterVolumeSlider);
                 AddRowIfPresent(rows, musicVolumeSlider);
-                AddRowIfPresent(rows, sfxVolumeSlider);
+                AddRowIfPresent(rows, uiVolumeSlider);
+                AddRowIfPresent(rows, vehicleVolumeSlider);
             }
 
             var firstRow = rows.Count > 0 ? rows[0] : null;

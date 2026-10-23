@@ -1,3 +1,4 @@
+using ApexRivals.Audio.Runtime;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -5,7 +6,7 @@ using UnityEngine.UI;
 namespace ApexRivals.UI.Runtime
 {
     [DisallowMultipleComponent]
-    public sealed class UguiMenuButtonVisualState : MonoBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
+    public sealed class UguiMenuButtonVisualState : MonoBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler, ISubmitHandler
     {
         [SerializeField] private Button button;
         [SerializeField] private Graphic background;
@@ -72,6 +73,23 @@ namespace ApexRivals.UI.Runtime
         {
             _pressed = false;
             Apply();
+            UiAudioEvents.Raise(UiSound.Move);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (eventData.button == PointerEventData.InputButton.Left && button != null && button.IsInteractable())
+            {
+                UiAudioEvents.Raise(UiSound.Confirm);
+            }
+        }
+
+        public void OnSubmit(BaseEventData eventData)
+        {
+            if (button != null && button.IsInteractable())
+            {
+                UiAudioEvents.Raise(UiSound.Confirm);
+            }
         }
 
         public void OnDeselect(BaseEventData eventData)

@@ -94,14 +94,25 @@ namespace ApexRivals.UI.Runtime
             Render(PresentationFailure.None, string.Empty);
         }
 
-        public void SetSfxVolume(float value)
+        public void SetUiVolume(float value)
         {
             if (_operationActive)
             {
                 return;
             }
 
-            _settings.EditSfxVolume(value);
+            _settings.EditUiVolume(value);
+            Render(PresentationFailure.None, string.Empty);
+        }
+
+        public void SetVehicleVolume(float value)
+        {
+            if (_operationActive)
+            {
+                return;
+            }
+
+            _settings.EditVehicleVolume(value);
             Render(PresentationFailure.None, string.Empty);
         }
 
@@ -167,7 +178,8 @@ namespace ApexRivals.UI.Runtime
                 _settings.Draft.FullScreenMode,
                 _settings.Draft.MasterVolume,
                 _settings.Draft.MusicVolume,
-                _settings.Draft.SfxVolume,
+                _settings.Draft.UiVolume,
+                _settings.Draft.VehicleVolume,
                 _settings.HasUnsavedChanges,
                 !_operationActive && _settings.HasUnsavedChanges,
                 failure,

@@ -1,3 +1,4 @@
+using ApexRivals.Audio.Runtime;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -94,6 +95,11 @@ namespace ApexRivals.UI.Runtime
             if (root == null || EventSystem.current == null)
             {
                 return;
+            }
+
+            if (!IsGameplayActive || UiFocus.HasActiveScope)
+            {
+                UiAudioEvents.Raise(UiSound.Back);
             }
 
             var selected = EventSystem.current.currentSelectedGameObject;

@@ -10,6 +10,7 @@ namespace ApexRivals.UI.Runtime
     public sealed class PauseUguiView : MonoBehaviour, IPauseView, ICancelHandler
     {
         [SerializeField] private Button resumeButton;
+        [SerializeField, Tooltip("Opens the Settings screen over the paused race.")] private Button settingsButton;
         [SerializeField] private Button retryButton;
         [SerializeField] private Button returnToMainMenuButton;
         [SerializeField] private Text statusText;
@@ -25,6 +26,7 @@ namespace ApexRivals.UI.Runtime
         private bool _confirmationSubmitting;
 
         public event Action ResumeRequested;
+        public event Action SettingsRequested;
 
         public void Bind(PausePresenter presenter)
         {
@@ -42,6 +44,7 @@ namespace ApexRivals.UI.Runtime
 
             gameObject.SetActive(viewModel.IsPaused);
             SetButton(resumeButton, viewModel.CanResume);
+            SetButton(settingsButton, viewModel.IsPaused && !viewModel.IsTransitioning);
             SetButton(retryButton, viewModel.CanRetry);
             SetButton(returnToMainMenuButton, viewModel.IsPaused && !viewModel.IsTransitioning);
             ConfigurePauseNavigation();
@@ -87,6 +90,11 @@ namespace ApexRivals.UI.Runtime
                 resumeButton.onClick.AddListener(OnResumeClicked);
             }
 
+            if (settingsButton != null)
+            {
+                settingsButton.onClick.AddListener(OnSettingsClicked);
+            }
+
             if (retryButton != null)
             {
                 retryButton.onClick.AddListener(OnRetryClicked);
@@ -122,6 +130,11 @@ namespace ApexRivals.UI.Runtime
                 resumeButton.onClick.RemoveListener(OnResumeClicked);
             }
 
+            if (settingsButton != null)
+            {
+                settingsButton.onClick.RemoveListener(OnSettingsClicked);
+            }
+
             if (retryButton != null)
             {
                 retryButton.onClick.RemoveListener(OnRetryClicked);
@@ -149,6 +162,11 @@ namespace ApexRivals.UI.Runtime
         {
             ResumeRequested?.Invoke();
             _presenter?.Resume();
+        }
+
+        private void OnSettingsClicked()
+        {
+            SettingsRequested?.Invoke();
         }
 
         private void OnRetryClicked()
@@ -297,8 +315,9 @@ namespace ApexRivals.UI.Runtime
 
         private void ConfigurePauseNavigation()
         {
-            var buttons = new List<Button>(3);
+            var buttons = new List<Button>(4);
             AddNavigableButton(buttons, resumeButton);
+            AddNavigableButton(buttons, settingsButton);
             AddNavigableButton(buttons, retryButton);
             AddNavigableButton(buttons, returnToMainMenuButton);
 

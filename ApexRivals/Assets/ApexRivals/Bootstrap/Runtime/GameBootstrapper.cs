@@ -1,4 +1,5 @@
 using System.Collections;
+using ApexRivals.Audio.Runtime;
 using ApexRivals.Progression.Configuration;
 using ApexRivals.Garage.Configuration;
 using ApexRivals.Garage.Runtime;
@@ -22,6 +23,7 @@ namespace ApexRivals.Bootstrap.Runtime
         [SerializeField] private UpgradeDefinition handlingUpgradeDefinition;
         [SerializeField] private RaceProgressionDefinition raceProgressionDefinition;
         [SerializeField] private UnityContentSceneLoader sceneLoader;
+        [SerializeField, Tooltip("Music, UI cues and the audio bus; follows the audio settings.")] private GameAudio gameAudio;
         [SerializeField] private string[] knownVehicleIds = { SelectedVehicleState.DefaultVehicleId };
 
         private IContentSceneInstaller[] _activeSceneInstallers = System.Array.Empty<IContentSceneInstaller>();
@@ -82,6 +84,11 @@ namespace ApexRivals.Bootstrap.Runtime
             var storage = new PlayerProfileFileStorage(Application.persistentDataPath, PlayerProfileFileStorage.DefaultFileName);
             var saveService = new PlayerProfileSaveService(progressionState, selectedVehicleState, storage, CreateKnownVehicleIds(vehicleCatalog));
             var settingsService = new SettingsService(new PlayerPrefsSettingsStorage(), new UnityDisplaySettingsAdapter());
+            var audio = gameAudio != null ? gameAudio : GameAudio.Current;
+            if (audio != null)
+            {
+                audio.Bind(settingsService);
+            }
             var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
             var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
             var garageService = CreateGarageService(vehicleCatalog, vehicleSelectionService, progressionState);

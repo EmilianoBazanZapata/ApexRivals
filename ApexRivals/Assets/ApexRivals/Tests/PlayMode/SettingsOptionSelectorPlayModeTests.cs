@@ -197,7 +197,7 @@ namespace ApexRivals.Tests.PlayMode
         private static SettingsViewModel Model(IReadOnlyList<SettingsResolution> modes, SettingsResolution selected,
             FullScreenMode fullscreen, float volume)
         {
-            return new SettingsViewModel(modes, selected, fullscreen, volume, 0.5f, 0.5f,
+            return new SettingsViewModel(modes, selected, fullscreen, volume, 0.5f, 0.5f, 0.5f,
                 true, true, PresentationFailure.None, string.Empty);
         }
 

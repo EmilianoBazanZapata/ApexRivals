@@ -12,7 +12,8 @@ namespace ApexRivals.UI.Runtime
             FullScreenMode fullScreenMode,
             float masterVolume,
             float musicVolume,
-            float sfxVolume,
+            float uiVolume,
+            float vehicleVolume,
             bool hasUnsavedChanges,
             bool canApply,
             PresentationFailure failure,
@@ -23,7 +24,8 @@ namespace ApexRivals.UI.Runtime
             FullScreenMode = fullScreenMode;
             MasterVolume = masterVolume;
             MusicVolume = musicVolume;
-            SfxVolume = sfxVolume;
+            UiVolume = uiVolume;
+            VehicleVolume = vehicleVolume;
             HasUnsavedChanges = hasUnsavedChanges;
             CanApply = canApply;
             Failure = failure;
@@ -35,7 +37,8 @@ namespace ApexRivals.UI.Runtime
         public FullScreenMode FullScreenMode { get; }
         public float MasterVolume { get; }
         public float MusicVolume { get; }
-        public float SfxVolume { get; }
+        public float UiVolume { get; }
+        public float VehicleVolume { get; }
         public bool HasUnsavedChanges { get; }
         public bool CanApply { get; }
         public PresentationFailure Failure { get; }

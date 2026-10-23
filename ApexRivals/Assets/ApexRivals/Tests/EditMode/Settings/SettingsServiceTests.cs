@@ -128,7 +128,8 @@ namespace ApexRivals.Tests.EditMode.Settings
             Assert.That(settings.FullScreenMode, Is.EqualTo(FullScreenMode.FullScreenWindow));
             Assert.That(settings.MasterVolume, Is.EqualTo(1f));
             Assert.That(settings.MusicVolume, Is.EqualTo(0.8f));
-            Assert.That(settings.SfxVolume, Is.EqualTo(1f));
+            Assert.That(settings.UiVolume, Is.EqualTo(1f));
+            Assert.That(settings.VehicleVolume, Is.EqualTo(1f));
         }
 
         [Test]
@@ -137,7 +138,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             var storage = new MemorySettingsStorage
             {
                 Exists = true,
-                Stored = new SettingsState(1280, 720, 60, FullScreenMode.Windowed, 0.5f, 0.4f, 0.3f)
+                Stored = new SettingsState(1280, 720, 60, FullScreenMode.Windowed, 0.5f, 0.4f, 0.3f, 0.2f)
             };
             var service = CreateService(storage);
 
@@ -167,11 +168,13 @@ namespace ApexRivals.Tests.EditMode.Settings
 
             service.EditMasterVolume(2f);
             service.EditMusicVolume(-1f);
-            service.EditSfxVolume(float.NaN);
+            service.EditUiVolume(float.NaN);
+            service.EditVehicleVolume(float.NaN);
 
             Assert.That(service.Draft.MasterVolume, Is.EqualTo(1f));
             Assert.That(service.Draft.MusicVolume, Is.EqualTo(0f));
-            Assert.That(service.Draft.SfxVolume, Is.EqualTo(1f));
+            Assert.That(service.Draft.UiVolume, Is.EqualTo(1f));
+            Assert.That(service.Draft.VehicleVolume, Is.EqualTo(1f));
         }
 
         [Test]
@@ -181,7 +184,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             {
                 Exists = true,
                 ReadStatus = SettingsStorageReadStatus.Invalid,
-                Stored = new SettingsState(333, 222, 60, FullScreenMode.FullScreenWindow, 1f, 1f, 1f)
+                Stored = new SettingsState(333, 222, 60, FullScreenMode.FullScreenWindow, 1f, 1f, 1f, 1f)
             };
             var display = new FakeDisplaySettingsAdapter(new[]
             {
@@ -276,12 +279,34 @@ namespace ApexRivals.Tests.EditMode.Settings
         }
 
         [Test]
+        public void VolumeEditsPreviewImmediatelyAndCancelRevertsTheAudibleVolumes()
+        {
+            var service = CreateService();
+            var heard = new List<AudioPreferences>();
+            service.AudiblePreferencesChanged += heard.Add;
+
+            service.EditVehicleVolume(0.25f);
+            service.EditVehicleVolume(0.25f);
+            service.EditFullScreenMode(FullScreenMode.Windowed);
+
+            Assert.That(heard.Count, Is.EqualTo(1), "Only real audio changes are announced.");
+            Assert.That(heard[0].VehicleVolume, Is.EqualTo(0.25f));
+            Assert.That(service.AudiblePreferences.VehicleVolume, Is.EqualTo(0.25f));
+            Assert.That(service.CurrentAudioPreferences.VehicleVolume, Is.EqualTo(1f));
+
+            service.Cancel();
+
+            Assert.That(heard.Count, Is.EqualTo(2));
+            Assert.That(heard[1].VehicleVolume, Is.EqualTo(1f));
+        }
+
+        [Test]
         public void PlayerProgressionIsNotWrittenToSettingsStorage()
         {
             var storage = new MemorySettingsStorage();
             var service = CreateService(storage);
 
-            service.EditSfxVolume(0.6f);
+            service.EditUiVolume(0.6f);
             service.Apply();
 
             Assert.That(storage.WrittenKeys, Does.Not.Contain("currency"));
@@ -318,13 +343,15 @@ namespace ApexRivals.Tests.EditMode.Settings
 
             presenter.SetMasterVolume(0.2f);
             presenter.SetMusicVolume(0.3f);
-            presenter.SetSfxVolume(0.4f);
+            presenter.SetUiVolume(0.4f);
+            presenter.SetVehicleVolume(0.5f);
 
             Assert.That(display.SupportedResolutionReads, Is.EqualTo(reads));
             Assert.That(presenter.Current.AvailableResolutions, Is.SameAs(modes));
             Assert.That(presenter.Current.MasterVolume, Is.EqualTo(0.2f));
             Assert.That(presenter.Current.MusicVolume, Is.EqualTo(0.3f));
-            Assert.That(presenter.Current.SfxVolume, Is.EqualTo(0.4f));
+            Assert.That(presenter.Current.UiVolume, Is.EqualTo(0.4f));
+            Assert.That(presenter.Current.VehicleVolume, Is.EqualTo(0.5f));
             Assert.That(presenter.Current.CanApply, Is.True);
         }
 

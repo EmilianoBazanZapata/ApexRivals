@@ -9,6 +9,7 @@ namespace ApexRivals.Settings.Runtime
         private readonly ISettingsStorage _storage;
         private readonly IDisplaySettingsAdapter _display;
         private readonly SettingsState _defaults;
+        private SettingsState _draft;
 
         public SettingsService(ISettingsStorage storage, IDisplaySettingsAdapter display, SettingsState? defaults = null)
         {
@@ -21,13 +22,27 @@ namespace ApexRivals.Settings.Runtime
         }
 
         public event Action<AudioPreferences> AudioPreferencesCommitted;
+        public event Action<AudioPreferences> AudiblePreferencesChanged;
 
         public SettingsState Current { get; private set; }
-        public SettingsState Draft { get; private set; }
+        public SettingsState Draft
+        {
+            get => _draft;
+            private set
+            {
+                var audioChanged = !_draft.AudioEquals(value);
+                _draft = value;
+                if (audioChanged)
+                {
+                    AudiblePreferencesChanged?.Invoke(CreateAudioPreferences(_draft));
+                }
+            }
+        }
         public SettingsState Persisted { get; private set; }
         public IReadOnlyList<SettingsResolution> AvailableResolutions => _display.SupportedResolutions;
         public bool HasUnsavedChanges => Draft != Current || Current != Persisted;
         public AudioPreferences CurrentAudioPreferences => CreateAudioPreferences(Current);
+        public AudioPreferences AudiblePreferences => CreateAudioPreferences(Draft);
 
         public SettingsOperationResult Load()
         {
@@ -77,9 +92,14 @@ namespace ApexRivals.Settings.Runtime
             Draft = Draft.WithMusicVolume(value);
         }
 
-        public void EditSfxVolume(float value)
+        public void EditUiVolume(float value)
         {
-            Draft = Draft.WithSfxVolume(value);
+            Draft = Draft.WithUiVolume(value);
+        }
+
+        public void EditVehicleVolume(float value)
+        {
+            Draft = Draft.WithVehicleVolume(value);
         }
 
         public SettingsOperationResult Apply()
@@ -171,7 +191,7 @@ namespace ApexRivals.Settings.Runtime
 
         private static AudioPreferences CreateAudioPreferences(SettingsState settings)
         {
-            return new AudioPreferences(settings.MasterVolume, settings.MusicVolume, settings.SfxVolume);
+            return new AudioPreferences(settings.MasterVolume, settings.MusicVolume, settings.UiVolume, settings.VehicleVolume);
         }
     }
 }

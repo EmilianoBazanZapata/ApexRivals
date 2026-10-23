@@ -2,15 +2,17 @@ namespace ApexRivals.Settings.Runtime
 {
     public readonly struct AudioPreferences
     {
-        public AudioPreferences(float masterVolume, float musicVolume, float sfxVolume)
+        public AudioPreferences(float masterVolume, float musicVolume, float uiVolume, float vehicleVolume)
         {
             MasterVolume = masterVolume;
             MusicVolume = musicVolume;
-            SfxVolume = sfxVolume;
+            UiVolume = uiVolume;
+            VehicleVolume = vehicleVolume;
         }
 
         public float MasterVolume { get; }
         public float MusicVolume { get; }
-        public float SfxVolume { get; }
+        public float UiVolume { get; }
+        public float VehicleVolume { get; }
     }
 }
