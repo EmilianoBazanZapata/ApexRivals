@@ -19,6 +19,9 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private UguiMenuButtonVisualState visualState;
         [SerializeField, Tooltip("Outline shown around the whole card while its track is selected.")] private AngledPanelGraphic selectionFrame;
 
+        private static readonly Color LockedTint = new Color(0.35f, 0.35f, 0.38f, 1f);
+        private static readonly Color FinaleTint = new Color(1f, 0.82f, 0.78f, 1f);
+
         private Action<int> _focused;
         private Action<int> _submitted;
 
@@ -39,11 +42,23 @@ namespace ApexRivals.UI.Runtime
 
         public void Render(TrackSelectionItemViewModel item, bool selected, bool interactable)
         {
-            UguiViewText.Set(nameText, string.IsNullOrEmpty(item.DisplayName) ? string.Empty : item.DisplayName.ToUpperInvariant());
+            var name = string.IsNullOrEmpty(item.DisplayName) ? string.Empty : item.DisplayName.ToUpperInvariant();
+            if (item.IsLocked)
+            {
+                name = "LOCKED - " + name;
+            }
+            else if (!string.IsNullOrEmpty(item.StatusText))
+            {
+                name += "  [" + item.StatusText + "]";
+            }
+
+            UguiViewText.Set(nameText, name);
             if (thumbnail != null)
             {
                 thumbnail.sprite = item.Preview;
                 thumbnail.enabled = item.Preview != null;
+                // Locked circuits stay visible but dimmed; the final is tinted with the accent colour.
+                thumbnail.color = item.IsLocked ? LockedTint : item.IsFinale ? FinaleTint : Color.white;
             }
 
             if (thumbnailPlaceholder != null)

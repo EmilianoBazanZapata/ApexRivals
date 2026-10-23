@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 659f94c66b7d359488664445f23e3ec2, type: 3}
+  m_Name: CareerDefinition
+  m_EditorClassIdentifier: 
+  starterVehicleId: vanguard
+  vehicleOffers:
+  - vehicleId: striker
+    price: 1800
+    requiredMilestoneId: apex-win
+  trackUnlocks:
+  - trackId: dunes
+    requiredMilestoneId: apex-win
+  - trackId: crossover
+    requiredMilestoneId: dunes-win
+  milestones:
+  - milestoneId: apex-finish
+    title: Finish a race at Apex Circuit
+    hint: Pick Apex Circuit in Race Select and cross the finish line.
+    kind: 0
+    targetId: circuit
+    targetCount: 0
+    currencyReward: 200
+  - milestoneId: apex-win
+    title: Win at Apex Circuit
+    hint: Finish 1st at Apex Circuit to open Dunes Circuit and the Striker.
+    kind: 1
+    targetId: circuit
+    targetCount: 0
+    currencyReward: 300
+  - milestoneId: engine-1
+    title: Buy an Engine upgrade
+    hint: In the garage, buy Engine level 1.
+    kind: 2
+    targetId: Engine
+    targetCount: 1
+    currencyReward: 150
+  - milestoneId: dunes-win
+    title: Win at Dunes Circuit
+    hint: Finish 1st at Dunes Circuit to open Crossover Circuit.
+    kind: 1
+    targetId: dunes
+    targetCount: 0
+    currencyReward: 400
+  - milestoneId: all-circuits
+    title: Unlock all 3 circuits
+    hint: Win at Dunes Circuit to open the last circuit.
+    kind: 4
+    targetId: 
+    targetCount: 3
+    currencyReward: 100
+  - milestoneId: own-two-cars
+    title: Own 2 cars
+    hint: In the garage, browse to the Striker and buy it.
+    kind: 3
+    targetId: 
+    targetCount: 2
+    currencyReward: 300
+  - milestoneId: crossover-win
+    title: Win at Crossover Circuit
+    hint: Finish 1st at Crossover Circuit.
+    kind: 1
+    targetId: crossover
+    targetCount: 0
+    currencyReward: 400
+  - milestoneId: handling-2
+    title: Reach Handling level 2
+    hint: In the garage, upgrade Handling to level 2.
+    kind: 2
+    targetId: Handling
+    targetCount: 2
+    currencyReward: 200
+  - milestoneId: final-win
+    title: Win the Apex Rivals Final
+    hint: In Race Select, enter the Apex Rivals Final and finish 1st.
+    kind: 5
+    targetId: 
+    targetCount: 0
+    currencyReward: 2000
+  finale:
+    trackId: crossover
+    title: Apex Rivals Final
+    goal: Finish 1st against three Expert rivals
+    requiredMilestoneIds:
+    - apex-finish
+    - apex-win
+    - engine-1
+    - dunes-win
+    - all-circuits
+    - own-two-cars
+    - crossover-win
+    - handling-2
+    raceSetup: {fileID: 11400000, guid: b34aacd811b24c57a9527717adcd2548, type: 2}

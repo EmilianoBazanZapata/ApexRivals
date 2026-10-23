@@ -184,6 +184,8 @@ MonoBehaviour:
   engineUpgradeDefinition: {fileID: 11400000, guid: db1d0dd0bf8e42b7b9e2366c40963806, type: 2}
   handlingUpgradeDefinition: {fileID: 11400000, guid: 0f492e0779254c68a09c336ad6ef13fd, type: 2}
   raceProgressionDefinition: {fileID: 11400000, guid: 584171093c2d46a48f25895e7140bba9, type: 2}
+  careerDefinition: {fileID: 11400000, guid: 3951bf9c838c4121b47ee4e2dea8d053, type: 2}
+  trackCatalogDefinition: {fileID: 11400000, guid: 06a69c4e499d6f54ab7dc75815eea1d1, type: 2}
   sceneLoader: {fileID: 100002}
   gameAudio: {fileID: 1023766984}
   knownVehicleIds:

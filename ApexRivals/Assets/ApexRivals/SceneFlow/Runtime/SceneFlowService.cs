@@ -8,13 +8,16 @@ namespace ApexRivals.SceneFlow.Runtime
         private readonly SceneFlowSceneMap _sceneMap;
         private readonly IContentSceneLoader _sceneLoader;
         private readonly ISaveCheckpoint _saveCheckpoint;
+        private readonly IRaceStartGuard _raceStartGuard;
         private bool _transitionInProgress;
 
-        public SceneFlowService(SceneFlowSceneMap sceneMap, IContentSceneLoader sceneLoader, ISaveCheckpoint saveCheckpoint = null)
+        /// <param name="raceStartGuard">Optional rules check run before every new race (not retries).</param>
+        public SceneFlowService(SceneFlowSceneMap sceneMap, IContentSceneLoader sceneLoader, ISaveCheckpoint saveCheckpoint = null, IRaceStartGuard raceStartGuard = null)
         {
             _sceneMap = sceneMap ?? throw new ArgumentNullException(nameof(sceneMap));
             _sceneLoader = sceneLoader ?? throw new ArgumentNullException(nameof(sceneLoader));
             _saveCheckpoint = saveCheckpoint;
+            _raceStartGuard = raceStartGuard;
             State = ApplicationState.Bootstrapping;
             RacePresentationState = RacePresentationState.None;
             RaceSession = new RaceSessionState();
@@ -80,7 +83,7 @@ namespace ApexRivals.SceneFlow.Runtime
         public Task<SceneTransitionResult> StartRace()
         {
             var shouldSave = State == ApplicationState.Garage;
-            return NavigateAsync(ContentSceneId.Race, ApplicationState.Race, State == ApplicationState.MainMenu || State == ApplicationState.Garage, false, shouldSave);
+            return NavigateAsync(ContentSceneId.Race, ApplicationState.Race, State == ApplicationState.MainMenu || State == ApplicationState.Garage, false, shouldSave, true);
         }
 
         public Task<SceneTransitionResult> ReturnFromRaceToGarage()
@@ -158,7 +161,8 @@ namespace ApexRivals.SceneFlow.Runtime
             ApplicationState targetState,
             bool isAllowed,
             bool reloadCurrentScene,
-            bool saveBeforeTransition)
+            bool saveBeforeTransition,
+            bool checkRaceStart = false)
         {
             var previousState = State;
 
@@ -180,6 +184,15 @@ namespace ApexRivals.SceneFlow.Runtime
             if (!TryGetSceneName(targetSceneId, out var sceneName))
             {
                 return new SceneTransitionResult(SceneTransitionStatus.MissingSceneConfiguration, previousState, State, targetSceneId, "The requested content scene is not configured.");
+            }
+
+            if (checkRaceStart && _raceStartGuard != null)
+            {
+                var check = _raceStartGuard.CheckRaceStart(sceneName);
+                if (!check.Allowed)
+                {
+                    return new SceneTransitionResult(SceneTransitionStatus.RaceStartRejected, previousState, State, targetSceneId, check.Message);
+                }
             }
 
             if (saveBeforeTransition && _saveCheckpoint != null)

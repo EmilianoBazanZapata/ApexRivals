@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ApexRivals.Career.Runtime;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
 
@@ -9,19 +10,23 @@ namespace ApexRivals.SaveSystem.Runtime
     {
         private readonly PlayerProgressionState _progressionState;
         private readonly SelectedVehicleState _selectedVehicleState;
+        private readonly CareerState _careerState;
         private readonly IPlayerProfileSaveStorage _storage;
         private readonly PlayerProfileJsonSerializer _serializer;
         private readonly PlayerProfileSaveValidator _validator;
         private bool _preserveRecoveredBackup;
+        private bool _primaryIsNewerSchema;
 
         public PlayerProfileSaveService(
             PlayerProgressionState progressionState,
             SelectedVehicleState selectedVehicleState,
             IPlayerProfileSaveStorage storage,
-            IEnumerable<string> knownVehicleIds = null)
+            IEnumerable<string> knownVehicleIds = null,
+            CareerState careerState = null)
         {
             _progressionState = progressionState ?? throw new ArgumentNullException(nameof(progressionState));
             _selectedVehicleState = selectedVehicleState ?? throw new ArgumentNullException(nameof(selectedVehicleState));
+            _careerState = careerState;
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
             _serializer = new PlayerProfileJsonSerializer();
             _validator = new PlayerProfileSaveValidator(SelectedVehicleState.DefaultVehicleId, knownVehicleIds);
@@ -54,9 +59,17 @@ namespace ApexRivals.SaveSystem.Runtime
                 return new PlayerProfileLoadResult(PlayerProfileLoadStatus.CreatedDefault, defaultData, string.Empty);
             }
 
+            _primaryIsNewerSchema = false;
             var primaryResult = saveExists
-                ? TryLoadFromStorage(_storage.ReadSave())
+                ? TryLoadFromStorage(_storage.ReadSave(), true)
                 : new PlayerProfileLoadResult(PlayerProfileLoadStatus.Failed, null, "The primary save file is missing.");
+            if (_primaryIsNewerSchema)
+            {
+                // A newer build wrote this profile. Recovering an older backup would let the next save
+                // replace it, so refuse to load and leave both files untouched.
+                return new PlayerProfileLoadResult(PlayerProfileLoadStatus.Failed, null, primaryResult.Message);
+            }
+
             if (primaryResult.Succeeded)
             {
                 Restore(primaryResult.SaveData);
@@ -66,7 +79,7 @@ namespace ApexRivals.SaveSystem.Runtime
 
             if (_storage.BackupExists())
             {
-                var backupResult = TryLoadFromStorage(_storage.ReadBackup());
+                var backupResult = TryLoadFromStorage(_storage.ReadBackup(), false);
                 if (backupResult.Succeeded)
                 {
                     Restore(backupResult.SaveData);
@@ -88,7 +101,8 @@ namespace ApexRivals.SaveSystem.Runtime
                 handlingUpgradeLevel = _progressionState.GetUpgradeLevel(UpgradeType.Handling),
                 completedRaceCount = _progressionState.CompletedRaceCount,
                 selectedVehicleId = _selectedVehicleState.SelectedVehicleId,
-                vehicleSelectionCommitted = _selectedVehicleState.HasCommittedVehicleSelection
+                vehicleSelectionCommitted = _selectedVehicleState.HasCommittedVehicleSelection,
+                career = CaptureCareer()
             };
         }
 
@@ -105,7 +119,7 @@ namespace ApexRivals.SaveSystem.Runtime
             return new PlayerProfileSaveResult(PlayerProfileSaveStatus.Deleted, string.Empty);
         }
 
-        private PlayerProfileLoadResult TryLoadFromStorage(SaveStorageReadResult readResult)
+        private PlayerProfileLoadResult TryLoadFromStorage(SaveStorageReadResult readResult, bool isPrimary)
         {
             if (!readResult.Succeeded)
             {
@@ -115,6 +129,7 @@ namespace ApexRivals.SaveSystem.Runtime
             var deserializationResult = _serializer.Deserialize(readResult.Payload);
             if (!deserializationResult.Succeeded)
             {
+                _primaryIsNewerSchema |= isPrimary && deserializationResult.IsNewerSchema;
                 return new PlayerProfileLoadResult(PlayerProfileLoadStatus.Failed, null, deserializationResult.Error);
             }
 
@@ -134,6 +149,36 @@ namespace ApexRivals.SaveSystem.Runtime
             _progressionState.SetUpgradeLevel(UpgradeType.Handling, saveData.handlingUpgradeLevel);
             _progressionState.SetCompletedRaceCount(saveData.completedRaceCount);
             _selectedVehicleState.Restore(saveData.selectedVehicleId, saveData.vehicleSelectionCommitted);
+            var career = saveData.career ?? new CareerSaveData();
+            _careerState?.Restore(career.ownedVehicleIds, career.completedTrackIds, career.wonTrackIds, career.achievedMilestoneIds, career.finaleWon);
+        }
+
+        private CareerSaveData CaptureCareer()
+        {
+            if (_careerState == null)
+            {
+                return new CareerSaveData();
+            }
+
+            return new CareerSaveData
+            {
+                ownedVehicleIds = ToArray(_careerState.OwnedVehicleIds),
+                completedTrackIds = ToArray(_careerState.CompletedTrackIds),
+                wonTrackIds = ToArray(_careerState.WonTrackIds),
+                achievedMilestoneIds = ToArray(_careerState.AchievedMilestoneIds),
+                finaleWon = _careerState.FinaleWon
+            };
+        }
+
+        private static string[] ToArray(IReadOnlyList<string> ids)
+        {
+            var array = new string[ids.Count];
+            for (var index = 0; index < array.Length; index++)
+            {
+                array[index] = ids[index];
+            }
+
+            return array;
         }
     }
 }

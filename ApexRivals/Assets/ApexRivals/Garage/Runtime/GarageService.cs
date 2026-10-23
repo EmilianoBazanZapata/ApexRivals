@@ -11,6 +11,9 @@ namespace ApexRivals.Garage.Runtime
         private readonly UpgradeDefinitionData _handlingDefinition;
         private readonly Func<VehiclePerformanceStats> _baseStatsProvider;
 
+        /// <summary>Raised after an upgrade level is bought, so upgrade objectives can be checked.</summary>
+        public event Action<UpgradeType, int> UpgradePurchased;
+
         public GarageService(
             PlayerProgressionState progressionState,
             UpgradeDefinitionData engineDefinition,
@@ -77,6 +80,7 @@ namespace ApexRivals.Garage.Runtime
                 return CreateResult(UpgradePurchaseStatus.InsufficientCurrency, upgradeType, currentLevel, price);
             }
 
+            UpgradePurchased?.Invoke(upgradeType, currentLevel + 1);
             return CreateResult(UpgradePurchaseStatus.Succeeded, upgradeType, currentLevel + 1, price);
         }
 

@@ -30,7 +30,25 @@ namespace ApexRivals.UI.Runtime
             bool operationActive,
             PresentationStatus purchaseStatus,
             string messageKey)
+            : this(currency, selectedVehicleName, vehicles, candidateVehicleIndex, hasValidSelectedVehicle, engine, handling, effectiveStats, operationActive, purchaseStatus, messageKey, default)
         {
+        }
+
+        public GarageViewModel(
+            int currency,
+            string selectedVehicleName,
+            IReadOnlyList<VehicleSelectionItemViewModel> vehicles,
+            int candidateVehicleIndex,
+            bool hasValidSelectedVehicle,
+            GarageUpgradeViewModel engine,
+            GarageUpgradeViewModel handling,
+            VehiclePerformanceStats effectiveStats,
+            bool operationActive,
+            PresentationStatus purchaseStatus,
+            string messageKey,
+            GarageCareerViewModel career)
+        {
+            Career = career;
             Currency = currency;
             SelectedVehicleName = selectedVehicleName;
             Vehicles = vehicles;
@@ -55,5 +73,8 @@ namespace ApexRivals.UI.Runtime
         public bool OperationActive { get; }
         public PresentationStatus PurchaseStatus { get; }
         public string MessageKey { get; }
+
+        /// <summary>Ownership, price and career status; default when no career is configured.</summary>
+        public GarageCareerViewModel Career { get; }
     }
 }

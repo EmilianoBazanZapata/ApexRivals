@@ -17,6 +17,10 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Button returnToMainMenuButton;
         [SerializeField] private Text statusText;
 
+        [Header("Career (optional)")]
+        [SerializeField] private Text careerTitleText;
+        [SerializeField] private Text careerBodyText;
+
         private ResultsPresenter _presenter;
         private bool _subscribed;
 
@@ -35,6 +39,12 @@ namespace ApexRivals.UI.Runtime
             UguiViewText.Set(updatedCurrencyText, $"Currency: {viewModel.UpdatedCurrency}");
             UguiViewText.Set(progressionText, CreateProgressionText(viewModel));
             UguiViewText.Set(statusText, viewModel.MessageKey);
+            UguiViewText.Set(careerTitleText, viewModel.CareerTitle);
+            UguiViewText.Set(careerBodyText, viewModel.CareerBody);
+            if (careerTitleText != null)
+            {
+                careerTitleText.color = viewModel.CareerCompleted ? ApexUiVisualStyle.AccentText : ApexUiVisualStyle.PrimaryText;
+            }
             SetButton(retryButton, !viewModel.IsTransitioning);
             SetButton(returnToGarageButton, !viewModel.IsTransitioning);
             SetButton(returnToMainMenuButton, !viewModel.IsTransitioning);

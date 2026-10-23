@@ -36,6 +36,10 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Text statusText;
         [SerializeField] private GameObject feedbackRoot;
 
+        [Header("Career (optional)")]
+        [SerializeField, Tooltip("Lock requirement or race status of the selected entry.")] private Text requirementText;
+        [SerializeField, Tooltip("Career completion and next objective.")] private Text objectiveText;
+
         private readonly List<TrackSelectionCardView> _cards = new List<TrackSelectionCardView>();
         private TrackSelectionPresenter _presenter;
         private bool _subscribed;
@@ -66,7 +70,8 @@ namespace ApexRivals.UI.Runtime
             SetButton(startRaceButton, viewModel.CanStartRace);
             SetButton(backButton, !viewModel.OperationActive);
 
-            var feedback = FormatStatus(viewModel.MessageKey);
+            UguiViewText.Set(objectiveText, viewModel.ObjectiveText);
+            var feedback = string.IsNullOrEmpty(viewModel.Feedback) ? FormatStatus(viewModel.MessageKey) : viewModel.Feedback.ToUpperInvariant();
             UguiViewText.Set(statusText, feedback);
             if (feedbackRoot != null)
             {
@@ -108,6 +113,7 @@ namespace ApexRivals.UI.Runtime
             if (!viewModel.HasSelection)
             {
                 UguiViewText.Set(trackNameText, "NO TRACKS AVAILABLE");
+                UguiViewText.Set(requirementText, string.Empty);
                 UguiViewText.Set(locationText, string.Empty);
                 UguiViewText.Set(lengthValueText, "-");
                 UguiViewText.Set(lapsValueText, "-");
@@ -120,6 +126,12 @@ namespace ApexRivals.UI.Runtime
 
             var track = viewModel.Selected;
             UguiViewText.Set(trackNameText, Upper(track.DisplayName));
+            UguiViewText.Set(requirementText, track.IsLocked ? "LOCKED - " + track.LockText : track.IsFinale ? "FINAL EVENT" + (string.IsNullOrEmpty(track.StatusText) ? string.Empty : " - " + track.StatusText) : track.StatusText);
+            if (requirementText != null)
+            {
+                requirementText.color = track.IsLocked || track.IsFinale ? ApexUiVisualStyle.AccentText : ApexUiVisualStyle.SecondaryText;
+            }
+
             UguiViewText.Set(locationText, Upper(track.Location));
             UguiViewText.Set(lengthValueText, track.LengthText);
             UguiViewText.Set(lapsValueText, track.Laps.ToString(CultureInfo.InvariantCulture));

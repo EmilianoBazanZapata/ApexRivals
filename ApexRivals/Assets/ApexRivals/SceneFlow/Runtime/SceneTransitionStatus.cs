@@ -8,6 +8,7 @@ namespace ApexRivals.SceneFlow.Runtime
         ConcurrentTransition,
         MissingSceneConfiguration,
         SceneLoadFailed,
-        SaveFailed
+        SaveFailed,
+        RaceStartRejected
     }
 }

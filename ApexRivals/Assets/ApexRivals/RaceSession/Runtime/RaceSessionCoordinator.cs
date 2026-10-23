@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using ApexRivals.Career.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.Race.Runtime;
 using ApexRivals.SceneFlow.Runtime;
@@ -17,6 +18,8 @@ namespace ApexRivals.RaceSession.Runtime
         private readonly IRaceSessionNavigation _navigation;
         private readonly RaceSessionState _raceSessionState;
         private readonly RacePauseCoordinator.SessionPause _timeScale;
+        private readonly CareerService _career;
+        private readonly CareerRaceAttempt _careerAttempt;
 
         private int _attemptId;
         private bool _hasPreparedAttempt;
@@ -38,8 +41,12 @@ namespace ApexRivals.RaceSession.Runtime
             IRaceSessionNavigation navigation,
             RaceSessionState raceSessionState,
             ITimeScaleController timeScale,
-            RaceProgressionService raceProgressionService)
+            RaceProgressionService raceProgressionService,
+            CareerService career = null,
+            CareerRaceAttempt careerAttempt = null)
         {
+            _career = career;
+            _careerAttempt = careerAttempt;
             _setup = setup ?? throw new ArgumentNullException(nameof(setup));
             _raceController = raceController ?? throw new ArgumentNullException(nameof(raceController));
             _rewardService = rewardService ?? throw new ArgumentNullException(nameof(rewardService));
@@ -353,6 +360,12 @@ namespace ApexRivals.RaceSession.Runtime
                 return;
             }
 
+            // Career facts, objectives, unlocks and the final are recorded against the attempt captured at
+            // install, after the existing reward and before the single save below.
+            var careerOutcome = _career != null
+                ? _career.RecordRaceFinish(_careerAttempt, racerFinished.Result, _playerParticipantId)
+                : CareerRaceOutcome.None;
+
             var saveResult = _saveCheckpoint.Save();
             LastCommandResult = saveResult.Succeeded
                 ? RaceSessionCommandResult.Success()
@@ -367,7 +380,8 @@ namespace ApexRivals.RaceSession.Runtime
                 progressionResult.CurrentTier,
                 progressionResult.NewTierReached,
                 saveResult.Succeeded,
-                saveResult.Message);
+                saveResult.Message,
+                careerOutcome);
             // Retain the completed payload before presentation, even if it is rejected.
             _raceSessionState.SetResult(result);
             _lastResults = result;

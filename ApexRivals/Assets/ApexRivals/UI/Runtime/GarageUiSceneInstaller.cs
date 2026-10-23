@@ -34,11 +34,11 @@ namespace ApexRivals.UI.Runtime
 
             if (trackSelectionView != null && trackCatalog != null)
             {
-                _trackSelectionPresenter = new TrackSelectionPresenter(trackSelectionView, trackCatalog.CreateCatalog(), context.Navigation, screenNavigator);
+                _trackSelectionPresenter = new TrackSelectionPresenter(trackSelectionView, trackCatalog.CreateCatalog(), context.Navigation, screenNavigator, context.Career);
                 trackSelectionView.Bind(_trackSelectionPresenter);
             }
 
-            _garagePresenter = new GaragePresenter(garageView, context.GarageService, context.VehicleSelectionService, context.Navigation, _trackSelectionPresenter);
+            _garagePresenter = new GaragePresenter(garageView, context.GarageService, context.VehicleSelectionService, context.Navigation, _trackSelectionPresenter, context.Career);
             garageView.Bind(_garagePresenter);
             screenNavigator.Show(PresentationScreenState.Garage);
             _garagePresenter.Present();

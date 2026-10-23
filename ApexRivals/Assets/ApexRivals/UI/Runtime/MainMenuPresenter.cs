@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using UnityObject = UnityEngine.Object;
+using ApexRivals.Career.Runtime;
 using ApexRivals.SceneFlow.Runtime;
 
 namespace ApexRivals.UI.Runtime
@@ -12,6 +13,8 @@ namespace ApexRivals.UI.Runtime
         private readonly IInitialVehicleSelectionProgress _selectionProgress;
         private readonly IPresentationScreenNavigator _screenNavigator;
         private readonly IApplicationExit _applicationExit;
+        private readonly CareerService _career;
+        private string _careerAnnouncement;
         private bool _transitioning;
         private PresentationFailure _failure;
         private string _messageKey = string.Empty;
@@ -21,8 +24,10 @@ namespace ApexRivals.UI.Runtime
             SceneFlowService sceneFlow,
             IInitialVehicleSelectionProgress selectionProgress,
             IPresentationScreenNavigator screenNavigator,
-            IApplicationExit applicationExit)
+            IApplicationExit applicationExit,
+            CareerService career = null)
         {
+            _career = career;
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _sceneFlow = sceneFlow ?? throw new ArgumentNullException(nameof(sceneFlow));
             _selectionProgress = selectionProgress ?? throw new ArgumentNullException(nameof(selectionProgress));
@@ -125,6 +130,14 @@ namespace ApexRivals.UI.Runtime
         private MainMenuViewModel CreateModel()
         {
             var hasSelection = _selectionProgress.HasCommittedVehicleSelection;
+            var careerPanel = default(CareerPanelViewModel);
+            if (_career != null)
+            {
+                // Objectives completed outside a race (e.g. upgrades) are announced once per menu visit.
+                _careerAnnouncement ??= CareerViewText.FormatAwards(_career.ConsumeAnnouncements());
+                careerPanel = CareerViewText.CreatePanel(_career.GetSummary(), _careerAnnouncement);
+            }
+
             return new MainMenuViewModel(
                 hasSelection ? MainMenuStartTarget.Race : MainMenuStartTarget.InitialVehicleSelection,
                 !hasSelection,
@@ -134,7 +147,8 @@ namespace ApexRivals.UI.Runtime
                 !_transitioning,
                 _transitioning,
                 _failure,
-                _messageKey);
+                _messageKey,
+                careerPanel);
         }
     }
 }

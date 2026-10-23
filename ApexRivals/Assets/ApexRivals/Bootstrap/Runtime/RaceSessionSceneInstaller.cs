@@ -1,4 +1,5 @@
 using ApexRivals.AI.Runtime;
+using ApexRivals.Career.Runtime;
 using ApexRivals.Garage.Configuration;
 using ApexRivals.Progression.Configuration;
 using ApexRivals.Progression.Runtime;
@@ -24,6 +25,9 @@ namespace ApexRivals.Bootstrap.Runtime
         public RaceSessionCoordinator Session { get; private set; }
         public RaceSessionCommandResult LastInstallResult { get; private set; }
 
+        /// <summary>Career identity of the race in progress; null without a career.</summary>
+        public CareerRaceAttempt CareerAttempt { get; private set; }
+
         public void Install(ApplicationContext context)
         {
             if (context == null)
@@ -39,17 +43,22 @@ namespace ApexRivals.Bootstrap.Runtime
                 return;
             }
 
+            // The attempt identity (circuit actually loaded, car, final or not) is fixed here, before setup.
+            CareerAttempt = context.Career?.BeginAttempt(gameObject.scene.name, context.SelectedVehicleState.SelectedVehicleId);
+            var activeSetup = CareerAttempt != null && CareerAttempt.IsFinale && context.Career.FinaleRaceSetup != null
+                ? context.Career.FinaleRaceSetup
+                : raceSetupDefinition;
             var setupService = new RaceSetupService(
                 context.VehicleCatalog,
                 context.ProgressionState,
                 engineUpgradeDefinition.CreateData(),
                 handlingUpgradeDefinition.CreateData(),
                 new UnityRaceVehicleFactory(),
-                raceSetupDefinition.CreateAiConfigurationMap(),
-                raceSetupDefinition.UsePerOpponentDifficulty ? null : context.RaceProgressionService);
+                activeSetup.CreateAiConfigurationMap(),
+                activeSetup.UsePerOpponentDifficulty ? null : context.RaceProgressionService);
             var setup = new RaceSetupSessionAdapter(
                 setupService,
-                raceSetupDefinition,
+                activeSetup,
                 context.SelectedVehicleState,
                 startingGrid,
                 raceCoordinator,
@@ -66,7 +75,9 @@ namespace ApexRivals.Bootstrap.Runtime
                 navigation,
                 context.Navigation.RaceSession,
                 context.PauseCoordinator.CreateSession(),
-                context.RaceProgressionService);
+                context.RaceProgressionService,
+                context.Career,
+                CareerAttempt);
 
             LastInstallResult = Session.Prepare();
             if (LastInstallResult.Succeeded)
@@ -79,6 +90,7 @@ namespace ApexRivals.Bootstrap.Runtime
         {
             Session?.Dispose();
             Session = null;
+            CareerAttempt = null;
         }
 
         private RaceSessionCommandResult Validate(ApplicationContext context)

@@ -122,7 +122,23 @@ namespace ApexRivals.UI.Runtime
                 result.NewTierReached,
                 _transitioning,
                 _failure,
-                _messageKey);
+                _messageKey,
+                CareerViewText.FormatOutcomeTitle(result.CareerOutcome),
+                CreateCareerBody(result),
+                result.CareerOutcome.CareerCompleted);
+        }
+
+        private string CreateCareerBody(RaceSessionResult result)
+        {
+            var body = CareerViewText.FormatOutcomeBody(result.CareerOutcome);
+            if (!_sceneFlow.RaceSession.HasResult || result.SaveSucceeded)
+            {
+                return body;
+            }
+
+            // Progress stays in memory and is saved again before leaving, but it is not on disk yet.
+            var warning = "PROGRESS NOT SAVED YET: " + result.SaveMessage;
+            return string.IsNullOrEmpty(body) ? warning : body + "\n" + warning;
         }
     }
 }

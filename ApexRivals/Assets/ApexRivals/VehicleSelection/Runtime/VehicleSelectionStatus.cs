@@ -7,6 +7,7 @@ namespace ApexRivals.VehicleSelection.Runtime
         UnavailableVehicle,
         MissingSelection,
         SelectionLocked,
-        SaveFailed
+        SaveFailed,
+        VehicleNotOwned
     }
 }

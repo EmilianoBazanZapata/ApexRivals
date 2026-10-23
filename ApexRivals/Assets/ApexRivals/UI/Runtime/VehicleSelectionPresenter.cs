@@ -116,7 +116,9 @@ namespace ApexRivals.UI.Runtime
                     : PresentationFailure.InvalidVehicleSelection;
                 _messageKey = result.Status == VehicleSelectionStatus.SaveFailed
                     ? "ui.vehicleSelection.saveFailed"
-                    : "ui.vehicleSelection.invalidSelection";
+                    : result.Status == VehicleSelectionStatus.VehicleNotOwned
+                        ? "ui.vehicleSelection.notOwned"
+                        : "ui.vehicleSelection.invalidSelection";
             }
 
             Present();

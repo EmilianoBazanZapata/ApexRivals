@@ -11,8 +11,10 @@ namespace ApexRivals.UI.Runtime
             bool canQuit,
             bool isTransitioning,
             PresentationFailure failure,
-            string messageKey)
+            string messageKey,
+            CareerPanelViewModel career = default)
         {
+            Career = career;
             StartTarget = startTarget;
             IsVehicleSelectionRequired = isVehicleSelectionRequired;
             CanStartOrContinue = canStartOrContinue;
@@ -33,5 +35,6 @@ namespace ApexRivals.UI.Runtime
         public bool IsTransitioning { get; }
         public PresentationFailure Failure { get; }
         public string MessageKey { get; }
+        public CareerPanelViewModel Career { get; }
     }
 }

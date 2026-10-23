@@ -1,5 +1,8 @@
 using System.Collections;
 using ApexRivals.Audio.Runtime;
+using ApexRivals.Career.Configuration;
+using ApexRivals.Career.Runtime;
+using ApexRivals.Tracks.Configuration;
 using ApexRivals.Progression.Configuration;
 using ApexRivals.Garage.Configuration;
 using ApexRivals.Garage.Runtime;
@@ -22,6 +25,9 @@ namespace ApexRivals.Bootstrap.Runtime
         [SerializeField] private UpgradeDefinition engineUpgradeDefinition;
         [SerializeField] private UpgradeDefinition handlingUpgradeDefinition;
         [SerializeField] private RaceProgressionDefinition raceProgressionDefinition;
+        [SerializeField, Tooltip("Optional. With the track catalog, enables the career (car ownership, unlocks, objectives, final).")]
+        private CareerDefinition careerDefinition;
+        [SerializeField] private TrackCatalogDefinition trackCatalogDefinition;
         [SerializeField] private UnityContentSceneLoader sceneLoader;
         [SerializeField, Tooltip("Music, UI cues and the audio bus; follows the audio settings.")] private GameAudio gameAudio;
         [SerializeField] private string[] knownVehicleIds = { SelectedVehicleState.DefaultVehicleId };
@@ -81,8 +87,9 @@ namespace ApexRivals.Bootstrap.Runtime
 
             var progressionState = new PlayerProgressionState();
             var selectedVehicleState = new SelectedVehicleState();
+            var careerState = careerDefinition != null ? new CareerState() : null;
             var storage = new PlayerProfileFileStorage(Application.persistentDataPath, PlayerProfileFileStorage.DefaultFileName);
-            var saveService = new PlayerProfileSaveService(progressionState, selectedVehicleState, storage, CreateKnownVehicleIds(vehicleCatalog));
+            var saveService = new PlayerProfileSaveService(progressionState, selectedVehicleState, storage, CreateKnownVehicleIds(vehicleCatalog), careerState);
             var settingsService = new SettingsService(new PlayerPrefsSettingsStorage(), new UnityDisplaySettingsAdapter());
             var audio = gameAudio != null ? gameAudio : GameAudio.Current;
             if (audio != null)
@@ -90,8 +97,23 @@ namespace ApexRivals.Bootstrap.Runtime
                 audio.Bind(settingsService);
             }
             var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
-            var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState);
+            CareerService career = null;
+            if (careerState != null)
+            {
+                var careerMessage = CreateCareerService(vehicleCatalog, careerState, progressionState, selectedVehicleState, saveCheckpoint, out career);
+                if (career == null)
+                {
+                    StartupStatus = BootstrapStartupStatus.Failed;
+                    return System.Threading.Tasks.Task.FromResult(new BootstrapStartupResult(BootstrapStartupStatus.Failed, careerMessage));
+                }
+            }
+
+            var vehicleSelectionService = new VehicleSelectionService(vehicleCatalog, selectedVehicleState, saveCheckpoint, progressionState, ownership: career);
             var garageService = CreateGarageService(vehicleCatalog, vehicleSelectionService, progressionState);
+            if (garageService != null && career != null)
+            {
+                garageService.UpgradePurchased += (_, _) => career.EvaluateMilestones();
+            }
             var raceProgressionService = CreateRaceProgressionService(progressionState);
             if (raceProgressionService == null)
             {
@@ -109,7 +131,8 @@ namespace ApexRivals.Bootstrap.Runtime
             var sceneFlowService = new SceneFlowService(
                 sceneFlowConfiguration.CreateSceneMap(),
                 sceneLoader,
-                saveCheckpoint);
+                saveCheckpoint,
+                career);
 
             Context = new ApplicationContext(
                 sceneFlowService,
@@ -120,12 +143,14 @@ namespace ApexRivals.Bootstrap.Runtime
                 vehicleSelectionService,
                 garageService,
                 settingsService,
-                raceProgressionService);
+                raceProgressionService,
+                career: career);
 
             sceneLoader.ContentSceneUnloading += OnContentSceneUnloading;
             sceneLoader.ContentSceneLoaded += OnContentSceneLoaded;
 
-            var bootstrapService = new ApplicationBootstrapService(saveService, sceneFlowService, settingsService);
+            // The career grants the starter car and records milestones already met by the loaded profile.
+            var bootstrapService = new ApplicationBootstrapService(saveService, sceneFlowService, settingsService, career != null ? career.Initialize : null);
             var startTask = bootstrapService.StartAsync();
             return CompleteStartupAsync(startTask, bootstrapService, vehicleSelectionService);
         }
@@ -203,6 +228,49 @@ namespace ApexRivals.Bootstrap.Runtime
                 engineUpgradeDefinition.CreateData(),
                 handlingUpgradeDefinition.CreateData(),
                 () => vehicleSelectionService.CurrentSelectedDefinition?.BasePerformanceStats ?? defaultVehicle.BasePerformanceStats);
+        }
+
+        private string CreateCareerService(
+            VehicleCatalog vehicleCatalog,
+            CareerState careerState,
+            PlayerProgressionState progressionState,
+            SelectedVehicleState selectedVehicleState,
+            PlayerProfileSaveCheckpoint saveCheckpoint,
+            out CareerService career)
+        {
+            career = null;
+            if (trackCatalogDefinition == null)
+            {
+                return "The career needs the track catalog.";
+            }
+
+            if (careerDefinition.FinaleRaceSetup == null)
+            {
+                return "The career final has no race setup.";
+            }
+
+            var maximumLevels = new System.Collections.Generic.Dictionary<UpgradeType, int>();
+            if (engineUpgradeDefinition != null) maximumLevels[UpgradeType.Engine] = engineUpgradeDefinition.CreateData().MaximumLevel;
+            if (handlingUpgradeDefinition != null) maximumLevels[UpgradeType.Handling] = handlingUpgradeDefinition.CreateData().MaximumLevel;
+
+            var configuration = careerDefinition.CreateConfiguration();
+            var trackCatalog = trackCatalogDefinition.CreateCatalog();
+            var validation = configuration.Validate(vehicleCatalog, trackCatalog, maximumLevels);
+            if (!validation.Succeeded)
+            {
+                return validation.Message;
+            }
+
+            career = new CareerService(
+                configuration,
+                careerState,
+                progressionState,
+                selectedVehicleState,
+                vehicleCatalog,
+                trackCatalog,
+                saveCheckpoint,
+                careerDefinition.FinaleRaceSetup);
+            return string.Empty;
         }
 
         private RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progressionState)

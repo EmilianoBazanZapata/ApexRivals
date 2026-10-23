@@ -10,7 +10,8 @@ namespace ApexRivals.VehicleSelection.Runtime
             bool selectable,
             bool selected,
             VehiclePerformanceStats baseStats,
-            VehiclePerformanceStats effectivePlayerStats)
+            VehiclePerformanceStats effectivePlayerStats,
+            bool owned = true)
         {
             VehicleId = vehicleId;
             DisplayName = displayName;
@@ -18,7 +19,11 @@ namespace ApexRivals.VehicleSelection.Runtime
             Selected = selected;
             BaseStats = baseStats;
             EffectivePlayerStats = effectivePlayerStats;
+            Owned = owned;
         }
+
+        /// <summary>False for cars that can be browsed but must be bought before racing.</summary>
+        public bool Owned { get; }
 
         public string VehicleId { get; }
         public string DisplayName { get; }

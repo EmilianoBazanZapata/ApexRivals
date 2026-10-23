@@ -11,12 +11,15 @@ namespace ApexRivals.Bootstrap.Runtime
         private readonly PlayerProfileSaveService _saveService;
         private readonly SceneFlowService _navigation;
         private readonly SettingsService _settingsService;
+        private readonly Action _profileLoaded;
 
-        public ApplicationBootstrapService(PlayerProfileSaveService saveService, SceneFlowService navigation, SettingsService settingsService = null)
+        /// <param name="profileLoaded">Runs after the profile loads and before the first menu opens.</param>
+        public ApplicationBootstrapService(PlayerProfileSaveService saveService, SceneFlowService navigation, SettingsService settingsService = null, Action profileLoaded = null)
         {
             _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
             _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
             _settingsService = settingsService;
+            _profileLoaded = profileLoaded;
             StartupStatus = BootstrapStartupStatus.NotStarted;
         }
 
@@ -35,6 +38,7 @@ namespace ApexRivals.Bootstrap.Runtime
                 return new BootstrapStartupResult(BootstrapStartupStatus.Failed, loadResult.Message);
             }
 
+            _profileLoaded?.Invoke();
             var transitionResult = await _navigation.OpenMainMenu();
             if (!transitionResult.Succeeded)
             {

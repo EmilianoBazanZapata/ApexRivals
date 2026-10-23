@@ -34,7 +34,7 @@ namespace ApexRivals.UI.Runtime
 
             _vehicleSelectionPresenter = new VehicleSelectionPresenter(vehicleSelectionView, context.VehicleSelectionService, context.Navigation, screenNavigator);
             _settingsPresenter = new SettingsPresenter(settingsView, context.SettingsService);
-            _mainMenuPresenter = new MainMenuPresenter(mainMenuView, context.Navigation, _vehicleSelectionPresenter, screenNavigator, new UguiApplicationExit());
+            _mainMenuPresenter = new MainMenuPresenter(mainMenuView, context.Navigation, _vehicleSelectionPresenter, screenNavigator, new UguiApplicationExit(), context.Career);
             _vehicleSelectionService = context.VehicleSelectionService;
             _vehicleSelectionService.VehicleSelectionCommitted += OnVehicleSelectionCommitted;
 

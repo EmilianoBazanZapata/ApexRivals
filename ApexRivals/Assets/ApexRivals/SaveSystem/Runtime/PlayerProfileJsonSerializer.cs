@@ -40,21 +40,48 @@ namespace ApexRivals.SaveSystem.Runtime
                     return new SaveDeserializationResult(false, null, "Save data could not be parsed.");
                 }
 
-                if (versionProbe.schemaVersion != PlayerProfileSaveData.CurrentSchemaVersion)
+                if (versionProbe.schemaVersion > PlayerProfileSaveData.CurrentSchemaVersion)
+                {
+                    return new SaveDeserializationResult(false, null, "Save schema version is unsupported.", true);
+                }
+
+                if (versionProbe.schemaVersion != PlayerProfileSaveData.CurrentSchemaVersion
+                    && versionProbe.schemaVersion != PlayerProfileSaveData.PreviousSchemaVersion)
                 {
                     return new SaveDeserializationResult(false, null, "Save schema version is unsupported.");
                 }
 
                 var saveData = JsonUtility.FromJson<PlayerProfileSaveData>(json);
+                if (saveData == null)
+                {
+                    return new SaveDeserializationResult(false, null, "Save schema version is unsupported.");
+                }
 
-                return saveData == null
-                    ? new SaveDeserializationResult(false, null, "Save schema version is unsupported.")
-                    : new SaveDeserializationResult(true, saveData, string.Empty);
+                if (versionProbe.schemaVersion == PlayerProfileSaveData.PreviousSchemaVersion)
+                {
+                    MigrateFromPreCareerSchema(saveData);
+                }
+
+                return new SaveDeserializationResult(true, saveData, string.Empty);
             }
             catch (Exception exception)
             {
                 return new SaveDeserializationResult(false, null, exception.Message);
             }
+        }
+
+        /// <summary>
+        /// Schema 3 had no career. Currency, upgrades, race count and the selected car carry over unchanged.
+        /// Every car was raceable then, so a committed car stays owned (the starter is granted by the career on
+        /// load). No per-track completion, win or milestone is invented from the old race count.
+        /// </summary>
+        private static void MigrateFromPreCareerSchema(PlayerProfileSaveData saveData)
+        {
+            var owned = saveData.vehicleSelectionCommitted && !string.IsNullOrWhiteSpace(saveData.selectedVehicleId)
+                ? new[] { saveData.selectedVehicleId.Trim() }
+                : Array.Empty<string>();
+            saveData.career = new CareerSaveData { ownedVehicleIds = owned };
+            saveData.schemaVersion = PlayerProfileSaveData.CurrentSchemaVersion;
         }
     }
 }

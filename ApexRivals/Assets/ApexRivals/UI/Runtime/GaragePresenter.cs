@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityObject = UnityEngine.Object;
+using ApexRivals.Career.Runtime;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.SceneFlow.Runtime;
@@ -16,13 +17,17 @@ namespace ApexRivals.UI.Runtime
         private readonly VehicleSelectionService _vehicleSelectionService;
         private readonly SceneFlowService _sceneFlow;
         private readonly TrackSelectionPresenter _trackSelection;
+        private readonly CareerService _career;
+        private string _careerFeedback = string.Empty;
         private bool _operationActive;
         private PresentationStatus _purchaseStatus;
         private string _messageKey = string.Empty;
 
         /// <param name="trackSelection">When set, Start Race opens the track select screen instead of loading the race.</param>
-        public GaragePresenter(IGarageView view, GarageService garageService, VehicleSelectionService vehicleSelectionService, SceneFlowService sceneFlow, TrackSelectionPresenter trackSelection = null)
+        /// <param name="career">When set, cars must be owned to race and locked cars show their price and a buy action.</param>
+        public GaragePresenter(IGarageView view, GarageService garageService, VehicleSelectionService vehicleSelectionService, SceneFlowService sceneFlow, TrackSelectionPresenter trackSelection = null, CareerService career = null)
         {
+            _career = career;
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _garageService = garageService ?? throw new ArgumentNullException(nameof(garageService));
             _vehicleSelectionService = vehicleSelectionService ?? throw new ArgumentNullException(nameof(vehicleSelectionService));
@@ -45,6 +50,16 @@ namespace ApexRivals.UI.Runtime
         public void Present()
         {
             if (!CanRender) return;
+
+            if (_career != null)
+            {
+                // Objectives completed by an upgrade purchase are announced here, once.
+                var announcements = CareerViewText.FormatAwards(_career.ConsumeAnnouncements());
+                if (!string.IsNullOrEmpty(announcements))
+                {
+                    _careerFeedback = announcements;
+                }
+            }
 
             Current = CreateModel();
             _view.Render(Current);
@@ -107,16 +122,54 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
+            if (!_vehicleSelectionService.IsOwned(selection.SelectedVehicleId))
+            {
+                // Locked cars are previewed with their price; the equipped car stays the one you race.
+                _purchaseStatus = PresentationStatus.None;
+                _messageKey = string.Empty;
+                _careerFeedback = string.Empty;
+                Present();
+                return;
+            }
+
             ConfirmVehicle();
         }
 
-        /// <summary>Equips the previous selectable vehicle, wrapping around and skipping locked ones.</summary>
+        /// <summary>Buys the previewed car through the career and equips it. The career validates everything.</summary>
+        public void BuyCandidateVehicle()
+        {
+            if (!CanRender || _operationActive || _career == null)
+            {
+                return;
+            }
+
+            var vehicleId = _vehicleSelectionService.CurrentCandidateVehicleId;
+            _operationActive = true;
+            Present();
+            var result = _career.PurchaseVehicle(vehicleId);
+            _operationActive = false;
+            var feedback = CareerViewText.FormatPurchase(result, _career.GetVehicleName(vehicleId));
+            var awards = CareerViewText.FormatAwards(result.Awards);
+            _purchaseStatus = result.Succeeded ? PresentationStatus.Succeeded : PresentationStatus.Invalid;
+            _messageKey = result.Succeeded ? "ui.garage.vehiclePurchased" : "ui.garage.vehiclePurchaseFailed";
+            if (result.Succeeded)
+            {
+                // The purchase is already saved by the career; equipping saves the selection as usual.
+                _career.ConsumeAnnouncements();
+                ConfirmVehicle();
+            }
+
+            _careerFeedback = string.IsNullOrEmpty(awards) ? feedback : feedback + "\n" + awards;
+            Present();
+        }
+
+        /// <summary>Equips the previous owned vehicle (or previews it when it still has to be bought), wrapping around.</summary>
         public void EquipPreviousVehicle()
         {
             EquipVehicleByOffset(-1);
         }
 
-        /// <summary>Equips the next selectable vehicle, wrapping around and skipping locked ones.</summary>
+        /// <summary>Equips the next owned vehicle (or previews it when it still has to be bought), wrapping around.</summary>
         public void EquipNextVehicle()
         {
             EquipVehicleByOffset(1);
@@ -152,6 +205,10 @@ namespace ApexRivals.UI.Runtime
         public async Task StartRace()
         {
             if (!CanRender || _operationActive) return;
+            if (!_vehicleSelectionService.IsOwned(_vehicleSelectionService.CurrentCandidateVehicleId))
+            {
+                _vehicleSelectionService.CancelPreview();
+            }
             if (!_vehicleSelectionService.HasValidCommittedVehicleSelection)
             {
                 var selection = _vehicleSelectionService.ConfirmSelection();
@@ -192,6 +249,7 @@ namespace ApexRivals.UI.Runtime
             }
 
             _operationActive = true;
+            _careerFeedback = string.Empty;
             Present();
             var result = _garageService.Purchase(upgradeType);
             _operationActive = false;
@@ -272,7 +330,25 @@ namespace ApexRivals.UI.Runtime
                 state.EffectiveStats,
                 _operationActive,
                 _purchaseStatus,
-                _messageKey);
+                _messageKey,
+                CreateCareerModel(candidateId, state.Currency));
+        }
+
+        private GarageCareerViewModel CreateCareerModel(string candidateId, int currency)
+        {
+            if (_career == null)
+            {
+                return default;
+            }
+
+            var status = _career.GetVehicleStatus(candidateId);
+            return new GarageCareerViewModel(
+                CareerViewText.CreatePanel(_career.GetSummary()),
+                _career.GetVehicleName(candidateId),
+                status.Owned,
+                CareerViewText.FormatVehicleStatus(status, currency),
+                status.CanPurchase && !_operationActive,
+                _careerFeedback);
         }
 
         private void SelectVehicleByOffset(int offset)
@@ -302,26 +378,18 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
+            // Step from the car on screen (a locked car being previewed, or the equipped one).
             var vehicles = Current.Vehicles;
-            var startIndex = -1;
-            for (var index = 0; index < vehicles.Count; index++)
-            {
-                if (vehicles[index].IsSelected)
-                {
-                    startIndex = index;
-                    break;
-                }
-            }
-
+            var startIndex = Current.CandidateVehicleIndex;
             if (startIndex < 0)
             {
-                startIndex = Current.CandidateVehicleIndex >= 0 ? Current.CandidateVehicleIndex : (offset > 0 ? -1 : 0);
+                startIndex = offset > 0 ? -1 : 0;
             }
 
             for (var step = 1; step <= vehicles.Count; step++)
             {
                 var index = ((startIndex + offset * step) % vehicles.Count + vehicles.Count) % vehicles.Count;
-                if (vehicles[index].CanSelect && !vehicles[index].IsSelected)
+                if (index != Current.CandidateVehicleIndex && vehicles[index].CanSelect)
                 {
                     EquipVehicle(vehicles[index].VehicleId);
                     return;

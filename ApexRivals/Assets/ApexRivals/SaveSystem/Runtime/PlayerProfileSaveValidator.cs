@@ -59,10 +59,52 @@ namespace ApexRivals.SaveSystem.Runtime
                 handlingUpgradeLevel = saveData.handlingUpgradeLevel,
                 completedRaceCount = saveData.completedRaceCount,
                 selectedVehicleId = selectedVehicleId,
-                vehicleSelectionCommitted = vehicleSelectionCommitted
+                vehicleSelectionCommitted = vehicleSelectionCommitted,
+                career = NormalizeCareer(saveData.career)
             };
 
             return new SaveDataValidationResult(true, validated, string.Empty);
+        }
+
+        /// <summary>
+        /// Trims and de-duplicates career IDs and drops blanks. IDs the current content does not know are kept:
+        /// the career ignores them, and a later build that knows them again still finds the progress.
+        /// </summary>
+        private static CareerSaveData NormalizeCareer(CareerSaveData career)
+        {
+            if (career == null)
+            {
+                return new CareerSaveData();
+            }
+
+            return new CareerSaveData
+            {
+                ownedVehicleIds = NormalizeIds(career.ownedVehicleIds),
+                completedTrackIds = NormalizeIds(career.completedTrackIds),
+                wonTrackIds = NormalizeIds(career.wonTrackIds),
+                achievedMilestoneIds = NormalizeIds(career.achievedMilestoneIds),
+                finaleWon = career.finaleWon
+            };
+        }
+
+        private static string[] NormalizeIds(string[] ids)
+        {
+            if (ids == null || ids.Length == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var normalized = new List<string>(ids.Length);
+            foreach (var id in ids)
+            {
+                if (!string.IsNullOrWhiteSpace(id) && seen.Add(id.Trim()))
+                {
+                    normalized.Add(id.Trim());
+                }
+            }
+
+            return normalized.ToArray();
         }
 
         private string ResolveVehicleId(string vehicleId, bool vehicleSelectionCommitted, out bool resolvedCommitted)

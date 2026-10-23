@@ -6,7 +6,8 @@ namespace ApexRivals.UI.Runtime
 {
     /// <summary>
     /// Single-screen garage: equipped vehicle selector, stats, both upgrade cards and race/back actions.
-    /// Previous/next (arrows, Q/E, LB/RB) equip the adjacent selectable vehicle directly.
+    /// Previous/next (arrows, Q/E, LB/RB) equip the adjacent owned vehicle directly; a car that is not owned yet
+    /// is only previewed, with its price, prerequisite and a Buy button.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class GarageUguiView : MonoBehaviour, IGarageView, IUiVehicleSelectionNavigation, ICancelHandler
@@ -43,6 +44,12 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Text statusText;
         [SerializeField] private GameObject feedbackRoot;
 
+        [Header("Career (optional)")]
+        [SerializeField, Tooltip("Owned, or price and prerequisite of the car on screen.")] private Text vehicleStatusText;
+        [SerializeField] private Button buyVehicleButton;
+        [SerializeField] private Text buyVehicleButtonLabel;
+        [SerializeField] private CareerPanelUguiView careerPanel;
+
 
         private const string VehicleEquippedMessageKey = "ui.vehicleSelection.confirmed";
 
@@ -64,8 +71,12 @@ namespace ApexRivals.UI.Runtime
             }
 
             UguiViewText.Set(currencyText, UguiViewText.FormatCurrency(viewModel.Currency));
-            UguiViewText.Set(vehicleNameText, string.IsNullOrEmpty(viewModel.SelectedVehicleName) ? "NO VEHICLE SELECTED" : viewModel.SelectedVehicleName);
+            var shownName = viewModel.Career.HasCareer && !string.IsNullOrEmpty(viewModel.Career.CandidateVehicleName)
+                ? viewModel.Career.CandidateVehicleName
+                : viewModel.SelectedVehicleName;
+            UguiViewText.Set(vehicleNameText, string.IsNullOrEmpty(shownName) ? "NO VEHICLE SELECTED" : shownName);
             RenderVehicleSelector(viewModel);
+            RenderCareer(viewModel);
 
             RenderUpgrade(
                 viewModel.Engine,
@@ -105,9 +116,11 @@ namespace ApexRivals.UI.Runtime
             }
 
             // The selector already shows the equipped vehicle, so only purchase results need a banner.
-            var feedback = viewModel.MessageKey == VehicleEquippedMessageKey
-                ? string.Empty
-                : UguiViewText.FormatPurchaseStatus(viewModel.PurchaseStatus);
+            var feedback = !string.IsNullOrEmpty(viewModel.Career.Feedback)
+                ? viewModel.Career.Feedback
+                : viewModel.MessageKey == VehicleEquippedMessageKey
+                    ? string.Empty
+                    : UguiViewText.FormatPurchaseStatus(viewModel.PurchaseStatus);
             UguiViewText.Set(statusText, feedback);
             if (feedbackRoot != null)
             {
@@ -139,15 +152,18 @@ namespace ApexRivals.UI.Runtime
         {
             var previous = previousVehicleButton;
             var next = nextVehicleButton;
+            var buy = buyVehicleButton;
             var engine = engineUpgradeButton;
             var handling = handlingUpgradeButton;
             var back = returnToMainMenuButton;
             var start = startRaceButton;
 
-            UiNavigation.Set(previous, null, UiNavigation.First(engine, handling, back, start), null, UiNavigation.First(next));
-            UiNavigation.Set(next, null, UiNavigation.First(handling, engine, start, back), UiNavigation.First(previous), null);
-            UiNavigation.Set(engine, UiNavigation.First(previous, next), UiNavigation.First(back, start), null, UiNavigation.First(handling));
-            UiNavigation.Set(handling, UiNavigation.First(next, previous), UiNavigation.First(start, back), UiNavigation.First(engine), null);
+            // Buy (only while a locked car is on screen) sits between the car arrows and the upgrades.
+            UiNavigation.Set(previous, null, UiNavigation.First(buy, engine, handling, back, start), null, UiNavigation.First(next));
+            UiNavigation.Set(next, null, UiNavigation.First(buy, handling, engine, start, back), UiNavigation.First(previous), null);
+            UiNavigation.Set(buy, UiNavigation.First(next, previous), UiNavigation.First(engine, handling, start, back), UiNavigation.First(previous), UiNavigation.First(next));
+            UiNavigation.Set(engine, UiNavigation.First(buy, previous, next), UiNavigation.First(back, start), null, UiNavigation.First(handling));
+            UiNavigation.Set(handling, UiNavigation.First(buy, next, previous), UiNavigation.First(start, back), UiNavigation.First(engine), null);
             UiNavigation.Set(back, UiNavigation.First(engine, handling, previous, next), null, null, UiNavigation.First(start));
             UiNavigation.Set(start, UiNavigation.First(handling, engine, next, previous), null, UiNavigation.First(back), null);
         }
@@ -160,7 +176,35 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            UiFocus.Request(UiNavigation.First(startRaceButton, nextVehicleButton, returnToMainMenuButton));
+            UiFocus.Request(UiNavigation.First(startRaceButton, buyVehicleButton, nextVehicleButton, returnToMainMenuButton));
+        }
+
+        private void RenderCareer(GarageViewModel viewModel)
+        {
+            var career = viewModel.Career;
+            if (careerPanel != null)
+            {
+                careerPanel.Render(career.Panel);
+            }
+
+            UguiViewText.Set(vehicleStatusText, career.HasCareer ? career.CandidateStatus : string.Empty);
+            if (vehicleStatusText != null)
+            {
+                vehicleStatusText.color = !career.HasCareer || career.CandidateOwned ? ApexUiVisualStyle.SecondaryText : ApexUiVisualStyle.AccentText;
+            }
+
+            if (buyVehicleButton != null)
+            {
+                var showBuy = career.HasCareer && !career.CandidateOwned;
+                if (buyVehicleButton.gameObject.activeSelf != showBuy)
+                {
+                    buyVehicleButton.gameObject.SetActive(showBuy);
+                }
+
+                buyVehicleButton.interactable = career.CanBuyCandidate && !viewModel.OperationActive;
+            }
+
+            UguiViewText.Set(buyVehicleButtonLabel, "BUY CAR");
         }
 
         private void RenderVehicleSelector(GarageViewModel viewModel)
@@ -182,7 +226,7 @@ namespace ApexRivals.UI.Runtime
                 }
             }
 
-            var shownIndex = equippedIndex >= 0 ? equippedIndex : viewModel.CandidateVehicleIndex;
+            var shownIndex = viewModel.CandidateVehicleIndex >= 0 ? viewModel.CandidateVehicleIndex : equippedIndex;
             UguiViewText.Set(vehicleCounterText, UguiViewText.FormatVehicleCounter(shownIndex, count));
 
             // Cycling needs another vehicle to move to.
@@ -287,6 +331,11 @@ namespace ApexRivals.UI.Runtime
                 nextVehicleButton.onClick.AddListener(SelectNextVehicle);
             }
 
+            if (buyVehicleButton != null)
+            {
+                buyVehicleButton.onClick.AddListener(OnBuyVehicleClicked);
+            }
+
             _subscribed = true;
         }
 
@@ -327,7 +376,17 @@ namespace ApexRivals.UI.Runtime
                 nextVehicleButton.onClick.RemoveListener(SelectNextVehicle);
             }
 
+            if (buyVehicleButton != null)
+            {
+                buyVehicleButton.onClick.RemoveListener(OnBuyVehicleClicked);
+            }
+
             _subscribed = false;
+        }
+
+        private void OnBuyVehicleClicked()
+        {
+            _presenter?.BuyCandidateVehicle();
         }
 
         private void OnEngineUpgradeClicked()

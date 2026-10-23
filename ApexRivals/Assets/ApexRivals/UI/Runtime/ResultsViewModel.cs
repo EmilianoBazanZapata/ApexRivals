@@ -16,8 +16,14 @@ namespace ApexRivals.UI.Runtime
             bool newTierReached,
             bool isTransitioning,
             PresentationFailure failure,
-            string messageKey)
+            string messageKey,
+            string careerTitle = "",
+            string careerBody = "",
+            bool careerCompleted = false)
         {
+            CareerTitle = careerTitle ?? string.Empty;
+            CareerBody = careerBody ?? string.Empty;
+            CareerCompleted = careerCompleted;
             FinalPosition = finalPosition;
             ParticipantCount = participantCount;
             RaceTime = raceTime;
@@ -48,5 +54,12 @@ namespace ApexRivals.UI.Runtime
         public bool IsTransitioning { get; }
         public PresentationFailure Failure { get; }
         public string MessageKey { get; }
+
+        /// <summary>Career headline (completion, final result or the champion celebration).</summary>
+        public string CareerTitle { get; }
+
+        /// <summary>Objectives and bonuses, unlocks, next objective and any save problem.</summary>
+        public string CareerBody { get; }
+        public bool CareerCompleted { get; }
     }
 }

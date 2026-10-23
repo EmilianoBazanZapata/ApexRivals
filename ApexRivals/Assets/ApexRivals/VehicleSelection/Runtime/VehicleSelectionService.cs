@@ -14,16 +14,20 @@ namespace ApexRivals.VehicleSelection.Runtime
         private readonly PlayerProgressionState _progressionState;
         private readonly UpgradeDefinitionData _engineDefinition;
         private readonly UpgradeDefinitionData _handlingDefinition;
+        private readonly IVehicleOwnership _ownership;
         private string _candidateVehicleId;
 
+        /// <param name="ownership">When set, only owned cars can be confirmed; others can still be previewed.</param>
         public VehicleSelectionService(
             VehicleCatalog catalog,
             SelectedVehicleState selectedVehicleState,
             IVehicleSelectionSaveCheckpoint saveCheckpoint = null,
             PlayerProgressionState progressionState = null,
             UpgradeDefinitionData engineDefinition = null,
-            UpgradeDefinitionData handlingDefinition = null)
+            UpgradeDefinitionData handlingDefinition = null,
+            IVehicleOwnership ownership = null)
         {
+            _ownership = ownership;
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             _selectedVehicleState = selectedVehicleState ?? throw new ArgumentNullException(nameof(selectedVehicleState));
             _saveCheckpoint = saveCheckpoint;
@@ -54,7 +58,7 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var lookup = _catalog.FindById(_selectedVehicleState.SelectedVehicleId);
-            if (!VehicleCatalog.IsRaceSelectable(lookup.Vehicle))
+            if (!VehicleCatalog.IsRaceSelectable(lookup.Vehicle) || !IsOwned(lookup.Vehicle.StableId))
             {
                 _selectedVehicleState.ClearCommitment();
                 _candidateVehicleId = CreateInitialCandidateVehicleId();
@@ -80,7 +84,8 @@ namespace ApexRivals.VehicleSelection.Runtime
                     vehicle.AvailableInDemo,
                     vehicle.StableId == selectedId,
                     baseStats,
-                    effectiveStats));
+                    effectiveStats,
+                    IsOwned(vehicle.StableId)));
             }
 
             var selectedItem = default(VehicleSelectionItemState);
@@ -138,6 +143,11 @@ namespace ApexRivals.VehicleSelection.Runtime
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnavailableVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, "The selected vehicle is not available in the demo.");
             }
 
+            if (!IsOwned(lookup.Vehicle.StableId))
+            {
+                return new VehicleSelectionResult(VehicleSelectionStatus.VehicleNotOwned, CurrentSelectedVehicleId, CurrentSelectedVehicleId, "The selected vehicle must be bought before it can be raced.");
+            }
+
             var previousVehicleId = _selectedVehicleState.SelectedVehicleId;
             var previousCommitted = _selectedVehicleState.HasCommittedVehicleSelection;
             if (previousCommitted && previousVehicleId == lookup.Vehicle.StableId)
@@ -169,6 +179,11 @@ namespace ApexRivals.VehicleSelection.Runtime
             return new VehicleSelectionResult(VehicleSelectionStatus.Succeeded, previousVehicleId, lookup.Vehicle.StableId, string.Empty);
         }
 
+        public bool IsOwned(string vehicleId)
+        {
+            return _ownership == null || _ownership.IsVehicleOwned(vehicleId);
+        }
+
         public void CancelPreview()
         {
             _candidateVehicleId = _selectedVehicleState.HasCommittedVehicleSelection
@@ -184,7 +199,7 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var lookup = _catalog.FindById(_selectedVehicleState.SelectedVehicleId);
-            return lookup.Succeeded && VehicleCatalog.IsRaceSelectable(lookup.Vehicle) ? lookup.Vehicle : null;
+            return lookup.Succeeded && VehicleCatalog.IsRaceSelectable(lookup.Vehicle) && IsOwned(lookup.Vehicle.StableId) ? lookup.Vehicle : null;
         }
 
         private VehicleDefinitionData GetCandidateVehicleDefinition()

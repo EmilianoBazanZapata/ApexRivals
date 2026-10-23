@@ -23,6 +23,9 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private GameObject loadingBlocker;
         [SerializeField] private Text errorText;
 
+        [Header("Career (optional)")]
+        [SerializeField] private CareerPanelUguiView careerPanel;
+
         private MainMenuPresenter _presenter;
         private MainMenuViewModel _current;
         private bool _subscribed;
@@ -57,6 +60,10 @@ namespace ApexRivals.UI.Runtime
             }
 
             UguiViewText.Set(errorText, StatusText(viewModel.MessageKey));
+            if (careerPanel != null)
+            {
+                careerPanel.Render(viewModel.Career);
+            }
         }
 
         private void RenderMenuText(MainMenuViewModel viewModel)

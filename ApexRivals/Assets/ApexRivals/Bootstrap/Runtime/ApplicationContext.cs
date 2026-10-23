@@ -1,3 +1,4 @@
+using ApexRivals.Career.Runtime;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.SaveSystem.Runtime;
@@ -20,7 +21,8 @@ namespace ApexRivals.Bootstrap.Runtime
             GarageService garageService = null,
             SettingsService settingsService = null,
             RaceProgressionService raceProgressionService = null,
-            RacePauseCoordinator pauseCoordinator = null)
+            RacePauseCoordinator pauseCoordinator = null,
+            CareerService career = null)
         {
             Navigation = navigation;
             ProgressionState = progressionState;
@@ -31,6 +33,7 @@ namespace ApexRivals.Bootstrap.Runtime
             VehicleSelectionService = vehicleSelectionService;
             GarageService = garageService;
             RaceProgressionService = raceProgressionService;
+            Career = career;
             PauseCoordinator = pauseCoordinator ?? new RacePauseCoordinator(new UnityTimeScaleController(), navigation);
         }
 
@@ -44,5 +47,8 @@ namespace ApexRivals.Bootstrap.Runtime
         public GarageService GarageService { get; }
         public RaceProgressionService RaceProgressionService { get; }
         public RacePauseCoordinator PauseCoordinator { get; }
+
+        /// <summary>Career rules (ownership, unlocks, objectives, final); null when no career is configured.</summary>
+        public CareerService Career { get; }
     }
 }

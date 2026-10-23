@@ -1,12 +1,14 @@
 using System;
 using System.Threading.Tasks;
 using ApexRivals.AI.Configuration;
+using ApexRivals.Career.Runtime;
 using ApexRivals.Input.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSetup.Runtime;
 using ApexRivals.RaceSession.Runtime;
 using ApexRivals.SceneFlow.Runtime;
+using ApexRivals.Tests.EditMode.Career;
 using ApexRivals.Vehicle.Runtime;
 using NUnit.Framework;
 using UnityEngine;
@@ -80,6 +82,62 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             Assert.That(context.Session.LastCommandResult.Status, Is.EqualTo(saveSucceeds ? RaceSessionCommandStatus.Succeeded : RaceSessionCommandStatus.SaveFailedAfterReward));
             Assert.That(context.Save.SaveCount, Is.EqualTo(1));
             Assert.That(context.ResultsEventCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void CareerIsRecordedAfterTheRewardAndBeforeTheSingleSave()
+        {
+            var progression = new PlayerProgressionState();
+            var career = new CareerTestFixture(_objects, progression);
+            var context = CreateContext(progression, career.Service, career.Start("circuit"));
+            StartRace(context);
+            context.Save.OnSave = () =>
+            {
+                Assert.That(career.State.HasWonTrack("circuit"), Is.True, "Career facts are in memory before the save.");
+                Assert.That(progression.Currency, Is.EqualTo(500 + 200 + 300), "Race prize plus the two first milestones.");
+            };
+
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 70f));
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 71f));
+
+            var outcome = context.SceneRaceState.Result.CareerOutcome;
+            Assert.That(context.Save.SaveCount, Is.EqualTo(1));
+            Assert.That(outcome.Status, Is.EqualTo(CareerRaceOutcomeStatus.Recorded));
+            Assert.That(outcome.BonusCurrency, Is.EqualTo(500));
+            Assert.That(outcome.NewlyUnlockedTracks, Is.EqualTo(new[] { "Dunes Circuit" }));
+            Assert.That(context.SceneRaceState.Result.EarnedReward, Is.EqualTo(500));
+            Assert.That(context.SceneRaceState.Result.UpdatedCurrency, Is.EqualTo(1000));
+        }
+
+        [Test]
+        public void OpponentFinishesNeverReachTheCareer()
+        {
+            var progression = new PlayerProgressionState();
+            var career = new CareerTestFixture(_objects, progression);
+            var context = CreateContext(progression, career.Service, career.Start("circuit"));
+            StartRace(context);
+
+            context.RaceController.RaiseRacerFinished(new RaceResult("AI_01", 1, 60f));
+
+            Assert.That(career.State.CompletedTrackIds, Is.Empty);
+            Assert.That(context.SceneRaceState.HasResult, Is.False);
+        }
+
+        [Test]
+        public void CareerSaveFailureIsReportedNotHidden()
+        {
+            var progression = new PlayerProgressionState();
+            var career = new CareerTestFixture(_objects, progression);
+            var context = CreateContext(progression, career.Service, career.Start("circuit"));
+            context.Save.ShouldFail = true;
+            StartRace(context);
+
+            context.RaceController.RaiseRacerFinished(new RaceResult("Player", 1, 70f));
+
+            var result = context.SceneRaceState.Result;
+            Assert.That(result.SaveSucceeded, Is.False);
+            Assert.That(result.CareerOutcome.Recorded, Is.True);
+            Assert.That(context.Session.LastCommandResult.Status, Is.EqualTo(RaceSessionCommandStatus.SaveFailedAfterReward));
         }
 
         [Test]
@@ -569,11 +627,11 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             context.RaceController.RaiseRaceStarted();
         }
 
-        private TestContext CreateContext()
+        private TestContext CreateContext(PlayerProgressionState progression = null, CareerService career = null, CareerRaceAttempt careerAttempt = null)
         {
             var setup = new FakeRaceSessionSetup(_objects);
             var raceController = new FakeRaceSessionRaceController();
-            var progression = new PlayerProgressionState();
+            progression ??= new PlayerProgressionState();
             var rewardService = new RaceRewardService(progression, new RaceRewardTable(
                 new System.Collections.Generic.Dictionary<int, int>
                 {
@@ -589,7 +647,7 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             navigation.OnSuccess = raceState.Clear;
             var timeScale = new FakeTimeScaleController();
             var raceProgression = CreateRaceProgressionService(progression);
-            var session = new RaceSessionCoordinator(setup, raceController, rewardService, progression, save, navigation, raceState, timeScale, raceProgression);
+            var session = new RaceSessionCoordinator(setup, raceController, rewardService, progression, save, navigation, raceState, timeScale, raceProgression, career, careerAttempt);
 
             var context = new TestContext(session, setup, raceController, progression, save, navigation, raceState, timeScale);
             session.ResultsReady += _ => context.ResultsEventCount++;

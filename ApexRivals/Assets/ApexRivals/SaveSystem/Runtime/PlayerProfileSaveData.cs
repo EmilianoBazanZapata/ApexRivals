@@ -6,7 +6,10 @@ namespace ApexRivals.SaveSystem.Runtime
     [Serializable]
     public sealed class PlayerProfileSaveData
     {
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
+
+        /// <summary>Last schema migrated on load (pre-career profiles).</summary>
+        public const int PreviousSchemaVersion = 3;
 
         public int schemaVersion = CurrentSchemaVersion;
         public int currency;
@@ -15,6 +18,7 @@ namespace ApexRivals.SaveSystem.Runtime
         public int completedRaceCount;
         public string selectedVehicleId = string.Empty;
         public bool vehicleSelectionCommitted;
+        public CareerSaveData career = new CareerSaveData();
 
         public static PlayerProfileSaveData CreateDefault()
         {
@@ -26,7 +30,8 @@ namespace ApexRivals.SaveSystem.Runtime
                 handlingUpgradeLevel = 0,
                 completedRaceCount = 0,
                 selectedVehicleId = string.Empty,
-                vehicleSelectionCommitted = false
+                vehicleSelectionCommitted = false,
+                career = new CareerSaveData()
             };
         }
     }

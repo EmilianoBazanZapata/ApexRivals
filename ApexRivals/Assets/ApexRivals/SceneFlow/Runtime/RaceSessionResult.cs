@@ -1,3 +1,4 @@
+using ApexRivals.Career.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.Race.Runtime;
 
@@ -5,6 +6,8 @@ namespace ApexRivals.SceneFlow.Runtime
 {
     public readonly struct RaceSessionResult
     {
+        private readonly CareerRaceOutcome _careerOutcome;
+
         public RaceSessionResult(RaceResult raceResult, int earnedReward)
             : this(raceResult, earnedReward, 0, 0, 0, default, default, false, true, string.Empty)
         {
@@ -31,8 +34,10 @@ namespace ApexRivals.SceneFlow.Runtime
             RaceProgressionTier currentTier,
             bool newTierReached,
             bool saveSucceeded,
-            string saveMessage)
+            string saveMessage,
+            CareerRaceOutcome careerOutcome = null)
         {
+            _careerOutcome = careerOutcome;
             RaceResult = raceResult;
             EarnedReward = earnedReward;
             TotalParticipants = totalParticipants;
@@ -55,6 +60,9 @@ namespace ApexRivals.SceneFlow.Runtime
         public bool NewTierReached { get; }
         public bool SaveSucceeded { get; }
         public string SaveMessage { get; }
+
+        /// <summary>Career changes made by this race; <see cref="CareerRaceOutcome.None"/> without a career.</summary>
+        public CareerRaceOutcome CareerOutcome => _careerOutcome ?? CareerRaceOutcome.None;
         public int FinalPosition => RaceResult.FinalPosition;
         public float FinishTime => RaceResult.FinishTime;
     }

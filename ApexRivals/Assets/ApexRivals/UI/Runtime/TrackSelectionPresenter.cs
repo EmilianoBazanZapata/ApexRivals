@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using UnityObject = UnityEngine.Object;
+using ApexRivals.Career.Runtime;
 using ApexRivals.SceneFlow.Runtime;
 using ApexRivals.Tracks.Runtime;
 
@@ -9,7 +11,8 @@ namespace ApexRivals.UI.Runtime
 {
     /// <summary>
     /// Race Select screen shown between the garage and the race: browses the track catalog, loads the
-    /// chosen track's scene and returns to the garage on Back.
+    /// chosen track's scene and returns to the garage on Back. With a career, locked circuits stay visible
+    /// with their requirement and the career final is listed as an extra event after the circuits.
     /// </summary>
     public sealed class TrackSelectionPresenter : IDisposable
     {
@@ -17,20 +20,23 @@ namespace ApexRivals.UI.Runtime
         private readonly TrackCatalog _catalog;
         private readonly SceneFlowService _sceneFlow;
         private readonly IPresentationScreenNavigator _screenNavigator;
-        private readonly List<TrackSelectionItemViewModel> _items;
+        private readonly CareerService _career;
+        private List<TrackSelectionItemViewModel> _items;
         private int _selectedIndex;
         private bool _operationActive;
         private bool _disposed;
         private PresentationStatus _status;
         private string _messageKey = string.Empty;
+        private string _feedback = string.Empty;
 
-        public TrackSelectionPresenter(ITrackSelectionView view, TrackCatalog catalog, SceneFlowService sceneFlow, IPresentationScreenNavigator screenNavigator)
+        public TrackSelectionPresenter(ITrackSelectionView view, TrackCatalog catalog, SceneFlowService sceneFlow, IPresentationScreenNavigator screenNavigator, CareerService career = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             _sceneFlow = sceneFlow ?? throw new ArgumentNullException(nameof(sceneFlow));
             _screenNavigator = screenNavigator ?? throw new ArgumentNullException(nameof(screenNavigator));
-            _items = CreateItems(catalog);
+            _career = career;
+            _items = CreateItems();
 
             // Coming back from a race re-opens on the track that was just raced.
             var raced = catalog.IndexOfScene(sceneFlow.SelectedRaceSceneName);
@@ -52,7 +58,9 @@ namespace ApexRivals.UI.Runtime
         {
             if (!CanRender) return;
 
-            Current = new TrackSelectionViewModel(_items, _selectedIndex, _operationActive, _status, _messageKey);
+            // Unlocks can change while the garage is open (purchases), so rebuild the cards every time.
+            _items = CreateItems();
+            Current = new TrackSelectionViewModel(_items, _selectedIndex, _operationActive, _status, _messageKey, _feedback, CreateObjectiveText());
             _view.Render(Current);
         }
 
@@ -62,6 +70,7 @@ namespace ApexRivals.UI.Runtime
 
             _status = PresentationStatus.None;
             _messageKey = string.Empty;
+            _feedback = string.Empty;
             _screenNavigator.Show(PresentationScreenState.TrackSelection);
             Present();
         }
@@ -83,29 +92,45 @@ namespace ApexRivals.UI.Runtime
             _selectedIndex = index;
             _status = PresentationStatus.None;
             _messageKey = string.Empty;
+            _feedback = string.Empty;
             Present();
         }
 
         public void SelectPreviousTrack()
         {
-            SelectTrack(_catalog.WrapIndex(_selectedIndex - 1));
+            SelectTrack(WrapIndex(_selectedIndex - 1));
         }
 
         public void SelectNextTrack()
         {
-            SelectTrack(_catalog.WrapIndex(_selectedIndex + 1));
+            SelectTrack(WrapIndex(_selectedIndex + 1));
         }
 
         public async Task StartRace()
         {
             if (!CanRender || _operationActive) return;
-            if (_selectedIndex < 0 || _selectedIndex >= _catalog.Count)
+            if (_selectedIndex < 0 || _selectedIndex >= _items.Count)
             {
                 Fail("ui.trackSelect.noTrack");
                 return;
             }
 
-            if (!_sceneFlow.SelectRaceScene(_catalog.Tracks[_selectedIndex].SceneName))
+            var item = _items[_selectedIndex];
+            var sceneName = _catalog.Tracks[_catalog.IndexOf(item.TrackId)].SceneName;
+            if (_career != null)
+            {
+                // The career decides; the screen only reports why a race cannot start.
+                var request = _career.PrepareRace(item.TrackId, item.IsFinale);
+                if (!request.Succeeded)
+                {
+                    Fail("ui.trackSelect.locked", request.Message);
+                    return;
+                }
+
+                sceneName = request.SceneName;
+            }
+
+            if (!_sceneFlow.SelectRaceScene(sceneName))
             {
                 Fail("ui.trackSelect.startRaceFailed");
                 return;
@@ -118,26 +143,56 @@ namespace ApexRivals.UI.Runtime
             _operationActive = false;
             if (!result.Succeeded)
             {
-                Fail("ui.trackSelect.startRaceFailed");
+                Fail("ui.trackSelect.startRaceFailed", result.Status == SceneTransitionStatus.RaceStartRejected ? result.Message : string.Empty);
                 return;
             }
 
             Present();
         }
 
-        private void Fail(string messageKey)
+        private void Fail(string messageKey, string feedback = "")
         {
             _status = PresentationStatus.Invalid;
             _messageKey = messageKey;
+            _feedback = feedback ?? string.Empty;
             Present();
         }
 
-        private static List<TrackSelectionItemViewModel> CreateItems(TrackCatalog catalog)
+        private int WrapIndex(int index)
         {
-            var items = new List<TrackSelectionItemViewModel>(catalog.Count);
-            for (var index = 0; index < catalog.Count; index++)
+            return _items.Count == 0 ? -1 : (index % _items.Count + _items.Count) % _items.Count;
+        }
+
+        private string CreateObjectiveText()
+        {
+            if (_career == null)
             {
-                var track = catalog.Tracks[index];
+                return string.Empty;
+            }
+
+            var summary = _career.GetSummary();
+            return summary.IsComplete
+                ? string.Format(CultureInfo.InvariantCulture, "CAREER COMPLETE - {0}%", summary.CompletionPercent)
+                : string.Format(CultureInfo.InvariantCulture, "CAREER {0}% - NEXT: {1}", summary.CompletionPercent, summary.Objective.Title.ToUpperInvariant());
+        }
+
+        private List<TrackSelectionItemViewModel> CreateItems()
+        {
+            var items = new List<TrackSelectionItemViewModel>(_catalog.Count + 1);
+            for (var index = 0; index < _catalog.Count; index++)
+            {
+                var track = _catalog.Tracks[index];
+                var lockText = string.Empty;
+                var statusText = string.Empty;
+                var locked = false;
+                if (_career != null)
+                {
+                    var status = _career.GetTrackStatus(track.TrackId);
+                    locked = !status.Unlocked;
+                    lockText = locked ? "REQUIRES: " + status.RequirementTitle.ToUpperInvariant() : string.Empty;
+                    statusText = status.Won ? "WON" : status.Completed ? "COMPLETED" : string.Empty;
+                }
+
                 items.Add(new TrackSelectionItemViewModel(
                     track.TrackId,
                     track.DisplayName,
@@ -147,10 +202,46 @@ namespace ApexRivals.UI.Runtime
                     track.Environment,
                     track.Surface,
                     track.Preview,
-                    track.MinimapPoints));
+                    track.MinimapPoints,
+                    locked,
+                    lockText,
+                    statusText,
+                    false));
             }
 
+            AddFinale(items);
             return items;
+        }
+
+        /// <summary>The final is its own entry so it can never be mistaken for a normal race on its circuit.</summary>
+        private void AddFinale(List<TrackSelectionItemViewModel> items)
+        {
+            var finale = _career?.Configuration.Finale;
+            var trackIndex = finale != null ? _catalog.IndexOf(finale.TrackId) : -1;
+            if (trackIndex < 0)
+            {
+                return;
+            }
+
+            var track = _catalog.Tracks[trackIndex];
+            var status = _career.GetFinaleStatus();
+            var lockText = status.Qualified
+                ? string.Empty
+                : string.Format(CultureInfo.InvariantCulture, "REQUIRES: {0} ({1}/{2})", status.NextMissingTitle.ToUpperInvariant(), status.MetRequirements, status.TotalRequirements);
+            items.Add(new TrackSelectionItemViewModel(
+                track.TrackId,
+                finale.Title,
+                "FINAL EVENT - " + track.DisplayName + " - " + finale.Goal,
+                UguiViewText.FormatTrackLength(track.LengthMeters),
+                track.Laps,
+                track.Environment,
+                track.Surface,
+                track.Preview,
+                track.MinimapPoints,
+                !status.Qualified,
+                lockText,
+                status.State == CareerFinaleState.Won ? "CHAMPION" : string.Empty,
+                true));
         }
     }
 }
