@@ -15,6 +15,14 @@ namespace ApexRivals.Tests.EditMode.AI
         }
 
         [Test]
+        public void TractionScale_FadesInputsAsTheTailStepsOut()
+        {
+            Assert.That(AiDriverRules.CalculateTractionScale(3f), Is.EqualTo(1f));
+            Assert.That(AiDriverRules.CalculateTractionScale(-12f), Is.LessThan(1f).And.GreaterThan(0.15f));
+            Assert.That(AiDriverRules.CalculateTractionScale(30f), Is.EqualTo(0.15f));
+        }
+
+        [Test]
         public void SmoothPedal_ReleasedBrakeReachesExactlyZero()
         {
             var brake = 0.3f;

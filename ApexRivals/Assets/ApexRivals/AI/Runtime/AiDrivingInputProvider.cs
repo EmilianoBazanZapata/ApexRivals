@@ -62,6 +62,7 @@ namespace ApexRivals.AI.Runtime
         private readonly AiObstacleSensor _obstacleSensor = new AiObstacleSensor();
         private readonly AiTacticalPlanner _planner = new AiTacticalPlanner();
         private readonly AiDriverPersonality _personality = new AiDriverPersonality();
+        private readonly AiDriftController _drift = new AiDriftController();
         private readonly AiVehicleControl _control = new AiVehicleControl();
         private readonly AiRecoverySupervisor _recovery = new AiRecoverySupervisor();
 
@@ -101,6 +102,10 @@ namespace ApexRivals.AI.Runtime
         public float StuckTimer => _recovery.StuckTimer;
         public float OffTrackTimer => _recovery.OffTrackTimer;
         public bool IsMistakeActive => _personality.IsMistakeActive;
+        public bool IsDrifting => _drift.IsDrifting;
+        public float DriftSlipAngle => _drift.SlipAngle;
+        public int DriftCount => _drift.DriftCount;
+        public int DriftMistakeCount => _drift.MistakeCount;
         public bool IsResetPending => _recovery.IsResetPending;
         public int IdealPathSampleCount => _tracker.Path != null ? _tracker.Path.SampleCount : 0;
         public int CurrentPathSampleIndex => _tracker.CurrentSampleIndex;
@@ -240,6 +245,17 @@ namespace ApexRivals.AI.Runtime
 
             _personality.Update(deltaTime, configuration, _control.SteeringCommand);
             UpdateLateralOffset(deltaTime, rejoining);
+            var driftAllowed = !rejoining && DrivingState != AiDrivingState.PostResetGrace && DrivingState != AiDrivingState.Avoiding;
+            _drift.Update(
+                _tracker.Path,
+                _tracker.Projection,
+                CurrentSpeed,
+                _vehicleRuntime != null ? _vehicleRuntime.CurrentForwardSpeed : CurrentSpeed,
+                GetLateralSpeed(),
+                _body != null ? _body.angularVelocity.y * Mathf.Rad2Deg : 0f,
+                driftAllowed,
+                configuration,
+                deltaTime);
             _control.Drive(
                 _tracker,
                 vehicleTransform,
@@ -250,6 +266,7 @@ namespace ApexRivals.AI.Runtime
                 _obstacleSpeedLimit,
                 rejoining,
                 _personality,
+                _drift,
                 configuration,
                 tuning,
                 ControlSettings,
@@ -271,7 +288,9 @@ namespace ApexRivals.AI.Runtime
         private void Restart()
         {
             _racingLineValid = racingLine != null && racingLine.IsValid;
-            _personality.Seed(raceParticipant != null && !string.IsNullOrEmpty(raceParticipant.RacerId) ? raceParticipant.RacerId : name);
+            var seedId = raceParticipant != null && !string.IsNullOrEmpty(raceParticipant.RacerId) ? raceParticipant.RacerId : name;
+            _personality.Seed(seedId);
+            _drift.Seed(seedId);
             ResetDecisionState();
             InitializePath();
         }
@@ -297,7 +316,9 @@ namespace ApexRivals.AI.Runtime
         {
             var rejoining = DrivingState == AiDrivingState.Rejoining;
             var aligned = Mathf.Abs(IdealRacingDriverRules.CalculateSignedHeadingError(vehicleTransform.forward, _tracker.Projection.Tangent)) < RejoinExitHeadingError;
-            switch (_recovery.UpdateRejoin(rejoining, DrivingState != AiDrivingState.PostResetGrace, _tracker.DistanceFromLine, aligned, configuration.OffTrackDistance))
+            // A drift runs wide by design; it straightens up on its own before the driver judges a rejoin.
+            var canEnterRejoin = DrivingState != AiDrivingState.PostResetGrace && !_drift.IsDrifting;
+            switch (_recovery.UpdateRejoin(rejoining, canEnterRejoin, _tracker.DistanceFromLine, aligned, configuration.OffTrackDistance))
             {
                 case AiRejoinTransition.Enter:
                     RecordIncident(AiIncidentKind.OffTrack);
@@ -437,6 +458,7 @@ namespace ApexRivals.AI.Runtime
             _control.Reset();
             _planner.Reset();
             _personality.ClearMistake();
+            _drift.Reset();
             _recovery.ClearMotionTimers();
             _lateralOffset = 0f;
             _tacticalOffset = 0f;

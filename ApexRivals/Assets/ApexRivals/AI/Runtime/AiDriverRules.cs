@@ -68,6 +68,16 @@ namespace ApexRivals.AI.Runtime
         }
 
         /// <summary>
+        /// Traction control: the rear-driven cars step out under power in slow corners, and the slide angle
+        /// shows it before the sideways speed builds up. Power and braking fade as the angle grows, so an
+        /// unplanned slide is caught early instead of being driven into a spin. Returns the input scale.
+        /// </summary>
+        public static float CalculateTractionScale(float slipAngle)
+        {
+            return Mathf.Lerp(1f, 0.15f, Mathf.InverseLerp(6f, 18f, Mathf.Abs(slipAngle)));
+        }
+
+        /// <summary>
         /// Rejoin aim distance: the further off the line, the further ahead the merge point, so the car
         /// returns at a shallow angle instead of crossing the line and overshooting.
         /// </summary>

@@ -43,6 +43,11 @@ MonoBehaviour:
   reactionTime: 0.45
   mistakeInterval: 20
   mistakeDuration: 1.5
+  driftAffinity: 0
+  driftSkill: 0.4
+  driftEntrySpeedBonus: 0
+  driftTargetSlipAngle: 18
+  driftMaximumSlipAngle: 45
   aggression: 0.25
   followTimeGap: 0.9
   overtakeLateralOffset: 3.5

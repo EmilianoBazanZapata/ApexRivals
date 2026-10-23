@@ -42,6 +42,9 @@ namespace ApexRivals.AI.Runtime
     /// </summary>
     public sealed class AiVehicleControl
     {
+        /// <summary>Share of the path-following steer kept during a drift; the slide control does the rest.</summary>
+        private const float DriftPathSteeringWeight = 0.5f;
+
         private float _smoothedSteering;
         private float _smoothedThrottle;
         private float _smoothedBrake;
@@ -82,6 +85,7 @@ namespace ApexRivals.AI.Runtime
             float obstacleSpeedLimit,
             bool rejoining,
             AiDriverPersonality personality,
+            AiDriftController drift,
             AiDriverConfiguration configuration,
             AiDriverTuning tuning,
             in AiControlSettings settings,
@@ -89,7 +93,9 @@ namespace ApexRivals.AI.Runtime
         {
             var path = tracker.Path;
             var projection = tracker.Projection;
-            var cornerFactor = configuration.CornerSpeedFactor * personality.CornerSpeedMultiplier;
+            // Toward a corner it will drift the driver carries extra speed; the slide scrubs it off.
+            var driftBonus = drift.IsArmed ? 1f + configuration.DriftEntrySpeedBonus : 1f;
+            var cornerFactor = configuration.CornerSpeedFactor * personality.CornerSpeedMultiplier * driftBonus;
             var confidence = configuration.BrakingConfidence * personality.BrakingConfidenceMultiplier;
             var sample = path.GetSample(projection.SegmentIndex);
             var brakingLimit = path.GetBrakingLimitedSpeed(projection, configuration.BrakingPreviewDistance, settings.BrakingDeceleration * confidence, cornerFactor);
@@ -117,7 +123,12 @@ namespace ApexRivals.AI.Runtime
                 steeringDirection = projection.Tangent;
             }
 
-            var headingError = IdealRacingDriverRules.CalculateSignedHeadingError(vehicle.forward, steeringDirection);
+            // In a drift the nose no longer shows where the car goes: steer the direction of travel instead
+            // and let the vehicle's countersteer follow the slide.
+            var travelDirection = drift.IsDrifting
+                ? vehicle.forward * Mathf.Max(0.5f, speed) + vehicle.right * lateralSpeed
+                : vehicle.forward;
+            var headingError = IdealRacingDriverRules.CalculateSignedHeadingError(travelDirection, steeringDirection);
             var steering = IdealRacingDriverRules.CalculateSteering(
                 headingError,
                 projection.CrossTrackError - lateralOffset,
@@ -131,12 +142,27 @@ namespace ApexRivals.AI.Runtime
                 steering = Mathf.Clamp(steering, -settings.RejoinSteeringLimit, settings.RejoinSteeringLimit);
             }
 
-            var speedCommand = IdealRacingDriverRules.CalculateSpeedCommand(speed, targetSpeed, configuration.ThrottleGain, configuration.BrakeGain);
-            var slideScale = AiDriverRules.CalculateSlideInputScale(lateralSpeed);
             SteeringCommand = steering;
+            if (drift.IsDrifting)
+            {
+                // The kick: full lock into the corner while the rear lets go, as a driver flicks it in. After
+                // it, follow the road with the travel direction and hold the slide angle on top.
+                SteeringCommand = drift.ButtonPressed
+                    ? drift.CornerDirection
+                    : Mathf.Clamp(DriftPathSteeringWeight * steering + drift.SteeringCorrection, -1f, 1f);
+
+                // The slide is the brake: power holds the angle and the vehicle countersteers.
+                ThrottleCommand = drift.Throttle;
+                BrakeCommand = 0f;
+                ApplySmoothed(tuning, deltaTime, drift.ButtonPressed);
+                return;
+            }
+
+            var speedCommand = IdealRacingDriverRules.CalculateSpeedCommand(speed, targetSpeed, configuration.ThrottleGain, configuration.BrakeGain);
+            var slideScale = Mathf.Min(AiDriverRules.CalculateSlideInputScale(lateralSpeed), AiDriverRules.CalculateTractionScale(drift.SlipAngle));
             ThrottleCommand = AiDriverRules.LimitLaunchThrottle(speedCommand.Throttle, speed) * slideScale;
             BrakeCommand = Mathf.Min(settings.MaximumBrake, AiDriverRules.BlendBrakeWithSteering(speedCommand.Brake, steering)) * slideScale;
-            ApplySmoothed(tuning, deltaTime);
+            ApplySmoothed(tuning, deltaTime, false);
         }
 
         /// <summary>Reverse out of a trap: brake below the reverse-entry speed and steer the nose back toward the line.</summary>
@@ -147,7 +173,7 @@ namespace ApexRivals.AI.Runtime
             ThrottleCommand = 0f;
             BrakeCommand = 1f;
             TargetSpeed = 0f;
-            ApplySmoothed(tuning, deltaTime);
+            ApplySmoothed(tuning, deltaTime, false);
         }
 
         /// <summary>Drops any throttle carried over so reversing starts cleanly.</summary>
@@ -177,12 +203,12 @@ namespace ApexRivals.AI.Runtime
             Input = DrivingInput.Neutral;
         }
 
-        private void ApplySmoothed(AiDriverTuning tuning, float deltaTime)
+        private void ApplySmoothed(AiDriverTuning tuning, float deltaTime, bool drift)
         {
             _smoothedSteering = Smooth(_smoothedSteering, SteeringCommand, tuning.SteeringSmoothing, deltaTime);
             _smoothedThrottle = AiDriverRules.SmoothPedal(_smoothedThrottle, ThrottleCommand, tuning.ThrottleSmoothing, deltaTime);
             _smoothedBrake = AiDriverRules.SmoothPedal(_smoothedBrake, BrakeCommand, tuning.BrakeSmoothing, deltaTime);
-            Input = new DrivingInput(_smoothedThrottle, _smoothedBrake, _smoothedSteering, false, false);
+            Input = new DrivingInput(_smoothedThrottle, _smoothedBrake, _smoothedSteering, drift, false);
         }
 
         private static float Smooth(float current, float target, float smoothing, float deltaTime)

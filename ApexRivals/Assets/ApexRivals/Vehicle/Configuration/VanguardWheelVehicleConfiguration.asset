@@ -68,6 +68,13 @@ MonoBehaviour:
   driftHandbrakeEntryDuration: 0.1
   driftHandbrakeHoldMultiplier: 0.1
   reverseEntrySpeed: 0.5
+  driftAssistEnabled: 1
+  driftAssistOnAnySlide: 1
+  driftAssistMaximumSlipAngle: 40
+  driftAssistSlipGain: 0.25
+  driftAssistYawDamping: 4
+  driftAssistMaximumAcceleration: 8
+  driftAssistSessionDuration: 1.5
   steeringCurve:
     serializedVersion: 2
     m_Curve:

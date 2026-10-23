@@ -90,6 +90,22 @@ namespace ApexRivals.AI.Configuration
         [SerializeField, Min(0f)]
         private float mistakeDuration = 1.2f;
 
+        [Header("Drift")]
+        [SerializeField, Range(0f, 1f), Tooltip("How readily the driver drifts corners instead of braking for them: 0 never, 1 every corner of 50° or more.")]
+        private float driftAffinity;
+
+        [SerializeField, Range(0f, 1f), Tooltip("How cleanly the driver drifts: 1 holds the slide precisely every time; lower values vary the angle, correct less sharply and botch some drifts (over-rotating or kicking too softly).")]
+        private float driftSkill = 1f;
+
+        [SerializeField, Range(0f, 0.5f), Tooltip("Extra corner speed carried toward a corner the driver will drift; the slide scrubs it off.")]
+        private float driftEntrySpeedBonus = 0.1f;
+
+        [SerializeField, Range(5f, 60f), Tooltip("Slide angle (degrees) the driver holds with the throttle.")]
+        private float driftTargetSlipAngle = 25f;
+
+        [SerializeField, Range(10f, 90f), Tooltip("Slide angle (degrees) past which the driver straightens up to avoid a spin.")]
+        private float driftMaximumSlipAngle = 55f;
+
         [Header("Racecraft")]
         [SerializeField, Range(0f, 1f), Tooltip("Willingness to overtake, defend and close gaps.")]
         private float aggression = 0.5f;
@@ -135,6 +151,12 @@ namespace ApexRivals.AI.Configuration
         public float MistakeInterval => mistakeInterval;
         public float MistakeDuration => mistakeDuration;
 
+        public float DriftAffinity => driftAffinity;
+        public float DriftSkill => driftSkill;
+        public float DriftEntrySpeedBonus => driftEntrySpeedBonus;
+        public float DriftTargetSlipAngle => driftTargetSlipAngle;
+        public float DriftMaximumSlipAngle => driftMaximumSlipAngle;
+
         public float Aggression => aggression;
         public float FollowTimeGap => followTimeGap;
         public float OvertakeLateralOffset => overtakeLateralOffset;
@@ -175,6 +197,7 @@ namespace ApexRivals.AI.Configuration
             maximumLookahead = Mathf.Max(minimumLookahead, maximumLookahead);
             maximumLateralOffset = Mathf.Max(0f, maximumLateralOffset);
             overtakeLateralOffset = Mathf.Min(overtakeLateralOffset, maximumLateralOffset);
+            driftMaximumSlipAngle = Mathf.Max(driftTargetSlipAngle + 1f, driftMaximumSlipAngle);
         }
     }
 }

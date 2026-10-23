@@ -63,6 +63,22 @@ namespace ApexRivals.Vehicle.Configuration
         [Tooltip("Forward-speed threshold below which brake input transitions to reverse motor torque. Measured in m/s. Higher values permit reverse sooner.")]
         [Min(0f)] public float reverseEntrySpeed = 0.5f;
 
+        [Header("Drift Assist")]
+        [Tooltip("Stabilises drifts: while the car is drifting, a yaw correction damps rotation that grows the slide and pulls the slide back under the maximum angle, so a drift does not snap into a spin. Applies to players and AI alike.")]
+        public bool driftAssistEnabled = true;
+        [Tooltip("Also catch slides that were not started with the drift button (power oversteer, a snap on corner exit), acting as stability control. Off keeps the assist to drifts only.")]
+        public bool driftAssistOnAnySlide = true;
+        [Tooltip("Largest slide angle the assist allows, in degrees. Rotation damping starts at 60% of it.")]
+        [Range(5f, 90f)] public float driftAssistMaximumSlipAngle = 40f;
+        [Tooltip("Corrective yaw acceleration (rad/s²) per degree of slide beyond the maximum angle.")]
+        [Min(0f)] public float driftAssistSlipGain = 0.25f;
+        [Tooltip("Corrective yaw acceleration per rad/s of rotation that grows the slide, once the slide nears the maximum angle.")]
+        [Min(0f)] public float driftAssistYawDamping = 4f;
+        [Tooltip("Cap on the assist's yaw acceleration (rad/s²); it only ever corrects, it never turns the car on its own.")]
+        [Min(0f)] public float driftAssistMaximumAcceleration = 8f;
+        [Tooltip("Seconds the assist stays active after the drift button is released while the car keeps sliding.")]
+        [Min(0f)] public float driftAssistSessionDuration = 1.5f;
+
         [Header("Steering / Countersteer")]
         [Tooltip("Steering angle selected from the reference-style wheel-RPM-derived speed value. Higher curve values increase front-wheel steering authority.")]
         public AnimationCurve steeringCurve = new AnimationCurve(
@@ -143,6 +159,13 @@ namespace ApexRivals.Vehicle.Configuration
                 frontBrakeFactor = frontBrakeFactor,
                 rearBrakeFactor = rearBrakeFactor,
                 reverseEntrySpeed = reverseEntrySpeed,
+                driftAssistEnabled = driftAssistEnabled,
+                driftAssistOnAnySlide = driftAssistOnAnySlide,
+                driftAssistMaximumSlipAngle = driftAssistMaximumSlipAngle,
+                driftAssistSlipGain = driftAssistSlipGain,
+                driftAssistYawDamping = driftAssistYawDamping,
+                driftAssistMaximumAcceleration = driftAssistMaximumAcceleration,
+                driftAssistSessionDuration = driftAssistSessionDuration,
                 handbrakeTorque = handbrakeTorque,
                 handbrakeMotorTorqueMultiplier = handbrakeMotorTorqueMultiplier,
                 driftMotorTorqueMultiplier = driftMotorTorqueMultiplier,

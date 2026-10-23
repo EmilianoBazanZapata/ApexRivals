@@ -86,6 +86,7 @@ namespace ApexRivals.Vehicle.Runtime
         private Transform rearRightVisual;
 
         private Rigidbody _rigidbody;
+        private float _driftAssistSessionRemaining;
         private IDrivingInputProvider _inputProvider;
         private float _engineRpm;
         private float _tractionFactor = 1f;
@@ -109,6 +110,8 @@ namespace ApexRivals.Vehicle.Runtime
         public float CurrentSteeringInput { get; private set; }
         public float CurrentFrontWheelSteerAngle { get; private set; }
         public float CurrentCountersteerCorrection { get; private set; }
+        public float CurrentDriftAssistAcceleration { get; private set; }
+        public bool DriftAssistActive => _driftAssistSessionRemaining > 0f;
         public float CurrentMotorTorque { get; private set; }
         /// <summary>Share of forward drive torque kept by traction control (1 = no intervention).</summary>
         public float CurrentTractionFactor => _tractionFactor;
@@ -210,6 +213,7 @@ namespace ApexRivals.Vehicle.Runtime
             ApplySteering(input.Steering);
             ApplyBrakes(input);
             ApplyRearSidewaysFriction();
+            ApplyDriftAssist();
             var canSelectGear = AdvanceGearboxTiming();
             ApplyRearMotorTorque(input, canSelectGear);
             UpdateWheelSlipDiagnostics();
@@ -626,6 +630,8 @@ namespace ApexRivals.Vehicle.Runtime
             _tractionFactor = 1f;
             ForwardDriftActive = false;
             _wasForwardDriftActive = false;
+            _driftAssistSessionRemaining = 0f;
+            CurrentDriftAssistAcceleration = 0f;
             _driftHandbrakeEntryTimeRemaining = 0f;
             HandbrakeActive = false;
             CurrentNormalBrakeTorque = 0f;
@@ -682,6 +688,40 @@ namespace ApexRivals.Vehicle.Runtime
             }
 
             return Mathf.Max(0f, _effectiveTuning.driftHandbrakeHoldMultiplier);
+        }
+
+        private void ApplyDriftAssist()
+        {
+            CurrentDriftAssistAcceleration = 0f;
+            if (!_effectiveTuning.driftAssistEnabled)
+            {
+                _driftAssistSessionRemaining = 0f;
+                return;
+            }
+
+            _driftAssistSessionRemaining = ForwardDriftActive
+                ? Mathf.Max(0f, _effectiveTuning.driftAssistSessionDuration)
+                : Mathf.Max(0f, _driftAssistSessionRemaining - Time.fixedDeltaTime);
+            var velocity = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, Vector3.up);
+            var assisting = _driftAssistSessionRemaining > 0f || _effectiveTuning.driftAssistOnAnySlide;
+            if (!assisting || velocity.sqrMagnitude < VehicleDriftAssistRules.MinimumSpeed * VehicleDriftAssistRules.MinimumSpeed)
+            {
+                return;
+            }
+
+            var forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            var slipAngle = Vector3.SignedAngle(velocity, forward, Vector3.up);
+            CurrentDriftAssistAcceleration = VehicleDriftAssistRules.CalculateYawAcceleration(
+                slipAngle,
+                _rigidbody.angularVelocity.y,
+                _effectiveTuning.driftAssistMaximumSlipAngle,
+                _effectiveTuning.driftAssistSlipGain,
+                _effectiveTuning.driftAssistYawDamping,
+                _effectiveTuning.driftAssistMaximumAcceleration);
+            if (!Mathf.Approximately(CurrentDriftAssistAcceleration, 0f))
+            {
+                _rigidbody.AddTorque(Vector3.up * CurrentDriftAssistAcceleration, ForceMode.Acceleration);
+            }
         }
 
         private void ApplyRearSidewaysFriction()

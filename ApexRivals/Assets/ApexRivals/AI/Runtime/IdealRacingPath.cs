@@ -316,6 +316,54 @@ namespace ApexRivals.AI.Runtime
             return float.IsPositiveInfinity(limit) ? _targetSpeeds[projection.SegmentIndex] * factor : limit;
         }
 
+        /// <summary>
+        /// Signed heading change in degrees (positive turns right) of the path between two distances
+        /// ahead of the projection: how much of a corner lies in that stretch.
+        /// </summary>
+        public float GetHeadingChange(Projection projection, float fromDistance, float toDistance)
+        {
+            var start = Mathf.Max(0f, fromDistance);
+            var end = Mathf.Max(start, toDistance);
+            var index = projection.SegmentIndex;
+            var distance = -_segmentLengths[index] * projection.SegmentInterpolation;
+            var total = 0f;
+            for (var traversed = 0; traversed < SampleCount && distance <= end; traversed++)
+            {
+                var next = IdealRacingDriverRules.WrapIndex(index + 1, SampleCount);
+                if (distance + _segmentLengths[index] >= start)
+                {
+                    total += Vector3.SignedAngle(_forwards[index], _forwards[next], Vector3.up);
+                }
+
+                distance += _segmentLengths[index];
+                index = next;
+            }
+
+            return total;
+        }
+
+        /// <summary>Slowest target speed of the path between two distances ahead of the projection.</summary>
+        public float GetMinimumTargetSpeed(Projection projection, float fromDistance, float toDistance)
+        {
+            var start = Mathf.Max(0f, fromDistance);
+            var end = Mathf.Max(start, toDistance);
+            var index = projection.SegmentIndex;
+            var distance = -_segmentLengths[index] * projection.SegmentInterpolation;
+            var minimum = float.PositiveInfinity;
+            for (var traversed = 0; traversed < SampleCount && distance <= end; traversed++)
+            {
+                if (distance + _segmentLengths[index] >= start)
+                {
+                    minimum = Mathf.Min(minimum, _targetSpeeds[index]);
+                }
+
+                distance += _segmentLengths[index];
+                index = IdealRacingDriverRules.WrapIndex(index + 1, SampleCount);
+            }
+
+            return minimum;
+        }
+
         private void EvaluateSegment(Vector3 position, int index, out float interpolation, out Vector3 point, out float distanceSquared, out Vector3 tangent)
         {
             var wrapped = IdealRacingDriverRules.WrapIndex(index, SampleCount);
