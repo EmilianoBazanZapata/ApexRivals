@@ -63,7 +63,8 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            await RunTransition(_sceneFlow.StartRace, "ui.main.startRaceFailed");
+            // Play always goes through the track select screen before racing.
+            await RunTransition(_sceneFlow.OpenTrackSelection, "ui.main.startRaceFailed");
         }
 
         public Task OpenGarage()

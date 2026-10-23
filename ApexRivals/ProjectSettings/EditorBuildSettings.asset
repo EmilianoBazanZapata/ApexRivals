@@ -17,6 +17,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/ApexRivals/Scenes/Race.unity
     guid: b3fdb995a2eb4e3c991042e462589b35
+  - enabled: 1
+    path: Assets/ApexRivals/Scenes/RaceDunes.unity
+    guid: 29c09941116d3a543acfaab9946a46aa
+  - enabled: 1
+    path: Assets/ApexRivals/Scenes/RaceSuzuka.unity
+    guid: cd46359563f53534483b36c280492c10
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

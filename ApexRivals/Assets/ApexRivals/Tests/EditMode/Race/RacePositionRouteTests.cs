@@ -74,15 +74,38 @@ namespace ApexRivals.Tests.EditMode.Race
                 var points = Enumerable.Range(0, line.WaypointCount).Select(line.GetWaypointPosition).ToArray();
                 var route = new RacePositionRoute(checkpoints, points);
                 Assert.That(route.IsValid, Is.True);
-                var start = points[13];
-                var end = points[14];
-                var side = Vector3.Cross(Vector3.up, (end - start).normalized);
-                var earlier = Vector3.Lerp(start, end, 0.4f) - side * 5f;
-                var later = Vector3.Lerp(start, end, 0.6f) + side * 5f;
-                var left = new RacerPositionSnapshot(new RacerProgress("Later", checkpoints.Length, 1), later);
-                var right = new RacerPositionSnapshot(new RacerProgress("Earlier", checkpoints.Length, 1), earlier);
-                Assert.That(RaceRules.CompareRacePosition(left, right, checkpoints), Is.GreaterThan(0), "Reproduce original Euclidean inversion");
-                Assert.That(RaceRules.CompareRacePosition(left, right, checkpoints, route), Is.LessThan(0));
+                // Find every waypoint segment where straight-line distance to the next checkpoint ranks a car
+                // that is further along behind one on the opposite side of the road, and check the route fixes it.
+                var inversions = 0;
+                for (var cp = 0; cp < checkpoints.Length; cp++)
+                {
+                    var consumed = (cp - 1 + checkpoints.Length) % checkpoints.Length;
+                    var first = line.GetNearestWaypointIndex(checkpoints[consumed]);
+                    var last = line.GetNearestWaypointIndex(checkpoints[cp]);
+                    var count = (last - first + points.Length) % points.Length;
+                    for (var i = 0; i < count; i++)
+                    {
+                        var start = points[(first + i) % points.Length];
+                        var end = points[(first + i + 1) % points.Length];
+                        foreach (var offset in new[] { 5f, -5f })
+                        {
+                            var side = Vector3.Cross(Vector3.up, (end - start).normalized);
+                            var earlier = Vector3.Lerp(start, end, 0.4f) - side * offset;
+                            var later = Vector3.Lerp(start, end, 0.6f) + side * offset;
+                            var left = new RacerPositionSnapshot(new RacerProgress("Later", checkpoints.Length, consumed), later);
+                            var right = new RacerPositionSnapshot(new RacerProgress("Earlier", checkpoints.Length, consumed), earlier);
+                            if (RaceRules.CompareRacePosition(left, right, checkpoints) <= 0)
+                            {
+                                continue;
+                            }
+
+                            inversions++;
+                            Assert.That(RaceRules.CompareRacePosition(left, right, checkpoints, route), Is.LessThan(0), $"Sector {cp}, waypoint {(first + i) % points.Length}");
+                        }
+                    }
+                }
+
+                Assert.That(inversions, Is.GreaterThan(0), "Reproduce original Euclidean inversion");
                 // Cover every authored waypoint in every checkpoint sector, including wrap.
                 for (var cp = 0; cp < checkpoints.Length; cp++)
                 {

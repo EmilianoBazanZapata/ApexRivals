@@ -450,6 +450,11 @@ namespace ApexRivals.Tests.PlayMode
                 Assert.That(garageView, Is.Not.Null);
                 Assert.That(UiFocus.IsUsable(UiFocus.SelectableOf(UiFocus.CurrentSelection)), Is.True);
                 ReadReference<Button>(garageView, "startRaceButton").onClick.Invoke();
+                yield return null;
+                Assert.That(FindInScene<UguiScreenNavigator>("Garage").CurrentScreen, Is.EqualTo(PresentationScreenState.TrackSelection));
+                Assert.That(UiFocus.IsUsable(UiFocus.SelectableOf(UiFocus.CurrentSelection)), Is.True);
+                var trackSelectionView = FindInScene<TrackSelectionUguiView>("Garage");
+                ReadReference<Button>(trackSelectionView, "startRaceButton").onClick.Invoke();
                 yield return WaitForApplicationState(ApplicationState.Race);
                 var session = Installer.Session;
                 var deadline = Time.realtimeSinceStartup + 8f;
@@ -470,7 +475,7 @@ namespace ApexRivals.Tests.PlayMode
                 yield return null;
                 Assert.That(FindInRace<UguiScreenNavigator>().CurrentScreen, Is.EqualTo(PresentationScreenState.Results));
                 Assert.That(UiFocus.IsUsable(UiFocus.SelectableOf(UiFocus.CurrentSelection)), Is.True);
-                SessionState.SetString("ApexRivals.Cleanup2.UiJourney", "MainMenu > Settings > MainMenu > Garage > Race > Pause > Results; keyboard and gamepad moved focus along authored links; every menu selection usable");
+                SessionState.SetString("ApexRivals.Cleanup2.UiJourney", "MainMenu > Settings > MainMenu > Garage > Track Select > Race > Pause > Results; keyboard and gamepad moved focus along authored links; every menu selection usable");
             }
             finally
             {

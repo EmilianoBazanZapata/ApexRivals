@@ -62,7 +62,7 @@ namespace ApexRivals.UI.Runtime
         private void RenderMenuText(MainMenuViewModel viewModel)
         {
             UguiViewText.Set(startButtonPrimaryText, "PLAY");
-            UguiViewText.Set(startButtonDescriptionText, "Start Race");
+            UguiViewText.Set(startButtonDescriptionText, "Select Track");
             UguiViewText.Set(garageButtonPrimaryText, "GARAGE");
             UguiViewText.Set(garageButtonDescriptionText, "Vehicle Upgrades");
             UguiViewText.Set(settingsButtonPrimaryText, "SETTINGS");
@@ -72,7 +72,7 @@ namespace ApexRivals.UI.Runtime
 
             if (startButtonPrimaryText == null && startButtonDescriptionText == null)
             {
-                UguiViewText.Set(startButton != null ? startButton.GetComponentInChildren<Text>() : null, viewModel.StartTarget == MainMenuStartTarget.Race ? "Start Race" : "Select Vehicle");
+                UguiViewText.Set(startButton != null ? startButton.GetComponentInChildren<Text>() : null, viewModel.StartTarget == MainMenuStartTarget.Race ? "Select Track" : "Select Vehicle");
             }
         }
 

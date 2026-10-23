@@ -15,16 +15,19 @@ namespace ApexRivals.UI.Runtime
         private readonly GarageService _garageService;
         private readonly VehicleSelectionService _vehicleSelectionService;
         private readonly SceneFlowService _sceneFlow;
+        private readonly TrackSelectionPresenter _trackSelection;
         private bool _operationActive;
         private PresentationStatus _purchaseStatus;
         private string _messageKey = string.Empty;
 
-        public GaragePresenter(IGarageView view, GarageService garageService, VehicleSelectionService vehicleSelectionService, SceneFlowService sceneFlow)
+        /// <param name="trackSelection">When set, Start Race opens the track select screen instead of loading the race.</param>
+        public GaragePresenter(IGarageView view, GarageService garageService, VehicleSelectionService vehicleSelectionService, SceneFlowService sceneFlow, TrackSelectionPresenter trackSelection = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _garageService = garageService ?? throw new ArgumentNullException(nameof(garageService));
             _vehicleSelectionService = vehicleSelectionService ?? throw new ArgumentNullException(nameof(vehicleSelectionService));
             _sceneFlow = sceneFlow ?? throw new ArgumentNullException(nameof(sceneFlow));
+            _trackSelection = trackSelection;
         }
 
         public GarageViewModel Current { get; private set; }
@@ -161,6 +164,12 @@ namespace ApexRivals.UI.Runtime
                     Present();
                     return;
                 }
+            }
+
+            if (_trackSelection != null)
+            {
+                _trackSelection.Open();
+                return;
             }
 
             await RunNavigation(_sceneFlow.StartRace, "ui.garage.startRaceFailed");

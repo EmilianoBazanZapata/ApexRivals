@@ -14,6 +14,43 @@ namespace ApexRivals.Vehicle.Runtime
             return averageDrivenWheelRpm * MathF.Abs(gearRatio) * MathF.Abs(differential);
         }
 
+        /// <summary>Wheel RPM that matches the car's speed over the ground, i.e. with no wheelspin.</summary>
+        public static float CalculateGroundWheelRpm(float forwardSpeed, float wheelRadius)
+        {
+            return MathF.Abs(forwardSpeed) / (2f * MathF.PI * Max(0.01f, wheelRadius)) * 60f;
+        }
+
+        /// <summary>
+        /// Wheel RPM the automatic gearbox shifts on: the driven wheels, but never faster than the car actually
+        /// moves. Wheelspin at launch would otherwise read as speed and run up through the gears in place.
+        /// </summary>
+        public static float CalculateShiftWheelRpm(float averageDrivenWheelRpm, float groundWheelRpm)
+        {
+            return MathF.Min(MathF.Abs(averageDrivenWheelRpm), MathF.Abs(groundWheelRpm));
+        }
+
+        /// <summary>
+        /// Arcade traction control: the share of drive torque to keep when the driven wheels' surface speed runs
+        /// ahead of the car by more than <paramref name="allowanceRatio"/> of its speed plus
+        /// <paramref name="minimumAllowance"/> (m/s). Never drops below <paramref name="minimumFactor"/>.
+        /// </summary>
+        public static float EvaluateTractionControl(
+            float drivenWheelSurfaceSpeed,
+            float groundSpeed,
+            float allowanceRatio,
+            float minimumAllowance,
+            float minimumFactor)
+        {
+            var allowed = MathF.Abs(groundSpeed) * (1f + Max(0f, allowanceRatio)) + Max(0f, minimumAllowance);
+            var surface = MathF.Abs(drivenWheelSurfaceSpeed);
+            if (surface <= allowed)
+            {
+                return 1f;
+            }
+
+            return Clamp(allowed / surface, Clamp(minimumFactor, 0f, 1f), 1f);
+        }
+
         public static float NormalizeEngineRpm(float engineRpm, float redlineRpm)
         {
             return Clamp(engineRpm / Max(1f, redlineRpm), 0f, 1f);

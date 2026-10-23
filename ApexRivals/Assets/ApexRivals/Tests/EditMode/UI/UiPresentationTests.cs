@@ -8,6 +8,7 @@ using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSetup.Runtime;
 using ApexRivals.RaceSession.Runtime;
 using ApexRivals.SceneFlow.Runtime;
+using ApexRivals.Tracks.Runtime;
 using ApexRivals.UI.Runtime;
 using ApexRivals.Vehicle.Configuration;
 using ApexRivals.Vehicle.Runtime;
@@ -42,7 +43,7 @@ namespace ApexRivals.Tests.EditMode.UI
         }
 
         [Test]
-        public async Task MainMenu_StartRoutesToRaceWhenSelectionIsCommitted()
+        public async Task MainMenu_StartRoutesToTrackSelectionWhenSelectionIsCommitted()
         {
             var context = CreateUiContext();
             await context.SceneFlow.OpenMainMenu();
@@ -51,8 +52,23 @@ namespace ApexRivals.Tests.EditMode.UI
 
             await presenter.StartOrContinue();
 
-            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Race));
-            Assert.That(context.Loader.LastSceneId, Is.EqualTo(ContentSceneId.Race));
+            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Garage));
+            Assert.That(context.Loader.LastSceneId, Is.EqualTo(ContentSceneId.Garage));
+            Assert.That(context.SceneFlow.ConsumeTrackSelectionRequest(), Is.True);
+            Assert.That(context.SceneFlow.ConsumeTrackSelectionRequest(), Is.False);
+        }
+
+        [Test]
+        public async Task MainMenu_FailedTrackSelectionNavigationDropsTheRequest()
+        {
+            var context = CreateUiContext();
+            await context.SceneFlow.OpenMainMenu();
+            context.Loader.FailNextLoad = true;
+            var presenter = new MainMenuPresenter(new FakeMainMenuView(), context.SceneFlow, new FakeSelectionProgress { HasCommittedVehicleSelection = true }, context.ScreenNavigator, new FakeApplicationExit());
+
+            await presenter.StartOrContinue();
+
+            Assert.That(context.SceneFlow.TrackSelectionRequested, Is.False);
         }
 
         [Test]
@@ -188,6 +204,25 @@ namespace ApexRivals.Tests.EditMode.UI
             presenter.PurchaseEngine();
 
             Assert.That(context.Progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Garage_StartRaceOpensTrackSelectionWhenConfigured()
+        {
+            var context = CreateUiContext(vehicleCommitted: true);
+            await context.SceneFlow.OpenMainMenu();
+            await context.SceneFlow.OpenGarage();
+            context.ScreenNavigator.Show(PresentationScreenState.Garage);
+            var catalog = new TrackCatalog(new[] { new TrackDefinitionData("circuit", "Circuit", string.Empty, 1000f, 1, string.Empty, string.Empty, "Race") });
+            var trackSelection = new TrackSelectionPresenter(new FakeTrackSelectionView(), catalog, context.SceneFlow, context.ScreenNavigator);
+            var presenter = new GaragePresenter(new FakeGarageView(), context.Garage, context.VehicleSelection, context.SceneFlow, trackSelection);
+            var loadsBefore = context.Loader.LoadCount;
+
+            await presenter.StartRace();
+
+            Assert.That(context.ScreenNavigator.CurrentScreen, Is.EqualTo(PresentationScreenState.TrackSelection));
+            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Garage));
+            Assert.That(context.Loader.LoadCount, Is.EqualTo(loadsBefore));
         }
 
         [Test]
@@ -502,7 +537,8 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.MainMenu));
             int renders = view.RenderCount;
             await navigate();
-            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Race));
+            // Main menu Play opens the garage on its track select screen; the others start the race.
+            Assert.That(context.SceneFlow.State, Is.EqualTo(screen == "MainMenu" ? ApplicationState.Garage : ApplicationState.Race));
             Assert.That(view.RenderCount, Is.GreaterThan(renders));
             lifetime.Dispose();
         }
@@ -695,6 +731,13 @@ namespace ApexRivals.Tests.EditMode.UI
             public void Render(MainMenuViewModel viewModel)
             {
                 Last = viewModel;
+            }
+        }
+
+        private sealed class FakeTrackSelectionView : ITrackSelectionView
+        {
+            public void Render(TrackSelectionViewModel viewModel)
+            {
             }
         }
 

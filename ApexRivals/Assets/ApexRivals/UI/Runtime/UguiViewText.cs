@@ -82,6 +82,13 @@ namespace ApexRivals.UI.Runtime
             return count <= 0 ? "- / -" : string.Format(CultureInfo.InvariantCulture, "{0} / {1}", index + 1, count);
         }
 
+        public static string FormatTrackLength(float meters)
+        {
+            return meters <= 0f
+                ? "-"
+                : string.Format(CultureInfo.InvariantCulture, "{0:0.0} KM", meters / 1000f);
+        }
+
         public static string FormatTime(float seconds)
         {
             var minutes = (int)(seconds / 60f);

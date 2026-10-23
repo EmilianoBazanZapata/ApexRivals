@@ -28,6 +28,21 @@ namespace ApexRivals.SceneFlow.Runtime
         public RaceSessionState RaceSession { get; }
         public float TransitionProgress => _sceneLoader.Progress;
 
+        /// <summary>Race content scene chosen on the track select screen; empty uses the configured race scene.</summary>
+        public string SelectedRaceSceneName { get; private set; } = string.Empty;
+
+        /// <summary>Chooses the scene that <see cref="StartRace"/> and <see cref="RetryRace"/> load.</summary>
+        public bool SelectRaceScene(string sceneName)
+        {
+            if (string.IsNullOrWhiteSpace(sceneName) || _transitionInProgress)
+            {
+                return false;
+            }
+
+            SelectedRaceSceneName = sceneName;
+            return true;
+        }
+
         public Task<SceneTransitionResult> OpenMainMenu()
         {
             return NavigateAsync(ContentSceneId.MainMenu, ApplicationState.MainMenu, CanOpenMainMenu(), false, ShouldSaveBeforeLeavingCurrentState());
@@ -36,6 +51,30 @@ namespace ApexRivals.SceneFlow.Runtime
         public Task<SceneTransitionResult> OpenGarage()
         {
             return NavigateAsync(ContentSceneId.Garage, ApplicationState.Garage, State == ApplicationState.MainMenu, false, false);
+        }
+
+        /// <summary>True between <see cref="OpenTrackSelection"/> and the garage UI consuming the request.</summary>
+        public bool TrackSelectionRequested { get; private set; }
+
+        /// <summary>Opens the garage straight on its track select screen (main menu Play).</summary>
+        public async Task<SceneTransitionResult> OpenTrackSelection()
+        {
+            TrackSelectionRequested = true;
+            var result = await OpenGarage();
+            if (!result.Succeeded)
+            {
+                TrackSelectionRequested = false;
+            }
+
+            return result;
+        }
+
+        /// <summary>Returns whether the track select screen was requested and clears the request.</summary>
+        public bool ConsumeTrackSelectionRequest()
+        {
+            var requested = TrackSelectionRequested;
+            TrackSelectionRequested = false;
+            return requested;
         }
 
         public Task<SceneTransitionResult> StartRace()
@@ -138,7 +177,7 @@ namespace ApexRivals.SceneFlow.Runtime
                 return new SceneTransitionResult(SceneTransitionStatus.InvalidTransition, previousState, State, targetSceneId, "The requested transition is not valid from the current application state.");
             }
 
-            if (!_sceneMap.TryGetSceneName(targetSceneId, out var sceneName))
+            if (!TryGetSceneName(targetSceneId, out var sceneName))
             {
                 return new SceneTransitionResult(SceneTransitionStatus.MissingSceneConfiguration, previousState, State, targetSceneId, "The requested content scene is not configured.");
             }
@@ -196,6 +235,17 @@ namespace ApexRivals.SceneFlow.Runtime
             {
                 _transitionInProgress = false;
             }
+        }
+
+        private bool TryGetSceneName(ContentSceneId sceneId, out string sceneName)
+        {
+            if (sceneId == ContentSceneId.Race && !string.IsNullOrWhiteSpace(SelectedRaceSceneName))
+            {
+                sceneName = SelectedRaceSceneName;
+                return true;
+            }
+
+            return _sceneMap.TryGetSceneName(sceneId, out sceneName);
         }
 
         private bool CanOpenMainMenu()

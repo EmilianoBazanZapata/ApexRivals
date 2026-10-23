@@ -34,6 +34,50 @@ namespace ApexRivals.Tests.EditMode.Vehicle
         }
 
         [Test]
+        public void CalculateGroundWheelRpm_ConvertsForwardSpeedForTheWheelRadius()
+        {
+            // 10 m/s on a 0.5 m wheel: 10 / (2 * pi * 0.5) rev/s = 190.99 RPM, reversing included.
+            Assert.That(VehicleDrivetrainRules.CalculateGroundWheelRpm(10f, 0.5f), Is.EqualTo(190.99f).Within(0.01f));
+            Assert.That(VehicleDrivetrainRules.CalculateGroundWheelRpm(-10f, 0.5f), Is.EqualTo(190.99f).Within(0.01f));
+        }
+
+        [Test]
+        public void CalculateShiftWheelRpm_IgnoresWheelspinButKeepsSlowerDrivenWheels()
+        {
+            Assert.That(VehicleDrivetrainRules.CalculateShiftWheelRpm(1129f, 96f), Is.EqualTo(96f));
+            Assert.That(VehicleDrivetrainRules.CalculateShiftWheelRpm(-300f, 320f), Is.EqualTo(300f));
+        }
+
+        [Test]
+        public void LaunchWheelspin_DoesNotUpshiftWhileTheCarIsBarelyMoving()
+        {
+            // Measured launch: rear wheels at 1129 RPM while the car rolls at 11 km/h (96 wheel RPM), first gear 3.0, diff 4.0.
+            var spinningRpm = VehicleDrivetrainRules.CalculateRawEngineRpm(1129f, 3f, 4f);
+            var shiftRpm = VehicleDrivetrainRules.CalculateRawEngineRpm(
+                VehicleDrivetrainRules.CalculateShiftWheelRpm(1129f, VehicleDrivetrainRules.CalculateGroundWheelRpm(11f / 3.6f, 0.35f)), 3f, 4f);
+
+            Assert.That(VehicleDrivetrainRules.EvaluateAutomaticGearShift(true, 0, 6, spinningRpm, 5500f, 3300f).ShouldShift, Is.True);
+            Assert.That(VehicleDrivetrainRules.EvaluateAutomaticGearShift(true, 0, 6, shiftRpm, 5500f, 3300f).ShouldShift, Is.False);
+        }
+
+        [TestCase(10f, 10f)]
+        [TestCase(13.9f, 10f)]
+        [TestCase(1.5f, 0f)]
+        public void EvaluateTractionControl_KeepsFullTorqueWithinTheSlipAllowance(float wheelSurfaceSpeed, float groundSpeed)
+        {
+            Assert.That(VehicleDrivetrainRules.EvaluateTractionControl(wheelSurfaceSpeed, groundSpeed, 0.2f, 2f, 0.15f), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void EvaluateTractionControl_TrimsTorqueInProportionToWheelspinDownToTheFloor()
+        {
+            // Allowed surface speed: 10 * 1.2 + 2 = 14 m/s.
+            Assert.That(VehicleDrivetrainRules.EvaluateTractionControl(28f, 10f, 0.2f, 2f, 0.15f), Is.EqualTo(0.5f).Within(0.0001f));
+            Assert.That(VehicleDrivetrainRules.EvaluateTractionControl(-28f, -10f, 0.2f, 2f, 0.15f), Is.EqualTo(0.5f).Within(0.0001f));
+            Assert.That(VehicleDrivetrainRules.EvaluateTractionControl(460f, 1f, 0.2f, 2f, 0.15f), Is.EqualTo(0.15f));
+        }
+
+        [Test]
         public void CalculateRawEngineRpm_AppliesGearRatioAndDifferentialMagnitude()
         {
             var engineRpm = VehicleDrivetrainRules.CalculateRawEngineRpm(100f, -3f, -4f);

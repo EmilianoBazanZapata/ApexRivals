@@ -15,12 +15,14 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private GameObject racingPanel;
         [SerializeField] private GameObject pausePanel;
         [SerializeField] private GameObject resultsPanel;
+        [SerializeField] private GameObject trackSelectionPanel;
         [SerializeField] private Selectable mainInitialSelection;
         [SerializeField] private Selectable vehicleSelectionInitialSelection;
         [SerializeField] private Selectable settingsInitialSelection;
         [SerializeField] private Selectable garageInitialSelection;
         [SerializeField] private Selectable pauseInitialSelection;
         [SerializeField] private Selectable resultsInitialSelection;
+        [SerializeField] private Selectable trackSelectionInitialSelection;
 
         private GameObject _lastSelectedBeforeModal;
         private readonly Dictionary<PresentationScreenState, GameObject> _lastSelections = new Dictionary<PresentationScreenState, GameObject>();
@@ -115,6 +117,7 @@ namespace ApexRivals.UI.Runtime
             SetActive(racingPanel, screenState == PresentationScreenState.Racing);
             SetActive(pausePanel, screenState == PresentationScreenState.Paused);
             SetActive(resultsPanel, screenState == PresentationScreenState.Results);
+            SetActive(trackSelectionPanel, screenState == PresentationScreenState.TrackSelection);
         }
 
         public void RestorePreviousSelection()
@@ -235,6 +238,7 @@ namespace ApexRivals.UI.Runtime
                 PresentationScreenState.Garage => garageInitialSelection,
                 PresentationScreenState.Paused => pauseInitialSelection,
                 PresentationScreenState.Results => resultsInitialSelection,
+                PresentationScreenState.TrackSelection => trackSelectionInitialSelection,
                 _ => null
             };
         }
@@ -250,6 +254,7 @@ namespace ApexRivals.UI.Runtime
                 PresentationScreenState.Racing => racingPanel,
                 PresentationScreenState.Paused => pausePanel,
                 PresentationScreenState.Results => resultsPanel,
+                PresentationScreenState.TrackSelection => trackSelectionPanel,
                 _ => null
             };
         }

@@ -31,8 +31,8 @@ namespace ApexRivals.UI.Runtime
         private InputAction _previousTabAction;
         private InputAction _nextTabAction;
         private IUiFocusCoordinator _focusCoordinator;
-        private IUiVehicleSelectionNavigation _vehicleSelectionNavigation;
-        private IUiTabNavigation _tabNavigation;
+        private readonly List<IUiVehicleSelectionNavigation> _vehicleSelectionNavigations = new List<IUiVehicleSelectionNavigation>();
+        private readonly List<IUiTabNavigation> _tabNavigations = new List<IUiTabNavigation>();
         private double _lastSubmitTime = double.NegativeInfinity;
         private double _lastCancelTime = double.NegativeInfinity;
         private Coroutine _deferredSubmit;
@@ -467,13 +467,14 @@ namespace ApexRivals.UI.Runtime
             if (context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Navigation);
-                if (_vehicleSelectionNavigation != null)
+                ResolvePagedNavigation(out var vehicleSelectionNavigation, out var tabNavigation);
+                if (vehicleSelectionNavigation != null)
                 {
-                    _vehicleSelectionNavigation.SelectPreviousVehicle();
+                    vehicleSelectionNavigation.SelectPreviousVehicle();
                 }
                 else
                 {
-                    _tabNavigation?.ShowPreviousTab();
+                    tabNavigation?.ShowPreviousTab();
                 }
             }
         }
@@ -483,15 +484,44 @@ namespace ApexRivals.UI.Runtime
             if (context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Navigation);
-                if (_vehicleSelectionNavigation != null)
+                ResolvePagedNavigation(out var vehicleSelectionNavigation, out var tabNavigation);
+                if (vehicleSelectionNavigation != null)
                 {
-                    _vehicleSelectionNavigation.SelectNextVehicle();
+                    vehicleSelectionNavigation.SelectNextVehicle();
                 }
                 else
                 {
-                    _tabNavigation?.ShowNextTab();
+                    tabNavigation?.ShowNextTab();
                 }
             }
+        }
+
+        /// <summary>
+        /// Q/E and LB/RB go to the handler on the visible screen (a scene can host several, e.g. the garage
+        /// and its track select panel); with none visible the first registered handler keeps the old behaviour.
+        /// </summary>
+        private void ResolvePagedNavigation(out IUiVehicleSelectionNavigation vehicleSelectionNavigation, out IUiTabNavigation tabNavigation)
+        {
+            vehicleSelectionNavigation = FirstActive(_vehicleSelectionNavigations);
+            tabNavigation = vehicleSelectionNavigation == null ? FirstActive(_tabNavigations) : null;
+            if (vehicleSelectionNavigation == null && tabNavigation == null)
+            {
+                vehicleSelectionNavigation = _vehicleSelectionNavigations.Count > 0 ? _vehicleSelectionNavigations[0] : null;
+                tabNavigation = vehicleSelectionNavigation == null && _tabNavigations.Count > 0 ? _tabNavigations[0] : null;
+            }
+        }
+
+        private static T FirstActive<T>(List<T> handlers) where T : class
+        {
+            for (var index = 0; index < handlers.Count; index++)
+            {
+                if (handlers[index] is Behaviour behaviour && behaviour != null && behaviour.isActiveAndEnabled)
+                {
+                    return handlers[index];
+                }
+            }
+
+            return null;
         }
 
         private bool IsDuplicateCancel(double inputTime)
@@ -619,8 +649,8 @@ namespace ApexRivals.UI.Runtime
             }
 
             _focusCoordinator = null;
-            _vehicleSelectionNavigation = null;
-            _tabNavigation = null;
+            _vehicleSelectionNavigations.Clear();
+            _tabNavigations.Clear();
             var roots = scene.GetRootGameObjects();
             for (var rootIndex = 0; rootIndex < roots.Length; rootIndex++)
             {
@@ -632,14 +662,14 @@ namespace ApexRivals.UI.Runtime
                         _focusCoordinator = coordinator;
                     }
 
-                    if (_vehicleSelectionNavigation == null && coordinators[index] is IUiVehicleSelectionNavigation vehicleSelectionNavigation)
+                    if (coordinators[index] is IUiVehicleSelectionNavigation vehicleSelectionNavigation)
                     {
-                        _vehicleSelectionNavigation = vehicleSelectionNavigation;
+                        _vehicleSelectionNavigations.Add(vehicleSelectionNavigation);
                     }
 
-                    if (_tabNavigation == null && coordinators[index] is IUiTabNavigation tabNavigation)
+                    if (coordinators[index] is IUiTabNavigation tabNavigation)
                     {
-                        _tabNavigation = tabNavigation;
+                        _tabNavigations.Add(tabNavigation);
                     }
                 }
             }

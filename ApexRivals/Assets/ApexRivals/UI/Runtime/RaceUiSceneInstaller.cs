@@ -17,6 +17,10 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private PauseUguiView pauseView;
         [SerializeField] private ResultsUguiView resultsView;
         [SerializeField] private ApexRivals.Camera.Runtime.WheelVehicleFollowCamera followCamera;
+        [Header("Minimap (optional)")]
+        [SerializeField] private RaceMinimapUguiView minimapView;
+        [SerializeField] private ApexRivals.Race.Runtime.RaceCoordinator raceCoordinator;
+        [SerializeField] private ApexRivals.AI.Runtime.RacingLine racingLine;
 
         private ApplicationContext _context;
         private RaceSessionCoordinator _session;
@@ -119,6 +123,7 @@ namespace ApexRivals.UI.Runtime
             if (resultsView != null) resultsView.Bind(null);
             hudView?.Bind(null);
             hudView?.BindTelemetry(null);
+            if (minimapView != null) minimapView.Bind(null);
             _hudSource = null;
             _hudPresenter = null;
             _vehicleRecoveryPromptPresenter = null;
@@ -134,6 +139,10 @@ namespace ApexRivals.UI.Runtime
             _hudPresenter = new RaceHudPresenter(hudView, _hudSource);
             hudView.Bind(_hudPresenter);
             hudView.BindTelemetry(session.PlayerVehicleTelemetry);
+            if (minimapView != null && raceCoordinator != null && racingLine != null)
+            {
+                minimapView.Bind(new RaceCoordinatorMinimapSource(raceCoordinator, racingLine));
+            }
         }
 
         private void BindVehicleRecoveryPrompt(RaceSessionCoordinator session)

@@ -84,7 +84,7 @@ namespace ApexRivals.UI.Runtime
             {
                 SetText(text, ApexUiVisualStyle.PrimaryRed, 28, FontStyle.Bold);
             }
-            else if (text.GetComponentInParent<Button>() != null)
+            else if (text.GetComponentInParent<Button>(true) != null)
             {
                 SetText(text, ApexUiVisualStyle.PrimaryText, ApexUiVisualStyle.ButtonLabelSize, FontStyle.Bold);
             }

@@ -25,7 +25,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             Assert.That(roster.Entries.Count, Is.EqualTo(4));
             Assert.That(roster.Entries[0].EntryType, Is.EqualTo(RaceEntryType.Player));
             Assert.That(roster.Entries[0].VehicleId, Is.EqualTo("vanguard"));
-            Assert.That(roster.Entries[0].StartingGridIndex, Is.EqualTo(0));
+            Assert.That(roster.Entries[0].StartingGridIndex, Is.EqualTo(3), "The player starts from the back of the grid.");
 
             var expectedConfigurations = new[] { "rookie", "professional", "expert" };
             for (var index = 0; index < expectedConfigurations.Length; index++)
@@ -33,7 +33,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 var opponent = roster.Entries[index + 1];
                 Assert.That(opponent.EntryType, Is.EqualTo(RaceEntryType.AI));
                 Assert.That(opponent.ParticipantId, Is.EqualTo($"AI_0{index + 1}"));
-                Assert.That(opponent.StartingGridIndex, Is.EqualTo(index + 1));
+                Assert.That(opponent.StartingGridIndex, Is.EqualTo(2 - index), "Stronger rivals start further up the grid.");
                 Assert.That(opponent.VehicleId, Is.Not.Empty);
                 Assert.That(opponent.AiConfigurationId, Is.EqualTo(expectedConfigurations[index]));
                 Assert.That(definition.AiOpponents[index].AiConfiguration, Is.Not.Null);

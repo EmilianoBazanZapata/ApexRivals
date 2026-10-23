@@ -88,6 +88,7 @@ namespace ApexRivals.Vehicle.Runtime
         private Rigidbody _rigidbody;
         private IDrivingInputProvider _inputProvider;
         private float _engineRpm;
+        private float _tractionFactor = 1f;
         private float _shiftTimeRemaining;
         private float _shiftCooldownRemaining;
         private float _driftHandbrakeEntryTimeRemaining;
@@ -109,6 +110,8 @@ namespace ApexRivals.Vehicle.Runtime
         public float CurrentFrontWheelSteerAngle { get; private set; }
         public float CurrentCountersteerCorrection { get; private set; }
         public float CurrentMotorTorque { get; private set; }
+        /// <summary>Share of forward drive torque kept by traction control (1 = no intervention).</summary>
+        public float CurrentTractionFactor => _tractionFactor;
         public float CurrentNormalBrakeTorque { get; private set; }
         public float CurrentHandbrakeTorque { get; private set; }
         public float CurrentSteeringSpeed { get; private set; }
@@ -119,6 +122,8 @@ namespace ApexRivals.Vehicle.Runtime
         public float CurrentAverageDrivenWheelRpm { get; private set; }
         public float CurrentGearRatio { get; private set; }
         public float CurrentRawCalculatedEngineRpm { get; private set; }
+        /// <summary>Engine RPM the automatic gearbox decides on (driven-wheel RPM capped at road speed).</summary>
+        public float CurrentShiftEngineRpm { get; private set; }
         public float CurrentPowerCurveEvaluation { get; private set; }
         public float CurrentTorqueBeforeShiftSuppression { get; private set; }
         public bool ShiftInProgress => _shiftTimeRemaining > 0f;
@@ -452,9 +457,38 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
-            CurrentMotorTorque = torqueMagnitude * motorInput;
+            CurrentMotorTorque = torqueMagnitude * motorInput * UpdateTractionControl(motorInput > 0f);
             rearLeftWheel.motorTorque = CurrentMotorTorque;
             rearRightWheel.motorTorque = CurrentMotorTorque;
+        }
+
+        // Traction control: wheelspin wastes power (and used to read as speed to the gearbox), so forward drive
+        // torque is trimmed while the rear wheels outrun the car. Drifts keep their deliberate rear wheelspin.
+        private const float TractionSlipAllowanceRatio = 0.2f;
+        private const float TractionMinimumSlipAllowance = 2f;
+        private const float TractionMinimumTorqueFactor = 0.15f;
+        private const float TractionRecoveryPerSecond = 2.5f;
+
+        private float UpdateTractionControl(bool drivingForward)
+        {
+            if (!drivingForward || HandbrakeActive || ForwardDriftActive)
+            {
+                _tractionFactor = 1f;
+                return 1f;
+            }
+
+            var surfaceSpeed = CurrentAverageDrivenWheelRpm / 60f * 2f * Mathf.PI * rearLeftWheel.radius;
+            var target = VehicleDrivetrainRules.EvaluateTractionControl(
+                surfaceSpeed,
+                CurrentForwardSpeed,
+                TractionSlipAllowanceRatio,
+                TractionMinimumSlipAllowance,
+                TractionMinimumTorqueFactor);
+            // Cut immediately, give torque back gradually so the wheels do not flare up again at once.
+            _tractionFactor = target < _tractionFactor
+                ? target
+                : Mathf.MoveTowards(_tractionFactor, target, TractionRecoveryPerSecond * Time.fixedDeltaTime);
+            return _tractionFactor;
         }
 
         private float CalculateRearWheelTorque()
@@ -507,11 +541,17 @@ namespace ApexRivals.Vehicle.Runtime
                 followAmount);
             _engineRpm = rpm.EngineRpm;
 
+            // Shift on road speed, not wheelspin: the engine still revs with spinning wheels, but a launch
+            // must not climb through the gears before the car is actually moving.
+            var shiftWheelRpm = VehicleDrivetrainRules.CalculateShiftWheelRpm(
+                CurrentAverageDrivenWheelRpm,
+                VehicleDrivetrainRules.CalculateGroundWheelRpm(CurrentForwardSpeed, rearLeftWheel.radius));
+            CurrentShiftEngineRpm = VehicleDrivetrainRules.CalculateRawEngineRpm(shiftWheelRpm, gearRatio, _effectiveTuning.differential);
             var shiftDecision = VehicleDrivetrainRules.EvaluateAutomaticGearShift(
                 drivingForward,
                 _currentGearIndex,
                 _effectiveTuning.gearRatios != null ? _effectiveTuning.gearRatios.Length : 0,
-                rpm.TargetEngineRpm,
+                Mathf.Min(rpm.TargetEngineRpm, CurrentShiftEngineRpm),
                 _effectiveTuning.upshiftRpm,
                 _effectiveTuning.downshiftRpm);
             if (!shiftDecision.ShouldShift)
@@ -583,6 +623,7 @@ namespace ApexRivals.Vehicle.Runtime
             CurrentMotorTorque = 0f;
             CurrentTorqueBeforeShiftSuppression = 0f;
             CurrentPowerCurveEvaluation = 0f;
+            _tractionFactor = 1f;
             ForwardDriftActive = false;
             _wasForwardDriftActive = false;
             _driftHandbrakeEntryTimeRemaining = 0f;

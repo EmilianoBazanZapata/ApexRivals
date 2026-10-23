@@ -9,6 +9,7 @@ namespace ApexRivals.UI.Runtime
         Racing,
         Paused,
         Results,
-        Transitioning
+        Transitioning,
+        TrackSelection
     }
 }
