@@ -19,6 +19,9 @@ namespace ApexRivals.Race.Runtime
         [SerializeField]
         private RaceCoordinator raceCoordinator;
 
+        [SerializeField, Tooltip("Show the gate marker on the player's next checkpoint. Off hides every marker; checkpoints still count through their trigger volumes.")]
+        private bool showNextCheckpointMarker = true;
+
         [Header("Debug (read-only, updated on progress refresh)")]
         [SerializeField]
         private int debugCurrentLap;
@@ -32,6 +35,16 @@ namespace ApexRivals.Race.Runtime
         private int _activeIndex = -1;
 
         public int ActiveCheckpointIndex => _activeIndex;
+
+        public bool ShowNextCheckpointMarker
+        {
+            get => showNextCheckpointMarker;
+            set
+            {
+                showNextCheckpointMarker = value;
+                RefreshFromProgress();
+            }
+        }
 
         public void Configure(RaceCoordinator coordinator)
         {
@@ -114,6 +127,11 @@ namespace ApexRivals.Race.Runtime
 
         private void RefreshFromProgress()
         {
+            if (!showNextCheckpointMarker)
+            {
+                HideAllMarkers();
+            }
+
             if (raceCoordinator == null)
             {
                 SetActiveIndex(-1);
@@ -132,7 +150,9 @@ namespace ApexRivals.Race.Runtime
             debugExpectedCheckpoint = progress.NextExpectedCheckpointIndex;
 
             var checkpointCount = raceCoordinator.OrderedCheckpoints != null ? raceCoordinator.OrderedCheckpoints.Count : 0;
-            SetActiveIndex(ResolveActiveIndex(true, true, progress.HasFinished, progress.NextExpectedCheckpointIndex, checkpointCount));
+            SetActiveIndex(showNextCheckpointMarker
+                ? ResolveActiveIndex(true, true, progress.HasFinished, progress.NextExpectedCheckpointIndex, checkpointCount)
+                : -1);
         }
 
         // Pure decision logic, kept free of MonoBehaviour/UnityEngine state so it can
@@ -151,6 +171,24 @@ namespace ApexRivals.Race.Runtime
             }
 
             return nextExpectedCheckpointIndex;
+        }
+
+        // With markers off, also hide any marker the scene left enabled, not only the one this presenter showed.
+        private void HideAllMarkers()
+        {
+            var checkpoints = raceCoordinator != null ? raceCoordinator.OrderedCheckpoints : null;
+            if (checkpoints == null)
+            {
+                return;
+            }
+
+            for (var index = 0; index < checkpoints.Count; index++)
+            {
+                if (checkpoints[index] != null)
+                {
+                    checkpoints[index].SetVisualActive(false);
+                }
+            }
         }
 
         private void SetActiveIndex(int index)

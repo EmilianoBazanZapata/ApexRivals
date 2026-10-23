@@ -95,6 +95,37 @@ namespace ApexRivals.Tests.EditMode.Race
         }
 
         [Test]
+        public void HiddenMarkers_StayHiddenWhileCheckpointsStillCountTowardsTheLap()
+        {
+            var scenario = BuildScenario(4);
+            scenario.Visuals[2].SetActive(true);
+
+            scenario.Presenter.ShowNextCheckpointMarker = false;
+
+            Assert.That(scenario.Presenter.ActiveCheckpointIndex, Is.EqualTo(-1));
+            foreach (var visual in scenario.Visuals)
+            {
+                Assert.That(visual.activeSelf, Is.False);
+            }
+
+            for (var i = 1; i < scenario.Checkpoints.Length; i++)
+            {
+                scenario.Coordinator.TryPassCheckpoint(scenario.Player, scenario.Checkpoints[i - 1]);
+            }
+
+            Assert.That(scenario.Coordinator.TryGetProgress(scenario.Player, out var progress), Is.True);
+            Assert.That(progress.NextExpectedCheckpointIndex, Is.EqualTo(3), "Detection keeps advancing without markers.");
+            foreach (var visual in scenario.Visuals)
+            {
+                Assert.That(visual.activeSelf, Is.False);
+            }
+
+            scenario.Presenter.ShowNextCheckpointMarker = true;
+            Assert.That(scenario.Presenter.ActiveCheckpointIndex, Is.EqualTo(3));
+            Assert.That(scenario.Visuals[3].activeSelf, Is.True);
+        }
+
+        [Test]
         public void PlayerPassesExpectedCheckpoint_ActiveMarkerAdvances_PreviousDeactivates()
         {
             var scenario = BuildScenario(4);
