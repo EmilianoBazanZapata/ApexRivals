@@ -17,6 +17,8 @@ namespace ApexRivals.Vehicle.Runtime
         private bool _hasResetPose;
         private BoxCollider[] _bodyColliders;
         private readonly Collider[] _overlaps = new Collider[16];
+        /// <summary>Read-only teleport revision for presentation systems that must break their trails.</summary>
+        public int ResetVersion { get; private set; }
 
         private void Awake()
         {
@@ -78,6 +80,7 @@ namespace ApexRivals.Vehicle.Runtime
             vehicleRigidbody.WakeUp();
             Physics.SyncTransforms();
             vehicleRigidbody.interpolation = interpolation;
+            ResetVersion++;
         }
 
         public bool TryCaptureSafeResetPose(Vector3 position, Quaternion rotation)
