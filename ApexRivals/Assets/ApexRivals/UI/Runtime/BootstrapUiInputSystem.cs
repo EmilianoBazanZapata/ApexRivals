@@ -44,6 +44,33 @@ namespace ApexRivals.UI.Runtime
         private FullScreenMode _lastAppliedFullScreenMode;
         private bool _lastAppliedAllowPointerInput;
         private bool _lastAppliedGameplayActive;
+        private readonly HashSet<object> _loadingBlockOwners = new HashSet<object>();
+        private bool _moduleEnabledBeforeLoading;
+        public bool IsLoadingInputBlocked => _loadingBlockOwners.Count > 0;
+
+        public void RestoreSceneFocusAfterLoading()
+        {
+            // A cancelled additive candidate has already raised sceneLoaded. Rollback
+            // reactivates the previous scene without raising that event a second time.
+            RegisterFocusCoordinator(SceneManager.GetActiveScene());
+        }
+
+        public void SetLoadingInputBlocked(object owner, bool blocked)
+        {
+            if (blocked)
+            {
+                if (!_loadingBlockOwners.Add(owner) || _loadingBlockOwners.Count != 1) return;
+                _moduleEnabledBeforeLoading = inputModule != null && inputModule.enabled;
+                if (_deferredSubmit != null) StopCoroutine(_deferredSubmit);
+                _deferredSubmit = null;
+                _selectHoveredPending = false;
+                if (inputModule != null) inputModule.enabled = false;
+            }
+            else if (_loadingBlockOwners.Remove(owner) && _loadingBlockOwners.Count == 0)
+            {
+                if (inputModule != null) inputModule.enabled = _moduleEnabledBeforeLoading;
+            }
+        }
 
         private void Awake()
         {
@@ -405,6 +432,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnNavigatePerformed(InputAction.CallbackContext context)
         {
+            if (IsLoadingInputBlocked) return;
             if (context.ReadValue<Vector2>().sqrMagnitude < 0.25f)
             {
                 return;
@@ -416,6 +444,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnSubmitPerformed(InputAction.CallbackContext context)
         {
+            if (IsLoadingInputBlocked) return;
             if (!context.ReadValueAsButton())
             {
                 return;
@@ -447,6 +476,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnCancelPerformed(InputAction.CallbackContext context)
         {
+            if (IsLoadingInputBlocked) return;
             if (!context.ReadValueAsButton())
             {
                 return;
@@ -464,6 +494,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnPreviousTabPerformed(InputAction.CallbackContext context)
         {
+            if (IsLoadingInputBlocked) return;
             if (context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Navigation);
@@ -481,6 +512,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnNextTabPerformed(InputAction.CallbackContext context)
         {
+            if (IsLoadingInputBlocked) return;
             if (context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Navigation);
@@ -593,6 +625,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnPointPerformed(InputAction.CallbackContext context)
         {
+            if (IsLoadingInputBlocked) return;
             if (context.control?.device is not Mouse)
             {
                 return;
@@ -621,6 +654,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnClickPerformed(InputAction.CallbackContext context)
         {
+            if (IsLoadingInputBlocked) return;
             if (context.control?.device is Mouse && context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Mouse);

@@ -211,6 +211,7 @@ namespace ApexRivals.UI.Runtime
             }
 
             if (_context == null
+                || _context.LoadingPresentation?.IsVisible == true
                 || _context.Navigation.RacePresentationState == RacePresentationState.Results)
             {
                 return;

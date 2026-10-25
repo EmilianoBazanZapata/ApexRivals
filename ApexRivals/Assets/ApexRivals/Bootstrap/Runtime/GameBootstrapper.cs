@@ -1,4 +1,5 @@
 using System.Collections;
+using ApexRivals.UI.Runtime;
 using ApexRivals.Audio.Runtime;
 using ApexRivals.Career.Configuration;
 using ApexRivals.Career.Runtime;
@@ -128,9 +129,13 @@ namespace ApexRivals.Bootstrap.Runtime
                 return System.Threading.Tasks.Task.FromResult(new BootstrapStartupResult(BootstrapStartupStatus.Failed, raceProgressionValidation.Message));
             }
 
+            var loadingOverlay = GetComponent<SceneLoadingOverlay>();
+            if (loadingOverlay == null) loadingOverlay = gameObject.AddComponent<SceneLoadingOverlay>();
+            loadingOverlay.Bind(GetComponent<BootstrapUiInputSystem>());
+            var presentedLoader = new LoadingContentSceneLoader(sceneLoader, loadingOverlay, Debug.LogException);
             var sceneFlowService = new SceneFlowService(
                 sceneFlowConfiguration.CreateSceneMap(),
-                sceneLoader,
+                presentedLoader,
                 saveCheckpoint,
                 career);
 
@@ -144,7 +149,8 @@ namespace ApexRivals.Bootstrap.Runtime
                 garageService,
                 settingsService,
                 raceProgressionService,
-                career: career);
+                career: career,
+                loadingPresentation: loadingOverlay);
 
             sceneLoader.ContentSceneUnloading += OnContentSceneUnloading;
             sceneLoader.ContentSceneLoaded += OnContentSceneLoaded;
