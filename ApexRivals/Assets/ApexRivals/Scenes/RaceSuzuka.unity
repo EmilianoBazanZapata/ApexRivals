@@ -156236,6 +156236,71 @@ MonoBehaviour:
   raceSessionInstaller: {fileID: 100082}
   outputCamera: {fileID: 1425830613}
   enableRain: 1
+--- !u!1001 &35554830869485924
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3496995188648807272, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_Name
+      value: TrackAtmosphere
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028595254305800603, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7898694040634521713, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: coordinator
+      value:
+      objectReference: {fileID: 100012}
+    - target: {fileID: 7898694040634521713, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
+      propertyPath: sessionInstaller
+      value:
+      objectReference: {fileID: 100082}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 72c032fc4d34b6844b78d422b3632487, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -156244,3 +156309,4 @@ SceneRoots:
   - {fileID: 223570095}
   - {fileID: 1425830614}
   - {fileID: 1891724335}
+  - {fileID: 35554830869485924}
