@@ -96,7 +96,8 @@ namespace ApexRivals.UI.Runtime
             session.ResultsReady += OnResultsReady;
             context.Navigation.StateChanged += OnApplicationStateChanged;
             _subscribed = true;
-            screenNavigator.Show(PresentationScreenState.Racing);
+            screenNavigator.Show(session.State == RaceSessionLifecycleState.Ready
+                ? PresentationScreenState.Transitioning : PresentationScreenState.Racing);
             _pausePresenter.Present();
             _resultsPresenter.Present();
             _hudPresenter?.Present();
@@ -211,6 +212,7 @@ namespace ApexRivals.UI.Runtime
             }
 
             if (_context == null
+                || raceSessionInstaller.Introduction != null && raceSessionInstaller.Introduction.SuppressCommands
                 || _context.LoadingPresentation?.IsVisible == true
                 || _context.Navigation.RacePresentationState == RacePresentationState.Results)
             {

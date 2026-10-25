@@ -21,6 +21,10 @@ namespace ApexRivals.Bootstrap.Runtime
         [SerializeField] private RaceCoordinator raceCoordinator;
         [SerializeField] private StartingGrid startingGrid;
         [SerializeField] private RacingLine racingLine;
+        [SerializeField] private ApexRivals.Camera.Runtime.PreRacePresentation introduction;
+
+        public bool PlayIntroduction { get; set; } = true;
+        public ApexRivals.Camera.Runtime.PreRacePresentation Introduction => introduction;
 
         public RaceSessionCoordinator Session { get; private set; }
         public RaceSessionCommandResult LastInstallResult { get; private set; }
@@ -82,12 +86,16 @@ namespace ApexRivals.Bootstrap.Runtime
             LastInstallResult = Session.Prepare();
             if (LastInstallResult.Succeeded)
             {
-                LastInstallResult = Session.Start();
+                if (PlayIntroduction && introduction != null && introduction.isActiveAndEnabled)
+                    introduction.Begin(context, Session, raceCoordinator);
+                else
+                    LastInstallResult = Session.Start();
             }
         }
 
         public void Uninstall()
         {
+            if (introduction != null) introduction.Cancel();
             Session?.Dispose();
             Session = null;
             CareerAttempt = null;

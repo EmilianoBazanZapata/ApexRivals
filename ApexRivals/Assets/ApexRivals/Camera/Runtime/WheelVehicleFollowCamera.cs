@@ -138,6 +138,21 @@ namespace ApexRivals.Camera.Runtime
             _camera = GetComponent<UnityEngine.Camera>();
         }
 
+        /// <summary>Explicit cinematic handoff: discard stale smoothing and resolve the real gameplay pose.</summary>
+        public bool SnapToTarget()
+        {
+            if (_camera == null) _camera = GetComponent<UnityEngine.Camera>();
+            if (cameraTarget == null || vehicleRigidbody == null || _camera == null) return false;
+            _isReverseCamera = false;
+            UpdateDirections();
+            UpdateFieldOfView();
+            CurrentDesiredCameraPosition = CalculateDesiredCameraPosition();
+            transform.position = ResolveObstruction(CurrentDesiredCameraPosition);
+            var direction = cameraTarget.position + Vector3.up * lookHeightOffset - transform.position;
+            if (direction.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+            return true;
+        }
+
         private void LateUpdate()
         {
             if (cameraTarget == null || vehicleRigidbody == null || _camera == null)

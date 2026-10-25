@@ -39,6 +39,7 @@ namespace ApexRivals.Tests.PlayMode
         private MemoryStorage _storage;
         private int _raceInstallCount;
         private bool _installAllContentScenes;
+        private bool _playIntroduction;
         private InputSettings _originalInputSettings;
         private InputSettings _testInputSettings;
 
@@ -63,6 +64,7 @@ namespace ApexRivals.Tests.PlayMode
 
             _raceInstallCount = 0;
             _installAllContentScenes = false;
+            _playIntroduction = false;
             var bootstrapScene = SceneManager.CreateScene("PhaseOneTestBootstrap");
             var root = new GameObject("PhaseOneTestBootstrap");
             SceneManager.MoveGameObjectToScene(root, bootstrapScene);
@@ -748,6 +750,12 @@ namespace ApexRivals.Tests.PlayMode
             // The menu is only a stepping stone; exercise the real bootstrap install
             // and uninstall methods for Race, including its UI and vehicle factory.
             if (scene.name != "Race" && !_installAllContentScenes) return;
+            // These existing regression scenarios exercise the race itself. Cinematic tests opt in explicitly.
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var raceInstaller = root.GetComponentInChildren<RaceSessionSceneInstaller>(true);
+                if (raceInstaller != null) raceInstaller.PlayIntroduction = _playIntroduction;
+            }
             typeof(GameBootstrapper).GetMethod("OnContentSceneLoaded", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(_bootstrapper, new object[] { scene });
             if (scene.name == "Race") _raceInstallCount++;

@@ -46,11 +46,13 @@ namespace ApexRivals.Tests.PlayMode
         private PlayerProgressionState _progression;
         private SelectedVehicleState _selected;
         private bool _runInBackground;
+        private bool _playFinaleIntroduction;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
             _runInBackground = Application.runInBackground;
+            _playFinaleIntroduction = false;
             Application.runInBackground = true;
             _originalScenes.Clear();
             _originalActiveScene = SceneManager.GetActiveScene();
@@ -180,6 +182,7 @@ namespace ApexRivals.Tests.PlayMode
             trackSelect.Open();
             trackSelect.SelectTrack(3);
             Assert.That(trackSelect.Current.CanStartRace, Is.True);
+            _playFinaleIntroduction = true;
             yield return StartFromTrackSelect(trackSelect, "RaceSuzuka");
             var installer = FindInScene<RaceSessionSceneInstaller>("RaceSuzuka");
             Assert.That(installer.CareerAttempt.IsFinale, Is.True);
@@ -234,7 +237,8 @@ namespace ApexRivals.Tests.PlayMode
             Assert.That(installer, Is.Not.Null);
             Assert.That(installer.LastInstallResult.Succeeded, Is.True, installer.LastInstallResult.Message);
             var deadline = Time.realtimeSinceStartup + 10f;
-            while (installer.Session.State == RaceSessionLifecycleState.Starting && Time.realtimeSinceStartup < deadline) yield return null;
+            while ((installer.Session.State == RaceSessionLifecycleState.Starting || installer.Session.State == RaceSessionLifecycleState.Ready)
+                && Time.realtimeSinceStartup < deadline) yield return null;
             Assert.That(installer.Session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
         }
 
@@ -312,6 +316,12 @@ namespace ApexRivals.Tests.PlayMode
 
         private void OnLoaded(Scene scene)
         {
+            // Career transactions are independent of the optional pre-race presentation.
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var raceInstaller = root.GetComponentInChildren<RaceSessionSceneInstaller>(true);
+                if (raceInstaller != null) raceInstaller.PlayIntroduction = _playFinaleIntroduction;
+            }
             typeof(GameBootstrapper).GetMethod("OnContentSceneLoaded", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_bootstrapper, new object[] { scene });
         }
 
