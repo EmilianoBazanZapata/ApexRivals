@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: VanguardVehicleDefinition
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.VehicleSelection.Configuration.VehicleDefinition
   stableId: vanguard
-  displayName: Vanguard
-  description: Balanced and agile starter sports coupe.
+  displayName: BTW S1
+  description: Balanced starter circuit car.
   baseConfiguration: {fileID: 11400000, guid: bc7156db47fb4eafad2c5091f879b23d, type: 2}
   vehiclePrefab: {fileID: 5125654590113072179, guid: 7b2c841896cf77f41b3aa979e689c9ae, type: 3}
   previewSprite: {fileID: 0}

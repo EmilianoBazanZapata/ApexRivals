@@ -11367,6 +11367,18 @@ MonoBehaviour:
     prefab: {fileID: 5125654590113072179, guid: 7b2c841896cf77f41b3aa979e689c9ae, type: 3}
   - vehicleId: striker
     prefab: {fileID: 8983547300720784560, guid: 93a5bbe79d504d041a5e09c9dec4fcd3, type: 3}
+  - vehicleId: sunaru
+    prefab: {fileID: 5125654590113072179, guid: 7117ec69231e0e44e94a5cf0ee2dd812, type: 3}
+  - vehicleId: borshe911
+    prefab: {fileID: 5125654590113072179, guid: 47a7d8f1924898149a9c49d9737c128b, type: 3}
+  - vehicleId: aduo
+    prefab: {fileID: 5125654590113072179, guid: 8a095af9e9f85d440af90e975a41cc6f, type: 3}
+  - vehicleId: fernedenz
+    prefab: {fileID: 5125654590113072179, guid: 976e973a5bd6f4f45b4c772de96e50d7, type: 3}
+  - vehicleId: massalini
+    prefab: {fileID: 5125654590113072179, guid: 79ba8425fe7860b4cbdab79f0717ddd7, type: 3}
+  - vehicleId: fehhahi
+    prefab: {fileID: 5125654590113072179, guid: 9a6954b9184b1ac438e4a2ce2018ded6, type: 3}
   rotationDegreesPerSecond: 25
 --- !u!1 &1264197993
 GameObject:

@@ -17,6 +17,24 @@ MonoBehaviour:
   - vehicleId: striker
     price: 1800
     requiredMilestoneId: apex-win
+  - vehicleId: sunaru
+    price: 2200
+    requiredMilestoneId: apex-win
+  - vehicleId: borshe911
+    price: 3200
+    requiredMilestoneId: dunes-win
+  - vehicleId: aduo
+    price: 4200
+    requiredMilestoneId: dunes-win
+  - vehicleId: fernedenz
+    price: 5200
+    requiredMilestoneId: crossover-win
+  - vehicleId: massalini
+    price: 6200
+    requiredMilestoneId: crossover-win
+  - vehicleId: fehhahi
+    price: 8000
+    requiredMilestoneId: crossover-win
   trackUnlocks:
   - trackId: dunes
     requiredMilestoneId: apex-win
@@ -32,7 +50,7 @@ MonoBehaviour:
     currencyReward: 200
   - milestoneId: apex-win
     title: Win at Apex Circuit
-    hint: Finish 1st at Apex Circuit to open Dunes Circuit and the Striker.
+    hint: Finish 1st at Apex Circuit to open Dunes Circuit and the Tort Mustang.
     kind: 1
     targetId: circuit
     targetCount: 0
@@ -60,7 +78,7 @@ MonoBehaviour:
     currencyReward: 100
   - milestoneId: own-two-cars
     title: Own 2 cars
-    hint: In the garage, browse to the Striker and buy it.
+    hint: In the garage, browse to the Tort Mustang and buy it.
     kind: 3
     targetId: 
     targetCount: 2

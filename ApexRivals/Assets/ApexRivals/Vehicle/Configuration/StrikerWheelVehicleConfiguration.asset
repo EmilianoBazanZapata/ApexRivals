@@ -12,12 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a758c1458ca4213a8a5d67a53fc5e12, type: 3}
   m_Name: StrikerWheelVehicleConfiguration
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Vehicle.Configuration.WheelVehicleConfiguration
-  mass: 1000
+  mass: 1150
   linearDamping: 0
   angularDamping: 0.05
-  motorPower: 100
+  motorPower: 110
   differential: 4
-  gearRatios: [3, 2.5, 2, 1.5, 1, 0.8]
+  gearRatios:
+  - 3
+  - 2.5
+  - 2
+  - 1.5
+  - 1
+  - 0.6
   idleRpm: 800
   redlineRpm: 6500
   upshiftRpm: 5500
@@ -104,7 +110,7 @@ MonoBehaviour:
   countersteerEnabled: 1
   countersteerGuardAngle: 120
   countersteerStrength: 1
-  wheelRadius: 0.3
+  wheelRadius: 0.25283572
   wheelMass: 20
   wheelDampingRate: 0.25
   suspensionDistance: 0.1
@@ -112,12 +118,32 @@ MonoBehaviour:
   suspensionSpring: 50000
   suspensionDamper: 4500
   suspensionTargetPosition: 0.5
-  frontForwardFriction: {extremumSlip: 0.4, extremumValue: 1, asymptoteSlip: 0.8, asymptoteValue: 0.5, stiffness: 1}
-  frontSidewaysFriction: {extremumSlip: 0.2, extremumValue: 1, asymptoteSlip: 0.5, asymptoteValue: 0.75, stiffness: 1}
-  rearForwardFriction: {extremumSlip: 0.4, extremumValue: 1, asymptoteSlip: 0.8, asymptoteValue: 0.5, stiffness: 1}
-  rearSidewaysFriction: {extremumSlip: 0.1, extremumValue: 0.7, asymptoteSlip: 0.1, asymptoteValue: 0.6, stiffness: 0.8}
-  performanceAcceleration: 12
-  performanceTopSpeed: 50
+  frontForwardFriction:
+    extremumSlip: 0.4
+    extremumValue: 1
+    asymptoteSlip: 0.8
+    asymptoteValue: 0.5
+    stiffness: 1
+  frontSidewaysFriction:
+    extremumSlip: 0.2
+    extremumValue: 1
+    asymptoteSlip: 0.5
+    asymptoteValue: 0.75
+    stiffness: 0.9454545
+  rearForwardFriction:
+    extremumSlip: 0.4
+    extremumValue: 1
+    asymptoteSlip: 0.8
+    asymptoteValue: 0.5
+    stiffness: 1
+  rearSidewaysFriction:
+    extremumSlip: 0.1
+    extremumValue: 0.7
+    asymptoteSlip: 0.1
+    asymptoteValue: 0.6
+    stiffness: 0.75636363
+  performanceAcceleration: 13.2
+  performanceTopSpeed: 54
   performanceSteering: 10
-  performanceHandling: 0.55
-  performanceDriftHandling: 0.22
+  performanceHandling: 0.52
+  performanceDriftHandling: 0.52

@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: StrikerVehicleDefinition
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.VehicleSelection.Configuration.VehicleDefinition
   stableId: striker
-  displayName: Striker
-  description: Heavier high-speed muscle-inspired coupe.
+  displayName: Tort Mustang
+  description: Circuit car with its own power, grip and top-speed configuration.
   baseConfiguration: {fileID: 11400000, guid: 3ccbbab665ce4a9f9be10290d3b85bf1, type: 2}
   vehiclePrefab: {fileID: 8983547300720784560, guid: 93a5bbe79d504d041a5e09c9dec4fcd3, type: 3}
   previewSprite: {fileID: 0}
