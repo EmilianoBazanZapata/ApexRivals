@@ -10377,6 +10377,79 @@ MonoBehaviour:
   markerColor: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
   markerAlternateColor: {r: 0.8980392, g: 0.08627451, b: 0.07058824, a: 1}
   points: []
+--- !u!1001 &122277774
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1537034987940021146, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1727768055315918856, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: m_Name
+      value: DrivingLine
+      objectReference: {fileID: 0}
+    - target: {fileID: 2879909046437442561, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: road
+      value:
+      objectReference: {fileID: 1750905058}
+    - target: {fileID: 2879909046437442561, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: racingLine
+      value:
+      objectReference: {fileID: 100032}
+    - target: {fileID: 2879909046437442561, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: coordinator
+      value:
+      objectReference: {fileID: 100012}
+    - target: {fileID: 2879909046437442561, guid: 65193881d047625499375a1a64a61814, type: 3}
+      propertyPath: sessionInstaller
+      value:
+      objectReference: {fileID: 100082}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 65193881d047625499375a1a64a61814, type: 3}
 --- !u!1001 &125248922
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -138459,3 +138532,4 @@ SceneRoots:
   - {fileID: 1425830614}
   - {fileID: 1713086638}
   - {fileID: 3393944875402443228}
+  - {fileID: 122277774}
