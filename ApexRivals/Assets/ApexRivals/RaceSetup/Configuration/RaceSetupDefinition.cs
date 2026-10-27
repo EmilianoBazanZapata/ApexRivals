@@ -45,7 +45,8 @@ namespace ApexRivals.RaceSetup.Configuration
                     opponent.VehicleId,
                     opponent.StartingGridIndex,
                     opponent.AiConfigurationId,
-                    opponent.PerformanceMultiplier));
+                    opponent.PerformanceMultiplier,
+                    opponent.HandlingMultiplier));
             }
 
             return new RaceRoster(entries);

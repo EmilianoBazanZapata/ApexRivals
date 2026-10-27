@@ -7,6 +7,7 @@ Shader "ApexRivals/Environment/Trackside Motion"
         [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull", Float) = 2
         [HideInInspector] _EnvironmentTime("Scene clock", Float) = 0
         [HideInInspector] _Cheer("Crowd excitement", Float) = 0
+        [HideInInspector] _WindStrength("Weather wind", Float) = 1
     }
     SubShader
     {
@@ -24,7 +25,7 @@ Shader "ApexRivals/Environment/Trackside Motion"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             CBUFFER_START(UnityPerMaterial)
                 float4 _MotionAxis;
-                float _MotionAmount, _EnvironmentTime, _Cheer, _Cull;
+                float _MotionAmount, _EnvironmentTime, _Cheer, _Cull, _WindStrength;
             CBUFFER_END
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; half4 color : COLOR; float2 motion : TEXCOORD0; };
             struct Varyings { float4 positionCS : SV_POSITION; float3 normalWS : TEXCOORD0; half4 color : COLOR; half fog : TEXCOORD1; };
@@ -33,7 +34,8 @@ Shader "ApexRivals/Environment/Trackside Motion"
                 Varyings output;
                 float phase = input.motion.y + UNITY_MATRIX_M._m03 * 0.13 + UNITY_MATRIX_M._m23 * 0.07;
                 float wave = sin(_EnvironmentTime * (2.5 + _Cheer) + phase);
-                input.positionOS.xyz += _MotionAxis.xyz * wave * input.motion.x * _MotionAmount * (1 + _Cheer);
+                float wind = abs(_MotionAxis.z) > 0.5 ? _WindStrength : 1;
+                input.positionOS.xyz += _MotionAxis.xyz * wave * input.motion.x * _MotionAmount * (1 + _Cheer) * wind;
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.color = input.color;

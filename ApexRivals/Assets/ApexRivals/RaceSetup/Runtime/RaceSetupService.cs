@@ -6,6 +6,7 @@ using ApexRivals.Garage.Runtime;
 using ApexRivals.Input.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.Race.Runtime;
+using ApexRivals.Vehicle.Runtime;
 using ApexRivals.VehicleSelection.Runtime;
 using UnityEngine;
 
@@ -203,9 +204,12 @@ namespace ApexRivals.RaceSetup.Runtime
             }
 
             composition.ConfigureValidatedAI(raceCoordinator, entry.ParticipantId, aiConfiguration, racingLine);
-            if (!Mathf.Approximately(entry.PerformanceMultiplier, 1f))
+            if (!Mathf.Approximately(entry.PerformanceMultiplier, 1f) || !Mathf.Approximately(entry.HandlingMultiplier, 1f))
             {
-                composition.VehicleRuntime.ApplyPerformanceStats(vehicleLookup.Vehicle.BasePerformanceStats.WithPowerScale(entry.PerformanceMultiplier));
+                var stats = vehicleLookup.Vehicle.BasePerformanceStats.WithPowerScale(entry.PerformanceMultiplier);
+                composition.VehicleRuntime.ApplyPerformanceStats(new VehiclePerformanceStats(
+                    stats.Acceleration, stats.TopSpeed, stats.Steering,
+                    stats.Handling * entry.HandlingMultiplier, stats.DriftHandling));
             }
 
             return RaceSetupStatus.Succeeded;

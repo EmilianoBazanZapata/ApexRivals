@@ -7,7 +7,7 @@ using UnityEngine;
 namespace ApexRivals.AI.Runtime
 {
     /// <summary>
-    /// AI rival driver. Coordinates the driving pipeline each frame and owns the driving state:
+    /// AI rival driver. Coordinates the driving pipeline before each vehicle physics step:
     /// <list type="number">
     /// <item><see cref="AiPathTracker"/> locates the car on its ideal path.</item>
     /// <item><see cref="AiRecoverySupervisor"/> escalates when the car cannot progress: rejoin, reverse, reset.</item>
@@ -17,6 +17,7 @@ namespace ApexRivals.AI.Runtime
     /// </list>
     /// It never touches physics directly; resets go through the vehicle controller's own reset boundary.
     /// </summary>
+    [DefaultExecutionOrder(-100)]
     public sealed class AiDrivingInputProvider : MonoBehaviour, IDrivingInputProvider
     {
         private const float RejoinSteeringLimit = 0.6f;
@@ -61,13 +62,16 @@ namespace ApexRivals.AI.Runtime
         private readonly AiTrafficPerception _perception = new AiTrafficPerception();
         private readonly AiObstacleSensor _obstacleSensor = new AiObstacleSensor();
         private readonly AiTacticalPlanner _planner = new AiTacticalPlanner();
+        private readonly AiPredictivePlanner _predictivePlanner = new AiPredictivePlanner();
         private readonly AiDriverPersonality _personality = new AiDriverPersonality();
         private readonly AiDriftController _drift = new AiDriftController();
         private readonly AiVehicleControl _control = new AiVehicleControl();
         private readonly AiRecoverySupervisor _recovery = new AiRecoverySupervisor();
+        private readonly AiRecoveryBoost _recoveryBoost = new AiRecoveryBoost();
 
         private IVehicleRuntime _vehicleRuntime;
         private Rigidbody _body;
+        private WheelCollider[] _supportWheels;
         private bool _racingLineValid;
         private float _lateralOffset;
         private float _tacticalOffset;
@@ -80,6 +84,10 @@ namespace ApexRivals.AI.Runtime
         public AiDrivingState DrivingState { get; private set; } = AiDrivingState.Racing;
         public AiResetReason LastResetReason => _recovery.LastResetReason;
         public int ResetCount => _recovery.ResetCount;
+        public bool IsRecoveryBoostActive => _recoveryBoost.IsActive;
+        public float RecoveryBoostRemaining => _recoveryBoost.Remaining;
+        public bool IsRecoveryBoostPending => _recoveryBoost.IsPending;
+        public bool IsInPassingZone { get; private set; }
 
         /// <summary>Racer id the driver's personality is seeded from; distinct ids give distinct drivers.</summary>
         public string PersonalityId => _personality.SeedId;
@@ -109,6 +117,9 @@ namespace ApexRivals.AI.Runtime
         public bool IsResetPending => _recovery.IsResetPending;
         public int IdealPathSampleCount => _tracker.Path != null ? _tracker.Path.SampleCount : 0;
         public int CurrentPathSampleIndex => _tracker.CurrentSampleIndex;
+        public int CircuitCornerCount => _tracker.CircuitPlan != null ? _tracker.CircuitPlan.Corners.Count : 0;
+        public int PredictedTrajectoryCount => _predictivePlanner.EvaluatedCandidates;
+        public int FeasibleTrajectoryCount => _predictivePlanner.FeasibleCandidates;
 
         private bool IsUpsideDown => _recovery.IsUpsideDown(upsideDownResetDuration);
 
@@ -140,6 +151,7 @@ namespace ApexRivals.AI.Runtime
             vehicleTransform = controlledTransform != null ? controlledTransform : transform;
             recoveryPose = recoveryTransform;
             _body = vehicleTransform.GetComponentInParent<Rigidbody>();
+            _supportWheels = vehicleTransform.GetComponentsInChildren<WheelCollider>();
             Restart();
         }
 
@@ -162,6 +174,7 @@ namespace ApexRivals.AI.Runtime
             }
 
             _body = vehicleTransform.GetComponentInParent<Rigidbody>();
+            _supportWheels = vehicleTransform.GetComponentsInChildren<WheelCollider>();
         }
 
         private void OnEnable()
@@ -169,7 +182,18 @@ namespace ApexRivals.AI.Runtime
             Restart();
         }
 
-        private void Update()
+        private void OnDisable()
+        {
+            _recoveryBoost.Cancel();
+        }
+
+        private void FixedUpdate()
+        {
+            StepDriving(Time.fixedDeltaTime);
+        }
+
+        /// <summary>Advance the driver using game time; also supports reproducible fixed-step lap measurements.</summary>
+        public void StepDriving(float deltaTime)
         {
             if (!CanDrive())
             {
@@ -183,7 +207,6 @@ namespace ApexRivals.AI.Runtime
                 return;
             }
 
-            var deltaTime = Time.deltaTime;
             var tuning = configuration.CreateTuning();
             _recovery.Tick(deltaTime, vehicleTransform, upsideDownDotThreshold);
             if (DrivingState == AiDrivingState.PostResetGrace && !_recovery.InGrace)
@@ -199,12 +222,19 @@ namespace ApexRivals.AI.Runtime
 
             if (!_tracker.TryProject(vehicleTransform.position, idealBackwardSampleWindow, idealForwardSampleWindow))
             {
+                _recoveryBoost.Cancel();
                 _control.SetNeutral();
                 return;
             }
 
             CurrentSpeed = GetSpeed();
-            _recovery.UpdateOffTrack(_tracker.DistanceFromLine, configuration.OffTrackDistance, deltaTime);
+            var alignedWithTrack = Mathf.Abs(IdealRacingDriverRules.CalculateSignedHeadingError(vehicleTransform.forward, _tracker.Projection.Tangent)) < RejoinExitHeadingError;
+            _recovery.UpdateOffTrack(_tracker.DistanceFromLine, configuration.OffTrackDistance, deltaTime, alignedWithTrack, !_drift.IsDrifting);
+            if (_recovery.IsOffTrackResetDue(configuration.OffTrackResetDuration))
+            {
+                RequestReset(AiResetReason.OffTrack);
+                return;
+            }
 
             if (DrivingState == AiDrivingState.Reversing)
             {
@@ -264,13 +294,25 @@ namespace ApexRivals.AI.Runtime
                 _lateralOffset,
                 _trafficSpeedLimit,
                 _obstacleSpeedLimit,
-                rejoining,
+                rejoining || DrivingState == AiDrivingState.PostResetGrace,
                 _personality,
                 _drift,
                 configuration,
                 tuning,
                 ControlSettings,
                 deltaTime);
+            if (_recoveryBoost.IsActive || _recoveryBoost.IsPending)
+            {
+                var stable = DrivingState == AiDrivingState.Racing
+                    && !_drift.IsDrifting
+                    && alignedWithTrack
+                    && _tracker.DistanceFromLine <= configuration.OffTrackDistance * 0.3f
+                    && Mathf.Abs(_control.SteeringCommand) <= 0.3f
+                    && Mathf.Abs(_drift.SlipAngle) <= 8f
+                    && _body != null && Mathf.Abs(_body.angularVelocity.y) <= 0.5f
+                    && HasRecoveryBoostSupport();
+                _recoveryBoost.Tick(deltaTime, stable);
+            }
             _recovery.CaptureSafePose(deltaTime, vehicleTransform, CurrentSpeed, upsideDownResetDuration, ResetContext);
         }
 
@@ -324,6 +366,7 @@ namespace ApexRivals.AI.Runtime
                     RecordIncident(AiIncidentKind.OffTrack);
                     DrivingState = AiDrivingState.Rejoining;
                     _planner.Reset();
+                    _predictivePlanner.Reset();
                     _tacticalOffset = 0f;
                     return true;
                 case AiRejoinTransition.Stay:
@@ -341,6 +384,10 @@ namespace ApexRivals.AI.Runtime
             _perception.Refresh(_tracker.Path, _tracker.Projection, raceParticipant, raceCoordinator != null ? raceCoordinator.Participants : null);
             _trafficSpeedLimit = float.PositiveInfinity;
             _obstacleSpeedLimit = _obstacleSensor.ProbeSpeedLimit(vehicleTransform, _body, CurrentSpeed, obstacleLayers, obstacleProbeRadius, obstacleProbeHeight, brakingDeceleration);
+            var passingPreview = AiRacecraftRules.CalculatePassingPreviewDistance(CurrentSpeed);
+            var upcomingTurn = _tracker.Path.GetAbsoluteHeadingChange(_tracker.Projection, 0f, passingPreview);
+            IsInPassingZone = !rejoining && DrivingState != AiDrivingState.PostResetGrace
+                && AiRacecraftRules.IsPassingZone(_control.FreeSpeed, upcomingTurn);
             if (rejoining)
             {
                 return;
@@ -351,14 +398,22 @@ namespace ApexRivals.AI.Runtime
                 _lateralOffset,
                 CurrentSpeed,
                 _control.FreeSpeed,
-                _control.StraightSpeed,
+                upcomingTurn,
                 configuration.Aggression,
                 configuration.OvertakeLateralOffset,
                 configuration.MaximumLateralOffset,
                 configuration.FollowTimeGap);
-            var decision = _planner.Decide(input, _perception.Cars);
-            _tacticalOffset = decision.LateralOffset;
+            var decision = configuration.EnablePredictivePlanning
+                ? _predictivePlanner.Decide(input, _perception.Cars, lateralOffsetRate, brakingDeceleration)
+                : _planner.Decide(input, _perception.Cars);
+            var settling = DrivingState == AiDrivingState.PostResetGrace;
+            _tacticalOffset = settling ? 0f : decision.LateralOffset;
             _trafficSpeedLimit = decision.TrafficSpeedLimit;
+            if (settling)
+            {
+                _planner.Reset();
+                _predictivePlanner.Reset();
+            }
             if (DrivingState != AiDrivingState.PostResetGrace)
             {
                 DrivingState = decision.State;
@@ -368,7 +423,7 @@ namespace ApexRivals.AI.Runtime
         private void UpdateLateralOffset(float deltaTime, bool rejoining)
         {
             var maximumOffset = configuration.MaximumLateralOffset;
-            var target = rejoining
+            var target = rejoining || DrivingState == AiDrivingState.PostResetGrace
                 ? 0f
                 : Mathf.Clamp(_tacticalOffset + _personality.CalculateWander(Time.time, configuration) + _personality.MistakeOffset, -maximumOffset, maximumOffset);
             _lateralOffset = Mathf.MoveTowards(_lateralOffset, target, lateralOffsetRate * deltaTime);
@@ -376,6 +431,7 @@ namespace ApexRivals.AI.Runtime
 
         private void BeginReversing()
         {
+            _recoveryBoost.Cancel();
             RecordIncident(AiIncidentKind.Reverse);
             DrivingState = AiDrivingState.Reversing;
             _recovery.BeginReversing(configuration.ReverseDuration);
@@ -400,6 +456,7 @@ namespace ApexRivals.AI.Runtime
 
         private void RequestReset(AiResetReason reason)
         {
+            _recoveryBoost.Cancel();
             DrivingState = AiDrivingState.Resetting;
             _recovery.BeginReset(reason, ResetContext);
             _control.RequestVehicleReset();
@@ -424,6 +481,7 @@ namespace ApexRivals.AI.Runtime
             DrivingState = AiDrivingState.PostResetGrace;
             _tracker.Reanchor(_recovery.ResetSampleIndex, vehicleTransform.position);
             _tracker.TryProject(vehicleTransform.position, idealBackwardSampleWindow, idealForwardSampleWindow);
+            _recoveryBoost.Arm(_vehicleRuntime);
         }
 
         private void RecordIncident(AiIncidentKind kind)
@@ -448,6 +506,37 @@ namespace ApexRivals.AI.Runtime
                 && (raceParticipant == null || !raceCoordinator.TryGetProgress(raceParticipant, out var progress) || !progress.HasFinished);
         }
 
+        private bool HasRecoveryBoostSupport()
+        {
+            if (_supportWheels == null || _body == null)
+            {
+                return false;
+            }
+
+            var supported = 0;
+            foreach (var wheel in _supportWheels)
+            {
+                if (wheel == null || !wheel.enabled || !wheel.GetGroundHit(out var hit)
+                    || hit.collider == null || hit.collider.attachedRigidbody == _body || hit.normal.y < 0.5f)
+                {
+                    continue;
+                }
+
+                var center = wheel.transform.TransformPoint(wheel.center);
+                if (Vector3.Distance(center, hit.point) > wheel.radius + wheel.suspensionDistance + 0.15f)
+                {
+                    continue;
+                }
+
+                if (++supported >= 2)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private float GetSpeed() => _vehicleRuntime != null ? Mathf.Abs(_vehicleRuntime.CurrentForwardSpeed) : 0f;
 
         private float GetLateralSpeed() => _body != null ? Vector3.Dot(_body.linearVelocity, vehicleTransform.right) : 0f;
@@ -455,8 +544,10 @@ namespace ApexRivals.AI.Runtime
         /// <summary>Drops everything about the current manoeuvre; recovery counters and history survive.</summary>
         private void ClearDynamicState()
         {
+            _recoveryBoost.Cancel();
             _control.Reset();
             _planner.Reset();
+            _predictivePlanner.Reset();
             _personality.ClearMistake();
             _drift.Reset();
             _recovery.ClearMotionTimers();
@@ -465,6 +556,7 @@ namespace ApexRivals.AI.Runtime
             _trafficSpeedLimit = float.PositiveInfinity;
             _obstacleSpeedLimit = float.PositiveInfinity;
             _tacticalTimer = 0f;
+            IsInPassingZone = false;
             CurrentSpeed = 0f;
         }
 

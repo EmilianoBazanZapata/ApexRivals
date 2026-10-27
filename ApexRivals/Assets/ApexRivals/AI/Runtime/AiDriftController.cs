@@ -24,12 +24,12 @@ namespace ApexRivals.AI.Runtime
         private const float MaximumStraightenDuration = 1.2f;
         private const float CooldownDuration = 0.8f;
         private const float MinimumDriftThrottle = 0.35f;
-        private const float StraightenThrottle = 0.5f;
         private const float MaximumPulse = 0.6f;
         private const int MaximumKicks = 3;
         private const float OverRotationExtraSlip = 15f;
         private const float OverRotationGainScale = 0.5f;
         private const float ShortKickPulse = 0.15f;
+        private const float MaximumExpectedCornerYaw = 45f;
 
         private System.Random _random = new System.Random(1);
         private float _slipTarget;
@@ -177,7 +177,10 @@ namespace ApexRivals.AI.Runtime
                     break;
 
                 case AiDriftPhase.Sustain:
-                    SteeringCorrection = AiDriftRules.CalculateSlideSteering(slipIntoCorner, target, yawIntoCorner, direction, _gainScale);
+                    // A sustained corner needs rotation. Damp the excess over the road's turn rate,
+                    // rather than countersteering toward zero yaw and running wide mid-drift.
+                    var cornerYaw = Mathf.Min(MaximumExpectedCornerYaw, Mathf.Abs(remaining) * speed / ExitWindow);
+                    SteeringCorrection = AiDriftRules.CalculateSlideSteering(slipIntoCorner, target, yawIntoCorner - cornerYaw, direction, _gainScale);
                     Throttle = AiDriftRules.CalculateDriftThrottle(slipIntoCorner, target, configuration.DriftMaximumSlipAngle, MinimumDriftThrottle);
                     if (_kicks < MaximumKicks && AiDriftRules.ShouldKickAgain(slipIntoCorner, target, yawIntoCorner, _phaseTime))
                     {
@@ -188,7 +191,7 @@ namespace ApexRivals.AI.Runtime
 
                 case AiDriftPhase.Straighten:
                     SteeringCorrection = AiDriftRules.CalculateSlideSteering(slipIntoCorner, 0f, yawIntoCorner, direction, _gainScale);
-                    Throttle = StraightenThrottle;
+                    Throttle = AiDriftRules.CalculateExitThrottle(SlipAngle, YawRate, configuration.DriftSkill);
                     if (AiDriftRules.IsStraight(SlipAngle, YawRate) || _phaseTime > MaximumStraightenDuration)
                     {
                         Stop(true);

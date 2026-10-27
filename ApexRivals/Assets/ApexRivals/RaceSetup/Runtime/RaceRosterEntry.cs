@@ -8,7 +8,8 @@ namespace ApexRivals.RaceSetup.Runtime
             string vehicleId,
             int startingGridIndex,
             string aiConfigurationId,
-            float performanceMultiplier = 1f)
+            float performanceMultiplier = 1f,
+            float handlingMultiplier = 1f)
         {
             ParticipantId = participantId;
             EntryType = entryType;
@@ -16,6 +17,7 @@ namespace ApexRivals.RaceSetup.Runtime
             StartingGridIndex = startingGridIndex;
             AiConfigurationId = aiConfigurationId;
             PerformanceMultiplier = performanceMultiplier > 0f ? performanceMultiplier : 1f;
+            HandlingMultiplier = handlingMultiplier > 0f && !float.IsInfinity(handlingMultiplier) ? handlingMultiplier : 1f;
         }
 
         public string ParticipantId { get; }
@@ -26,6 +28,7 @@ namespace ApexRivals.RaceSetup.Runtime
 
         /// <summary>Scales acceleration and top speed of an AI entry's vehicle; 1 keeps its own stats.</summary>
         public float PerformanceMultiplier { get; }
+        public float HandlingMultiplier { get; }
 
         public bool IsPlayer => EntryType == RaceEntryType.Player;
     }

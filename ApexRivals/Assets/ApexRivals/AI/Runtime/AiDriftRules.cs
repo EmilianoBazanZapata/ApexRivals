@@ -136,6 +136,14 @@ namespace ApexRivals.AI.Runtime
             return Mathf.Clamp(throttle, Mathf.Clamp01(minimumThrottle), 1f);
         }
 
+        /// <summary>Skilled drivers progressively recover full power as the slide and rotation settle.</summary>
+        public static float CalculateExitThrottle(float slipAngle, float yawRate, float driftSkill)
+        {
+            var alignment = 1f - Mathf.InverseLerp(8f, 25f, Mathf.Abs(slipAngle));
+            var stability = 1f - Mathf.InverseLerp(30f, 90f, Mathf.Abs(yawRate));
+            return Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(driftSkill) * alignment * stability);
+        }
+
         /// <summary>
         /// Straighten up when the corner is done, the slide is about to become a spin, the car has scrubbed
         /// too much speed or the drift has gone on too long.

@@ -24,16 +24,16 @@ namespace ApexRivals.AI.Runtime
                 return AiRecoveryAction.Reset;
             }
 
-            if (stuckTimer >= Mathf.Max(0f, stuckDuration))
-            {
-                reason = reversedRecently ? AiResetReason.RecoveryFailed : AiResetReason.StuckNoProgress;
-                return reversedRecently ? AiRecoveryAction.Reset : AiRecoveryAction.Reverse;
-            }
-
             if (offTrackResetDuration > 0f && offTrackTimer >= offTrackResetDuration)
             {
                 reason = AiResetReason.OffTrack;
                 return AiRecoveryAction.Reset;
+            }
+
+            if (stuckTimer >= Mathf.Max(0f, stuckDuration))
+            {
+                reason = reversedRecently ? AiResetReason.RecoveryFailed : AiResetReason.StuckNoProgress;
+                return reversedRecently ? AiRecoveryAction.Reset : AiRecoveryAction.Reverse;
             }
 
             reason = AiResetReason.None;

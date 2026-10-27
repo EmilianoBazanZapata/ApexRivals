@@ -6,6 +6,26 @@ namespace ApexRivals.Tests.EditMode.Vehicle
     public sealed class VehicleDriveInputRulesTests
     {
         [Test]
+        public void LaunchSteering_RetainsTurningWithoutScrubbingAtParkingLock()
+        {
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 0f, 90f, true, false), Is.EqualTo(28f));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(-80f, 0f, 90f, true, false), Is.EqualTo(-28f));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(15f, 0f, 90f, true, false), Is.EqualTo(15f));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 4f, 90f, true, false), Is.GreaterThan(28f).And.LessThan(80f));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, -4f, 90f, true, false), Is.EqualTo(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 4f, 90f, true, false)));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 8f, 90f, true, false), Is.EqualTo(80f));
+        }
+
+        [Test]
+        public void LaunchSteering_PreservesDriftParkingAndSmallerConfiguredLimits()
+        {
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 0f, 90f, true, true), Is.EqualTo(80f));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 0f, 90f, false, false), Is.EqualTo(80f));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 0f, 20f, true, false), Is.EqualTo(20f));
+            Assert.That(VehicleDriveInputRules.LimitLaunchSteeringAngle(80f, 0f, 0f, true, false), Is.Zero);
+        }
+
+        [Test]
         public void ResolveInputs_UsesForwardTorqueAtTheReverseEntryBoundary()
         {
             var brakeInput = VehicleDriveInputRules.ResolveNormalBrakeInput(1f, 0f, -0.75f, 0.75f);
@@ -48,6 +68,15 @@ namespace ApexRivals.Tests.EditMode.Vehicle
 
     public sealed class VehicleRoofRecoveryRulesTests
     {
+        [TestCase(false, 1f, false)]
+        [TestCase(true, .3f, false)]
+        [TestCase(true, .6f, true)]
+        [TestCase(true, 2f, true)]
+        public void OutsideTrackRecoveryRequiresAPersistentExcursion(bool outside, float time, bool expected)
+        {
+            Assert.That(VehicleRoofRecoveryRules.CanRecoverOutsideTrack(outside, time, .6f), Is.EqualTo(expected));
+        }
+
         [Test]
         public void UprightVehicle_CannotRecover()
         {

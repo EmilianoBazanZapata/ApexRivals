@@ -25,6 +25,8 @@ namespace ApexRivals.Environment.Runtime
         private bool _suspended;
         private float _clock;
         private float _cheer;
+        private bool _weatherDriven;
+        private float _weatherWind = 1;
         private static readonly int ClockId = Shader.PropertyToID("_EnvironmentTime");
         private static readonly int CheerId = Shader.PropertyToID("_Cheer");
 
@@ -34,6 +36,14 @@ namespace ApexRivals.Environment.Runtime
         public float AnimationClock => _clock;
         public float Cheer => _cheer;
         public bool IsInstalled => _context != null;
+
+        public void SetWeatherDriven(bool driven)
+        {
+            _weatherDriven = driven;
+            if (driven && weatherSource != null) weatherSource.Stop();
+        }
+
+        public void SetWeatherWind(float strength) => _weatherWind = Mathf.Clamp01(strength);
 
         public void Install(ApplicationContext context)
         {
@@ -82,7 +92,7 @@ namespace ApexRivals.Environment.Runtime
             var gain = AudioBusMixer.ToGain(master);
             foreach (var source in crowdSources)
                 if (source != null) source.volume = crowdLevel * gain * (1 + _cheer * 0.65f);
-            if (weatherSource != null) weatherSource.volume = weatherLevel * gain;
+            if (weatherSource != null) weatherSource.volume = _weatherDriven ? 0 : weatherLevel * gain;
             ApplyMotion();
         }
 
@@ -97,6 +107,7 @@ namespace ApexRivals.Environment.Runtime
             if (_properties == null || animatedRenderers == null) return;
             _properties.SetFloat(ClockId, _clock);
             _properties.SetFloat(CheerId, _cheer);
+            _properties.SetFloat("_WindStrength", _weatherWind);
             foreach (var renderer in animatedRenderers) if (renderer != null) renderer.SetPropertyBlock(_properties);
         }
 

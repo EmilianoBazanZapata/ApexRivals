@@ -56,3 +56,7 @@ graphify-out/
 
 # graphify config (graphify-out/ is ignored above)
 .graphifyignore
+
+# Markdown and its Unity metadata stay local
+*.[mM][dD]
+*.[mM][dD].meta

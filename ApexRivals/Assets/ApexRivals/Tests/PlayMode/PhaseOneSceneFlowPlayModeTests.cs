@@ -40,6 +40,7 @@ namespace ApexRivals.Tests.PlayMode
         private int _raceInstallCount;
         private bool _installAllContentScenes;
         private bool _playIntroduction;
+        private bool _dynamicWeather;
         private InputSettings _originalInputSettings;
         private InputSettings _testInputSettings;
 
@@ -65,6 +66,7 @@ namespace ApexRivals.Tests.PlayMode
             _raceInstallCount = 0;
             _installAllContentScenes = false;
             _playIntroduction = false;
+            _dynamicWeather = false;
             var bootstrapScene = SceneManager.CreateScene("PhaseOneTestBootstrap");
             var root = new GameObject("PhaseOneTestBootstrap");
             SceneManager.MoveGameObjectToScene(root, bootstrapScene);
@@ -755,6 +757,10 @@ namespace ApexRivals.Tests.PlayMode
             {
                 var raceInstaller = root.GetComponentInChildren<RaceSessionSceneInstaller>(true);
                 if (raceInstaller != null) raceInstaller.PlayIntroduction = _playIntroduction;
+                // Legacy fog/VFX regressions intentionally exercise each track's authored weather.
+                // Dynamic weather scenarios opt in and supply reproducible forecasts.
+                var weather = root.GetComponentInChildren<ApexRivals.Environment.Runtime.RaceWeatherController>(true);
+                if (weather != null) weather.enabled = _dynamicWeather;
             }
             typeof(GameBootstrapper).GetMethod("OnContentSceneLoaded", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(_bootstrapper, new object[] { scene });

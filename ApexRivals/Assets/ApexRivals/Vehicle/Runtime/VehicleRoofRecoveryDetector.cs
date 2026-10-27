@@ -5,8 +5,8 @@ using UnityEngine.SceneManagement;
 namespace ApexRivals.Vehicle.Runtime
 {
     /// <summary>
-    /// Player-requested roof recovery eligibility. It only detects an inverted roof
-    /// resting on a surface; VehicleResetter remains the reset authority.
+    /// Player-requested recovery for a resting inverted roof or a car outside the
+    /// road corridor; VehicleResetter remains the reset authority.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class VehicleRoofRecoveryDetector : MonoBehaviour
@@ -22,6 +22,7 @@ namespace ApexRivals.Vehicle.Runtime
         [SerializeField, Range(-1f, -0.1f)] private float invertedDotThreshold = -0.5f;
         [SerializeField, Min(0.05f)] private float roofRayDistance = 0.75f;
         [SerializeField, Min(0f)] private float invertedDebounceDuration = 0.2f;
+        [SerializeField, Min(0f)] private float outsideTrackDebounceDuration = 0.6f;
         [SerializeField] private LayerMask recoverySurfaceLayers = Physics.DefaultRaycastLayers;
 
         [Header("Read-only diagnostics")]
@@ -30,9 +31,12 @@ namespace ApexRivals.Vehicle.Runtime
         [SerializeField] private bool roofRayHit;
         [SerializeField] private float roofHitDistance = -1f;
         [SerializeField] private bool canRecoverVehicle;
+        [SerializeField] private bool isOutsideTrack;
         [SerializeField] private RecoveryInputSource lastRecoveryInput;
 
         private float _invertedTime;
+        private float _outsideTrackTime;
+        private IVehicleRecoveryAvailability _recoveryAvailability;
         private IDrivingInputProvider _recoveryInput;
         // Fixed-size and reused: roof recovery never allocates while sampling.
         private readonly RaycastHit[] _roofRayHits = new RaycastHit[8];
@@ -42,6 +46,7 @@ namespace ApexRivals.Vehicle.Runtime
         public bool RoofRayHit => roofRayHit;
         public float RoofHitDistance => roofHitDistance;
         public bool CanRecoverVehicle => canRecoverVehicle;
+        public bool IsOutsideTrack => isOutsideTrack;
         public RecoveryInputSource LastRecoveryInput => lastRecoveryInput;
 
         public event Action<bool> RecoveryAvailabilityChanged;
@@ -80,11 +85,16 @@ namespace ApexRivals.Vehicle.Runtime
             {
                 var direction = roofRecoveryRayOrigin != null ? roofRecoveryRayOrigin.up : transform.up;
                 var origin = roofRecoveryRayOrigin != null ? roofRecoveryRayOrigin.position : transform.position;
+                // The visual roof probe can extend past the chassis collider (and
+                // below the road when inverted). Start inside the car and cast
+                // through the roof, keeping the original outward reach. Self hits
+                // are filtered below, so an upside-down resting car is still found.
+                origin -= direction * roofRayDistance;
                 var hitCount = gameObject.scene.GetPhysicsScene().Raycast(
                     origin,
                     direction,
                     _roofRayHits,
-                    roofRayDistance,
+                    roofRayDistance * 2,
                     recoverySurfaceLayers,
                     QueryTriggerInteraction.Ignore);
 
@@ -112,11 +122,15 @@ namespace ApexRivals.Vehicle.Runtime
             _invertedTime = isInverted && roofRayHit
                 ? _invertedTime + Time.deltaTime
                 : 0f;
+            if (_recoveryAvailability is UnityEngine.Object owner && owner == null) _recoveryAvailability = null;
+            isOutsideTrack = _recoveryAvailability != null && _recoveryAvailability.IsOutsideTrack;
+            _outsideTrackTime = isOutsideTrack ? _outsideTrackTime + Time.deltaTime : 0;
             SetRecoveryAvailability(VehicleRoofRecoveryRules.CanRecover(
                 isInverted,
                 roofRayHit,
                 _invertedTime,
-                invertedDebounceDuration));
+                invertedDebounceDuration) || VehicleRoofRecoveryRules.CanRecoverOutsideTrack(
+                isOutsideTrack, _outsideTrackTime, outsideTrackDebounceDuration));
         }
 
         private void TryConsumeRecoveryInput()
@@ -146,6 +160,8 @@ namespace ApexRivals.Vehicle.Runtime
             if (vehicleController.TryResetVehicle())
             {
                 _invertedTime = 0f;
+                _outsideTrackTime = 0f;
+                isOutsideTrack = false;
                 SetRecoveryAvailability(false);
                 RecoveryCompleted?.Invoke(lastRecoveryInput);
             }
@@ -166,8 +182,9 @@ namespace ApexRivals.Vehicle.Runtime
         {
             var origin = roofRecoveryRayOrigin != null ? roofRecoveryRayOrigin.position : transform.position;
             var direction = roofRecoveryRayOrigin != null ? roofRecoveryRayOrigin.up : transform.up;
+            origin -= direction * roofRayDistance;
             Gizmos.color = roofRayHit && isInverted ? Color.green : Color.red;
-            Gizmos.DrawLine(origin, origin + direction * roofRayDistance);
+            Gizmos.DrawLine(origin, origin + direction * roofRayDistance * 2);
             Gizmos.DrawWireSphere(origin, 0.06f);
             if (roofRayHit)
             {
@@ -192,6 +209,12 @@ namespace ApexRivals.Vehicle.Runtime
         {
             _recoveryInput = inputProvider;
             drivingInputGate = inputProvider as MonoBehaviour;
+        }
+
+        public void ConfigureRecoveryAvailability(IVehicleRecoveryAvailability availability)
+        {
+            _recoveryAvailability = availability;
+            _outsideTrackTime = 0;
         }
 
         internal void ConfigureRecoveryInputIfMissing(IDrivingInputProvider inputProvider)

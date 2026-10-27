@@ -27,7 +27,7 @@ namespace ApexRivals.Tests.EditMode.AI
             var planner = new AiTacticalPlanner();
             var cars = new List<AiTrafficCar> { new AiTrafficCar(20f, 0f, 15f) };
 
-            var decision = planner.Decide(Input(speed: 18f, freeSpeed: 20f), cars);
+            var decision = planner.Decide(Input(speed: 18f, freeSpeed: 20f, upcomingTurn: 60f), cars);
 
             Assert.That(decision.State, Is.EqualTo(AiDrivingState.Following));
             Assert.That(decision.TrafficSpeedLimit, Is.LessThan(20f));
@@ -52,7 +52,7 @@ namespace ApexRivals.Tests.EditMode.AI
             var planner = new AiTacticalPlanner();
             var cars = new List<AiTrafficCar> { new AiTrafficCar(25f, 0f, 0f) };
 
-            var decision = planner.Decide(Input(speed: 12f, freeSpeed: 15f, aggression: 0.1f), cars);
+            var decision = planner.Decide(Input(speed: 12f, freeSpeed: 15f, aggression: 0.1f, upcomingTurn: 60f), cars);
 
             Assert.That(decision.State, Is.EqualTo(AiDrivingState.Overtaking));
             Assert.That(decision.TrafficSpeedLimit, Is.GreaterThanOrEqualTo(AiRacecraftRules.PassingSpeed), "Never waits behind a stopped car.");
@@ -134,9 +134,29 @@ namespace ApexRivals.Tests.EditMode.AI
             Assert.That(timid.State, Is.EqualTo(AiDrivingState.Racing));
         }
 
-        private static AiTacticalInput Input(float speed, float freeSpeed, float aggression = 0.6f, float crossTrack = 0f, float lateralOffset = 0f)
+        [Test]
+        public void SlowerCarOnModerateSpeedStraight_IsPassedWithoutReachingTheoreticalTopSpeed()
         {
-            return new AiTacticalInput(crossTrack, lateralOffset, speed, freeSpeed, StraightSpeed, aggression, 3.5f, 5f, 0.6f);
+            var decision = new AiTacticalPlanner().Decide(
+                Input(speed: 20f, freeSpeed: 24f, aggression: 0.85f),
+                new List<AiTrafficCar> { new AiTrafficCar(20f, 0f, 15f) });
+            Assert.That(decision.State, Is.EqualTo(AiDrivingState.Overtaking));
+            Assert.That(decision.LateralOffset, Is.Not.Zero);
+        }
+
+        [Test]
+        public void ModerateSpeedPass_WithBothSidesOccupied_KeepsFollowing()
+        {
+            var decision = new AiTacticalPlanner().Decide(
+                Input(speed: 20f, freeSpeed: 24f, aggression: 0.85f),
+                new List<AiTrafficCar> { new AiTrafficCar(20f, 0f, 15f), new AiTrafficCar(0f, -3.2f, 20f), new AiTrafficCar(0f, 3.2f, 20f) });
+            Assert.That(decision.State, Is.EqualTo(AiDrivingState.Following));
+            Assert.That(decision.LateralOffset, Is.Zero);
+        }
+
+        private static AiTacticalInput Input(float speed, float freeSpeed, float aggression = 0.6f, float crossTrack = 0f, float lateralOffset = 0f, float upcomingTurn = 0f)
+        {
+            return new AiTacticalInput(crossTrack, lateralOffset, speed, freeSpeed, upcomingTurn, aggression, 3.5f, 5f, 0.6f);
         }
     }
 }

@@ -76,6 +76,7 @@ namespace ApexRivals.AI.Runtime
 
         private float _stuckTimer;
         private float _offTrackTimer;
+        private bool _offTrackEpisode;
         private float _upsideDownTimer;
         private float _reverseRemaining;
         private float _reverseMemory;
@@ -83,6 +84,7 @@ namespace ApexRivals.AI.Runtime
         private float _cooldownRemaining;
         private float _safePoseTimer;
         private float _missedCheckpointTimer;
+        private float _elapsed;
 
         private bool _resetAttempted;
         private float _retryTimer;
@@ -119,6 +121,7 @@ namespace ApexRivals.AI.Runtime
         {
             _stuckTimer = 0f;
             _offTrackTimer = 0f;
+            _offTrackEpisode = false;
             _upsideDownTimer = 0f;
             _reverseRemaining = 0f;
             _missedCheckpointTimer = 0f;
@@ -127,6 +130,7 @@ namespace ApexRivals.AI.Runtime
         /// <summary>Advances the clocks. Returns true on the frame the post-reset grace ends.</summary>
         public bool Tick(float deltaTime, Transform vehicle, float upsideDownThreshold)
         {
+            _elapsed += Mathf.Max(0f, deltaTime);
             var wasInGrace = _graceRemaining > 0f;
             _graceRemaining = Mathf.Max(0f, _graceRemaining - deltaTime);
             _cooldownRemaining = Mathf.Max(0f, _cooldownRemaining - deltaTime);
@@ -139,10 +143,25 @@ namespace ApexRivals.AI.Runtime
 
         public bool IsUpsideDown(float flippedDuration) => _upsideDownTimer >= flippedDuration;
 
-        public void UpdateOffTrack(float distanceFromLine, float offTrackDistance, float deltaTime)
+        public void UpdateOffTrack(float distanceFromLine, float offTrackDistance, float deltaTime, bool alignedWithTrack = true, bool allowRejoin = true)
         {
-            _offTrackTimer = AiRecoveryRules.UpdateOffTrackTimer(distanceFromLine, offTrackDistance, deltaTime, _offTrackTimer);
+            // Count the entire failed rejoin, including reversing and small swings toward the line.
+            // Only a real return (close AND aligned) earns a fresh recovery window.
+            if (!_offTrackEpisode)
+            {
+                _offTrackEpisode = distanceFromLine > offTrackDistance
+                    || (allowRejoin && distanceFromLine > offTrackDistance * RejoinEnterFraction);
+            }
+
+            if (distanceFromLine <= offTrackDistance * RejoinExitFraction && alignedWithTrack)
+            {
+                _offTrackEpisode = false;
+            }
+
+            _offTrackTimer = _offTrackEpisode ? _offTrackTimer + Mathf.Max(0f, deltaTime) : 0f;
         }
+
+        public bool IsOffTrackResetDue(float duration) => duration > 0f && _offTrackTimer >= duration;
 
         /// <summary>True once the car has been past its next checkpoint long enough to be sure it missed it.</summary>
         public bool UpdateMissedCheckpoint(float gapToNextCheckpoint, float lapLength, float deltaTime)
@@ -161,6 +180,12 @@ namespace ApexRivals.AI.Runtime
         /// <summary>The escalation step to take now, suppressed during post-reset grace and cooldown.</summary>
         public AiRecoveryAction Evaluate(bool upsideDown, AiDriverTuning tuning, AiDriverConfiguration configuration, out AiResetReason reason)
         {
+            if (IsOffTrackResetDue(configuration.OffTrackResetDuration))
+            {
+                reason = AiResetReason.OffTrack;
+                return AiRecoveryAction.Reset;
+            }
+
             if (_graceRemaining > 0f || _cooldownRemaining > 0f)
             {
                 reason = AiResetReason.None;
@@ -233,11 +258,11 @@ namespace ApexRivals.AI.Runtime
             // (a ramp edge, a wreck): place it progressively further past that spot.
             var tracker = context.Tracker;
             var spot = tracker.DistanceAlongLap;
-            var repeated = Time.time - _lastResetTime < RepeatedResetWindow
+            var repeated = _elapsed - _lastResetTime < RepeatedResetWindow
                 && Mathf.Abs(AiRacecraftRules.WrapLapGap(spot, _lastResetSpot, tracker.Path.LapLength)) < RepeatedResetRadius;
             _repeatedResets = repeated ? _repeatedResets + 1 : 0;
             _lastResetSpot = spot;
-            _lastResetTime = Time.time;
+            _lastResetTime = _elapsed;
             var gapToNextCheckpoint = tracker.GetGapToNextCheckpoint(context.Coordinator, context.Participant);
             _resetAdvance = reason == AiResetReason.MissedCheckpoint
                 ? AiRecoveryRules.CalculateMissedCheckpointResetAdvance(gapToNextCheckpoint, MissedCheckpointLeadIn)

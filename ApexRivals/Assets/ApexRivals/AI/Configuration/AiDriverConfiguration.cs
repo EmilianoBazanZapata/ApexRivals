@@ -45,6 +45,12 @@ namespace ApexRivals.AI.Configuration
 
 
         [Header("Driving Skill")]
+        [SerializeField, Tooltip("Experimental: derive a corner map and continuous braking profile from this circuit's racing line.")]
+        private bool enableCircuitPlan;
+
+        [SerializeField, Tooltip("Experimental CPU trajectory sampling with predicted rival movement.")]
+        private bool enablePredictivePlanning;
+
         [SerializeField, Range(0.5f, 1.2f), Tooltip("Fraction of the ideal corner speed this driver carries.")]
         private float cornerSpeedFactor = 1f;
 
@@ -124,7 +130,7 @@ namespace ApexRivals.AI.Configuration
         private float offTrackDistance = 10f;
 
         [SerializeField, Min(0f), Tooltip("Seconds off track before the driver resets.")]
-        private float offTrackResetDuration = 5f;
+        private float offTrackResetDuration = 3f;
 
         [SerializeField, Min(0f)]
         private float reverseDuration = 1.2f;
@@ -136,6 +142,8 @@ namespace ApexRivals.AI.Configuration
         public float DifficultyMultiplier => difficultyMultiplier;
 
         public float CornerSpeedFactor => cornerSpeedFactor;
+        public bool EnableCircuitPlan => enableCircuitPlan;
+        public bool EnablePredictivePlanning => enablePredictivePlanning;
         public float CurvatureSpeedScale => curvatureSpeedScale;
         public float CorneringGrip => corneringGrip;
         public float BrakingPreviewDistance => brakingPreviewDistance;

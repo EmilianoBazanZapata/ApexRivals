@@ -24,7 +24,9 @@ namespace ApexRivals.VFX.Runtime
         private VictoryConfettiGraphic _confetti;
         private bool _celebrated;
         private Vector3 _rainAnchor;
-        public bool RainEnabled => enableRain;
+        private float _rainIntensity;
+        private float _rainEmission;
+        public bool RainEnabled => _rainIntensity > 0.001f;
         public ParticleSystem Rain => _rain;
         public bool HasCelebrated => _celebrated;
         public VictoryConfettiGraphic Confetti => _confetti;
@@ -60,12 +62,30 @@ namespace ApexRivals.VFX.Runtime
                     }
                 }
             _session.ResultsReady += OnResultsReady;
-            if (enableRain && definition.rainPrefab != null && outputCamera != null)
+            SetWeather(enableRain ? 1 : 0, Vector3.zero);
+        }
+
+        public void SetWeather(float rainIntensity, Vector3 windVelocity)
+        {
+            _rainIntensity = Mathf.Clamp01(rainIntensity);
+            if (_session == null || definition == null || outputCamera == null) return;
+            if (_rain == null && RainEnabled && definition.rainPrefab != null)
             {
                 _rain = Instantiate(definition.rainPrefab, transform);
+                _rainEmission = _rain.emission.rateOverTime.constant;
                 PositionRain();
-                _rain.Play();
             }
+            if (_rain == null) return;
+            var emission = _rain.emission;
+            emission.rateOverTime = _rainEmission * _rainIntensity;
+            var velocity = _rain.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = windVelocity.x;
+            velocity.y = 0;
+            velocity.z = windVelocity.z;
+            if (RainEnabled && !_rain.isPlaying) _rain.Play();
+            else if (!RainEnabled && !_rain.isStopped) _rain.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
         private void LateUpdate()
@@ -121,6 +141,7 @@ namespace ApexRivals.VFX.Runtime
             _skidmarks = null;
             if (_rain != null) { _rain.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); Destroy(_rain.gameObject); }
             _rain = null;
+            _rainIntensity = _rainEmission = 0;
             if (_celebrationCanvas != null) { _celebrationCanvas.SetActive(false); Destroy(_celebrationCanvas); }
             _celebrationCanvas = null;
             _confetti = null;

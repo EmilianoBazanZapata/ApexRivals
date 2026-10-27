@@ -12,7 +12,7 @@ namespace ApexRivals.UI.Runtime
 
         private void Awake()
         {
-            UguiViewText.Set(promptText, "VEHICLE FLIPPED\nPress E / View to recover");
+            UguiViewText.Set(promptText, "RETURN TO TRACK\nPress E / View to recover");
             _isVisible = true;
             SetVisible(false);
         }

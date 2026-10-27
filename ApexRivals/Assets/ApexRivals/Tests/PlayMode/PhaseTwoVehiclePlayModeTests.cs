@@ -38,6 +38,7 @@ namespace ApexRivals.Tests.PlayMode
             public Rigidbody Body;
             public WheelArcadeVehicleController Controller;
             public VehicleResetter Resetter;
+            public VehicleChassisStability Stability;
             public Input Input = new Input();
         }
 
@@ -272,15 +273,213 @@ namespace ApexRivals.Tests.PlayMode
             yield return null;
         }
 
-        private Car CreateCar(float x)
+        [UnityTest]
+        public IEnumerator AcceptedAirborneCheckpointWithBlockedRoadNeverFallsBackToStart()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ApexRivals/Vehicle/Prefabs/Vehicle_Vanguard.prefab");
+            var car = CreateCar(0);
+            var coordinator = CreateRace(car, out var checkpoint);
+            coordinator.ConfigurePositionRoute(new[] { Vector3.zero, new Vector3(0,0,15), new Vector3(0,0,30),
+                new Vector3(20,0,30), new Vector3(20,0,0) });
+            Assert.That(coordinator.HasRecoveryRoute, Is.True);
+            var participant = car.Root.GetComponent<RaceParticipant>();
+            car.Body.position = new Vector3(0,10,15);
+            Assert.That(coordinator.TryPassCheckpoint(participant, checkpoint).Accepted, Is.True);
+            var obstruction = CreatePrimitive("OccupiedCheckpointLanes", new Vector3(0,1.5f,15), new Vector3(10,3,8));
+            Physics.SyncTransforms();
+            car.Body.position = new Vector3(40,5,15);
+            car.Body.rotation = Quaternion.Euler(0,0,180);
+            var before = car.Body.position;
+            Assert.That(car.Controller.TryResetVehicle(), Is.False);
+            Assert.That(car.Body.position, Is.EqualTo(before), "An occupied recent checkpoint must not send the car to an obsolete starting pose.");
+            Object.DestroyImmediate(obstruction);
+            Physics.SyncTransforms();
+            Assert.That(car.Controller.TryResetVehicle(), Is.True);
+            Assert.That(car.Body.position.z, Is.EqualTo(15).Within(.1f));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator TwoGroundedWheelsAdvanceRecoveryBetweenCheckpoints()
+        {
+            var car = CreateCar(0);
+            var coordinator = CreateRace(car, out var checkpoint);
+            coordinator.ConfigurePositionRoute(new[] { Vector3.zero, new Vector3(0,0,15), new Vector3(0,0,30),
+                new Vector3(20,0,30), new Vector3(20,0,0) });
+            car.Body.constraints = RigidbodyConstraints.FreezeRotation;
+            Wheel(car, "frontLeftWheel").enabled = false;
+            Wheel(car, "rearRightWheel").enabled = false;
+            car.Body.position = new Vector3(0,1,15);
+            var participant = car.Root.GetComponent<RaceParticipant>();
+            Assert.That(coordinator.TryPassCheckpoint(participant, checkpoint).Accepted, Is.True);
+            car.Body.position = new Vector3(0,1,23);
+            Settle(car);
+            Assert.That(Wheel(car, "frontRightWheel").isGrounded, Is.True);
+            Assert.That(Wheel(car, "rearLeftWheel").isGrounded, Is.True);
+            car.Body.constraints = RigidbodyConstraints.None;
+            car.Body.position = new Vector3(30,5,23);
+            car.Body.rotation = Quaternion.Euler(0,0,180);
+            Assert.That(car.Controller.TryResetVehicle(), Is.True);
+            Assert.That(car.Body.position.z, Is.EqualTo(23).Within(1));
+            Assert.That(coordinator.TryGetProgress(participant, out var progress), Is.True);
+            Assert.That(progress.NextExpectedCheckpointIndex, Is.EqualTo(2));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Stability_AllEightCarsStayUprightInHardTurnsAndDrifts()
+        {
+            var failures = new List<string>();
+            foreach (var model in new[] { "Vanguard", "Striker", "Sunaru", "Borshe911", "Aduo", "Fernedenz", "Massalini", "Fehhahi" })
+            {
+                foreach (var maneuver in new[] { "turn", "drift", "sideways-slide", "kerb-slide" })
+                {
+                    var car = CreateCar(0, model);
+                    Settle(car);
+                    car.Input.CurrentInput = new DrivingInput(.75f, 0, 0, false, false);
+                    for (var step = 0; step < 200; step++) Simulate(car);
+                    GameObject kerb = null;
+                    if (maneuver == "kerb-slide")
+                    {
+                        kerb = CreatePrimitive("SlideKerb", new Vector3(2.3f,.06f,300), new Vector3(.8f,.12f,2000));
+                        Physics.SyncTransforms();
+                    }
+                    if (maneuver == "sideways-slide" || maneuver == "kerb-slide")
+                        car.Body.linearVelocity = car.Root.transform.forward * 20 + car.Root.transform.right * 12;
+                    var minimumUp = 1f;
+                    var maximumVerticalSpeed = 0f;
+                    car.Input.CurrentInput = new DrivingInput(.7f, 0, maneuver == "sideways-slide" ? .3f : .8f, maneuver != "turn", false);
+                    for (var step = 0; step < 300; step++)
+                    {
+                        Simulate(car);
+                        minimumUp = Mathf.Min(minimumUp, Vector3.Dot(car.Body.rotation * Vector3.up, Vector3.up));
+                        maximumVerticalSpeed = Mathf.Max(maximumVerticalSpeed, Mathf.Abs(car.Body.linearVelocity.y));
+                    }
+                    var tilt = Mathf.Acos(Mathf.Clamp(minimumUp, -1, 1)) * Mathf.Rad2Deg;
+                    Debug.Log($"STABILITY {model} {maneuver}: peakTilt={tilt:F2}deg maxVerticalSpeed={maximumVerticalSpeed:F2}m/s");
+                    if (minimumUp < .5f) failures.Add(model + " " + maneuver + ": tilt=" + tilt.ToString("F2"));
+                    Object.DestroyImmediate(car.Root);
+                    if (kerb != null) Object.DestroyImmediate(kerb);
+                }
+            }
+            Assert.That(failures, Is.Empty, string.Join("; ", failures));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Stability_AllEightCarsReduceRollFromTheSameDisturbance()
+        {
+            foreach (var model in new[] { "Vanguard", "Striker", "Sunaru", "Borshe911", "Aduo", "Fernedenz", "Massalini", "Fehhahi" })
+            {
+                var peak = new float[2];
+                for (var variant = 0; variant < 2; variant++)
+                {
+                    var car = CreateCar(0, model);
+                    Assert.That(car.Stability, Is.Not.Null, model);
+                    if (variant == 0) car.Stability = null; // Automatic centre of mass and no roll support, as before.
+                    Settle(car);
+                    car.Body.linearVelocity = Vector3.forward * 20;
+                    car.Body.angularVelocity = Vector3.forward * 4;
+                    for (var step = 0; step < 150; step++)
+                    {
+                        Simulate(car);
+                        var tilt = Mathf.Acos(Mathf.Clamp(Vector3.Dot(car.Body.rotation * Vector3.up, Vector3.up), -1, 1)) * Mathf.Rad2Deg;
+                        peak[variant] = Mathf.Max(peak[variant], tilt);
+                    }
+                    Object.DestroyImmediate(car.Root);
+                }
+                Debug.Log($"ROLL_COMPARISON {model}: automatic={peak[0]:F2}deg stabilized={peak[1]:F2}deg");
+                Assert.That(peak[1], Is.LessThan(peak[0] * .9f), model + " must measurably reduce the same roll disturbance.");
+                Assert.That(peak[1], Is.LessThan(60), model + " must remain upright.");
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Stability_CorrectsGroundedRollButDoesNotSelfRightOrSteerInAir()
+        {
+            var car = CreateCar(0);
+            Assert.That(car.Stability, Is.Not.Null);
+            Settle(car);
+            Assert.That(car.Body.centerOfMass.y, Is.EqualTo(.22f).Within(.001f));
+            car.Body.angularVelocity = Vector3.forward * 2;
+            car.Stability.SendMessage("FixedUpdate");
+            Assert.That(car.Stability.SupportedWheelCount, Is.GreaterThanOrEqualTo(2));
+            Assert.That(car.Stability.CurrentRollAcceleration, Is.LessThan(0));
+            car.Body.position += Vector3.up * 20;
+            car.Body.angularVelocity = new Vector3(1,2,3);
+            car.Stability.SendMessage("FixedUpdate");
+            Assert.That(car.Stability.SupportedWheelCount, Is.Zero);
+            Assert.That(car.Stability.CurrentRollAcceleration, Is.Zero);
+            Assert.That(car.Body.angularVelocity, Is.EqualTo(new Vector3(1,2,3)));
+            car.Body.rotation = Quaternion.Euler(0,0,180);
+            car.Stability.SendMessage("FixedUpdate");
+            Assert.That(car.Stability.CurrentRollAcceleration, Is.Zero);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Steering_AllProductionCarsCanAccelerateFromRestWhileTurning()
+        {
+            var models = new[] { "Vanguard", "Striker", "Sunaru", "Borshe911", "Aduo", "Fehhahi", "Fernedenz", "Massalini" };
+            for (var model = 0; model < models.Length; model++)
+            {
+                var straight = CreateCar(-350f + model * 90f, models[model]);
+                var turning = CreateCar(-320f + model * 90f, models[model]);
+                Settle(straight, turning);
+                straight.Input.CurrentInput = new DrivingInput(1f, 0f, 0f, false, false);
+                turning.Input.CurrentInput = new DrivingInput(1f, 0f, 1f, false, false);
+                var straightDistance = 0f;
+                var turningDistance = 0f;
+                var maximumHeading = 0f;
+                for (var step = 0; step < 150; step++)
+                {
+                    Simulate(straight, turning);
+                    straightDistance += Vector3.ProjectOnPlane(straight.Body.linearVelocity, Vector3.up).magnitude * Step;
+                    turningDistance += Vector3.ProjectOnPlane(turning.Body.linearVelocity, Vector3.up).magnitude * Step;
+                    maximumHeading = Mathf.Max(maximumHeading, Vector3.Angle(Vector3.forward, turning.Root.transform.forward));
+                    if (step == 0)
+                        Assert.That(Mathf.Abs(turning.Controller.CurrentFrontWheelSteerAngle), Is.LessThanOrEqualTo(28f), models[model]);
+                }
+
+                Debug.Log($"STEERED_LAUNCH {models[model]} straight={straightDistance:F2}m turning={turningDistance:F2}m speed={turning.Controller.CurrentPlanarSpeed:F2}m/s");
+                Assert.That(turning.Controller.CurrentPlanarSpeed, Is.GreaterThan(2.5f), models[model] + " must gain speed while the player holds steering.");
+                Assert.That(turningDistance, Is.GreaterThan(straightDistance * 0.35f), models[model] + " must not stall against its front tyres.");
+                Assert.That(maximumHeading, Is.GreaterThan(15f), models[model] + " must still turn while accelerating.");
+                Object.DestroyImmediate(straight.Root);
+                Object.DestroyImmediate(turning.Root);
+            }
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Steering_LockedRearWheelsDoNotRestoreFullLockAtHighRoadSpeed()
+        {
+            var car = CreateCar(0);
+            Settle(car);
+            car.Body.linearVelocity = Vector3.forward * 25;
+            Wheel(car, "rearLeftWheel").brakeTorque = 50000;
+            Wheel(car, "rearRightWheel").brakeTorque = 50000;
+            _physics.Simulate(Step);
+            Assert.That(Mathf.Abs(Wheel(car, "rearRightWheel").rpm), Is.LessThan(5), "Reproduce the locked-wheel phase of a handbrake drift.");
+            Assert.That(car.Body.linearVelocity.magnitude, Is.GreaterThan(20));
+            car.Input.CurrentInput = new DrivingInput(.7f, 0, 1, true, false);
+            car.Controller.SendMessage("FixedUpdate");
+            Debug.Log($"LOCKED_WHEEL_STEERING roadSpeed={car.Controller.CurrentPlanarSpeed:F2}m/s rearRpm={car.Controller.RearRightWheelRpm:F2} angle={car.Controller.CurrentFrontWheelSteerAngle:F2}deg");
+            Assert.That(Mathf.Abs(car.Controller.CurrentFrontWheelSteerAngle), Is.LessThan(25), "Locking rear tyres at speed must not enable parking-speed steering angles.");
+            yield return null;
+        }
+
+        private Car CreateCar(float x, string model = "Vanguard")
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ApexRivals/Vehicle/Prefabs/Vehicle_" + model + ".prefab");
             Assert.That(prefab, Is.Not.Null);
             var root = Object.Instantiate(prefab, new Vector3(x, 1f, 0f), Quaternion.identity);
             SceneManager.MoveGameObjectToScene(root, _scene);
             _objects.Add(root);
             foreach (var behaviour in root.GetComponentsInChildren<MonoBehaviour>()) behaviour.enabled = false;
             var car = new Car { Root = root, Body = root.GetComponent<Rigidbody>(), Controller = root.GetComponent<WheelArcadeVehicleController>(), Resetter = root.GetComponent<VehicleResetter>() };
+            car.Stability = root.GetComponent<VehicleChassisStability>();
             car.Body.interpolation = RigidbodyInterpolation.None;
             car.Controller.ConfigureRuntime(car.Input, car.Resetter);
             return car;
@@ -344,7 +543,11 @@ namespace ApexRivals.Tests.PlayMode
 
         private void Simulate(params Car[] cars)
         {
-            foreach (var car in cars) car.Controller.SendMessage("FixedUpdate");
+            foreach (var car in cars)
+            {
+                car.Controller.SendMessage("FixedUpdate");
+                if (car.Stability != null) car.Stability.SendMessage("FixedUpdate");
+            }
             _physics.Simulate(Step);
             foreach (var car in cars)
             {

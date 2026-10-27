@@ -11,7 +11,7 @@ namespace ApexRivals.AI.Runtime
             float lateralOffset,
             float speed,
             float freeSpeed,
-            float straightSpeed,
+            float upcomingAbsoluteHeadingChange,
             float aggression,
             float overtakeOffset,
             float maximumOffset,
@@ -21,7 +21,7 @@ namespace ApexRivals.AI.Runtime
             LateralOffset = lateralOffset;
             Speed = speed;
             FreeSpeed = freeSpeed;
-            StraightSpeed = straightSpeed;
+            UpcomingAbsoluteHeadingChange = upcomingAbsoluteHeadingChange;
             Aggression = aggression;
             OvertakeOffset = overtakeOffset;
             MaximumOffset = maximumOffset;
@@ -39,8 +39,8 @@ namespace ApexRivals.AI.Runtime
         /// <summary>Speed the track allows here without traffic.</summary>
         public float FreeSpeed { get; }
 
-        /// <summary>The driver's straight-line speed; passing happens near it.</summary>
-        public float StraightSpeed { get; }
+        /// <summary>Total bending in the lane-change preview, in degrees, without cancelling opposite turns.</summary>
+        public float UpcomingAbsoluteHeadingChange { get; }
 
         public float Aggression { get; }
         public float OvertakeOffset { get; }
@@ -150,7 +150,7 @@ namespace ApexRivals.AI.Runtime
             // A stopped or crawling car is an obstacle every driver goes around, whatever its temperament.
             var blockedBySlowCar = traffic.AheadSpeed < AiRacecraftRules.SlowCarSpeed;
             var wantsToPass = blockedBySlowCar
-                || (AiRacecraftRules.IsPassingZone(input.FreeSpeed, input.StraightSpeed)
+                || (AiRacecraftRules.IsPassingZone(input.FreeSpeed, input.UpcomingAbsoluteHeadingChange)
                     && AiRacecraftRules.ShouldAttemptOvertake(input.FreeSpeed, traffic.AheadSpeed, traffic.AheadGap, input.Aggression));
             if (canPass && wantsToPass)
             {

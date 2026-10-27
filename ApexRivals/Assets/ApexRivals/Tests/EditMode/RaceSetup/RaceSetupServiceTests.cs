@@ -145,6 +145,31 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             Assert.That(secondResult.Output.Player.VehicleRuntime.CurrentPerformanceStats.Steering, Is.EqualTo(firstResult.Output.Player.VehicleRuntime.CurrentPerformanceStats.Steering));
         }
 
+        [TestCase(1f, 1.3f)]
+        [TestCase(2f, 1.3f)]
+        public void SetupRace_AiGripMultiplierChangesOnlyTheAiNormalHandling(float power, float grip)
+        {
+            var context = CreateContext(baseHandling: 0.6f);
+            var opponent = context.Roster.Entries[1];
+            var roster = new RaceRoster(new[]
+            {
+                context.Roster.Entries[0],
+                new RaceRosterEntry(opponent.ParticipantId, opponent.EntryType, opponent.VehicleId,
+                    opponent.StartingGridIndex, opponent.AiConfigurationId, power, grip)
+            });
+            var result = context.Service.SetupRace(roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            var ai = result.Output.Opponents[0].VehicleRuntime.CurrentPerformanceStats;
+            var player = result.Output.Player.VehicleRuntime.CurrentPerformanceStats;
+            Assert.That(ai.Acceleration, Is.EqualTo(10f * power));
+            Assert.That(ai.TopSpeed, Is.EqualTo(20f * power));
+            Assert.That(ai.Handling, Is.EqualTo(0.6f * grip).Within(0.0001f));
+            Assert.That(ai.Steering, Is.EqualTo(player.Steering));
+            Assert.That(ai.DriftHandling, Is.EqualTo(player.DriftHandling));
+            Assert.That(player.Handling, Is.EqualTo(0.6f));
+            Assert.That(player.Acceleration, Is.EqualTo(10f));
+        }
+
         [Test]
         public void SetupRace_AiDoesNotReceivePlayerUpgradesByDefault()
         {
@@ -302,7 +327,8 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             int handlingLevel = 0,
             IRaceDifficultyProvider raceDifficultyProvider = null,
             int opponentCount = 1,
-            bool hasPrefab = true)
+            bool hasPrefab = true,
+            float baseHandling = 0f)
         {
             var progression = new PlayerProgressionState();
             progression.SetUpgradeLevel(UpgradeType.Engine, engineLevel);
@@ -312,6 +338,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             vehicleConfiguration.performanceAcceleration = 10f;
             vehicleConfiguration.performanceTopSpeed = 20f;
             vehicleConfiguration.performanceSteering = 30f;
+            vehicleConfiguration.performanceHandling = baseHandling;
 
             var prefab = hasPrefab ? _objects.Own(new GameObject("VehiclePrefab")) : null;
             var catalog = new VehicleCatalog(new[]

@@ -11,6 +11,14 @@ namespace ApexRivals.AI.Runtime
         /// <summary>Below this a smoothed pedal that is being released snaps to exactly zero.</summary>
         public const float PedalReleaseThreshold = 0.01f;
 
+        /// <summary>Keep the next braking zone visible even when faster straights exceed the authored preview.</summary>
+        public static float CalculateBrakingPreviewDistance(float speed, float deceleration, float minimumPreview)
+        {
+            var safeSpeed = Mathf.Max(0f, speed);
+            var stoppingDistance = safeSpeed * safeSpeed / (2f * Mathf.Max(0.1f, deceleration));
+            return Mathf.Max(Mathf.Max(0f, minimumPreview), stoppingDistance + safeSpeed * 0.5f);
+        }
+
         public static int WrapWaypointIndex(int index, int waypointCount)
         {
             if (waypointCount <= 0)
@@ -104,7 +112,7 @@ namespace ApexRivals.AI.Runtime
         /// </summary>
         public static float LimitLaunchThrottle(float throttle, float speed)
         {
-            var limit = Mathf.Lerp(0.45f, 1f, Mathf.InverseLerp(1f, 8f, Mathf.Abs(speed)));
+            var limit = Mathf.Lerp(0.35f, 1f, Mathf.InverseLerp(1f, 8f, Mathf.Abs(speed)));
             return Mathf.Min(Mathf.Clamp01(throttle), limit);
         }
 

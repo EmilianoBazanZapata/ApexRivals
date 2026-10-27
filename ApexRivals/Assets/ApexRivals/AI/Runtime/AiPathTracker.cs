@@ -14,6 +14,7 @@ namespace ApexRivals.AI.Runtime
         private float[] _checkpointDistances;
 
         public IdealRacingPath Path { get; private set; }
+        public AiCircuitPlan CircuitPlan { get; private set; }
         public IdealRacingPath.Projection Projection => _projection;
         public bool HasProjection { get; private set; }
         public int CurrentSampleIndex { get; private set; }
@@ -25,6 +26,7 @@ namespace ApexRivals.AI.Runtime
         public void Clear()
         {
             Path = null;
+            CircuitPlan = null;
             HasProjection = false;
             CurrentSampleIndex = 0;
             _checkpointDistances = null;
@@ -47,6 +49,7 @@ namespace ApexRivals.AI.Runtime
             }
 
             Path = path;
+            CircuitPlan = configuration.EnableCircuitPlan ? AiCircuitPlan.Build(path, tuning.TargetSpeed, grip) : null;
             CurrentSampleIndex = path.FindNearestSegment(position);
             MapCheckpoints(coordinator);
             return true;

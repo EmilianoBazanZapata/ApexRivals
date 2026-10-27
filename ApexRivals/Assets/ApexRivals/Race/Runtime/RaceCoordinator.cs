@@ -53,6 +53,7 @@ namespace ApexRivals.Race.Runtime
         private readonly List<Vector3> _checkpointPositions = new List<Vector3>();
         private readonly List<Vector3> _positionRoutePoints = new List<Vector3>();
         private RacePositionRoute _positionRoute;
+        private RaceRecoveryRoute _recoveryRoute;
         private readonly Dictionary<string, int> _livePositionsByRacerId = new Dictionary<string, int>();
         private readonly List<RaceResult> _results = new List<RaceResult>();
 
@@ -290,6 +291,23 @@ namespace ApexRivals.Race.Runtime
             return _progressByParticipant.TryGetValue(participant, out progress);
         }
 
+        public bool HasRecoveryRoute => _recoveryRoute != null && _recoveryRoute.IsValid;
+
+        public bool TryGetNearestTrackPoint(RaceParticipant participant, Vector3 position, out Vector3 point)
+        {
+            point = default;
+            return participant != null && HasRecoveryRoute && TryGetProgress(participant, out var progress) && !progress.HasFinished &&
+                _recoveryRoute.TryGetNearestTrackPoint(position, out point);
+        }
+
+        public bool TryGetRecoveryPose(RaceParticipant participant, Vector3 position,
+            out Vector3 point, out Quaternion rotation, out float distance)
+        {
+            point = default; rotation = Quaternion.identity; distance = float.PositiveInfinity;
+            return participant != null && HasRecoveryRoute && TryGetProgress(participant, out var progress) && !progress.HasFinished &&
+                _recoveryRoute.TryProject(progress.NextExpectedCheckpointIndex, position, out point, out rotation, out distance);
+        }
+
         public int GetLivePosition(string racerId)
         {
             return _livePositionsByRacerId.TryGetValue(racerId, out var position) ? position : 0;
@@ -353,6 +371,7 @@ namespace ApexRivals.Race.Runtime
                 }
             }
             _positionRoute = new RacePositionRoute(_checkpointPositions, _positionRoutePoints);
+            _recoveryRoute = new RaceRecoveryRoute(_checkpointPositions, _positionRoutePoints);
         }
 
         private void RecalculatePositions()

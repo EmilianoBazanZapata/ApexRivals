@@ -390,6 +390,7 @@ namespace ApexRivals.Bootstrap.Runtime
 
         private static int GetInstallerPriority(IContentSceneInstaller installer)
         {
+            if (installer is ApexRivals.Environment.Runtime.RaceWeatherController) return 20;
             return installer is RaceSessionSceneInstaller ? 0 : 10;
         }
     }

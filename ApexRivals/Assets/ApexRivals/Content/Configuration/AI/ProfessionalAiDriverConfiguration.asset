@@ -14,37 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   difficultyName: Professional
   difficultyMultiplier: 1
-  targetSpeed: 44
+  targetSpeed: 78
   minimumCornerSpeed: 12
-  steeringSensitivity: 1.14
-  brakingSensitivity: 1.12
-  driftCornerThreshold: 0.6
-  driftMinimumSpeed: 13
   stuckSpeedThreshold: 1.5
   stuckDetectionDuration: 2.5
-  recoveryCooldown: 5
   steeringSmoothing: 8
   throttleSmoothing: 6
   brakeSmoothing: 10
-  lookAheadWaypointCount: 3
-  waypointReachDistance: 5
+  enableCircuitPlan: 1
+  enablePredictivePlanning: 1
   cornerSpeedFactor: 0.92
   curvatureSpeedScale: 4
-  corneringGrip: 6
+  corneringGrip: 9.8
   brakingPreviewDistance: 160
-  brakingConfidence: 0.95
-  throttleGain: 5
+  brakingConfidence: 1.1
+  throttleGain: 8
   brakeGain: 1.2
   headingGain: 1
   crossTrackGain: 1.6
   minimumLookahead: 10
   maximumLookahead: 36
-  lineWanderAmplitude: 0.4
-  reactionTime: 0.25
-  mistakeInterval: 45
+  lineWanderAmplitude: 0.15
+  reactionTime: 0.15
+  mistakeInterval: 75
   mistakeDuration: 1.2
-  driftAffinity: 1
-  driftSkill: 0.7
+  driftAffinity: 0
+  driftSkill: 0.95
   driftEntrySpeedBonus: 0
   driftTargetSlipAngle: 22
   driftMaximumSlipAngle: 50
@@ -53,6 +48,6 @@ MonoBehaviour:
   overtakeLateralOffset: 3.5
   maximumLateralOffset: 5
   offTrackDistance: 10
-  offTrackResetDuration: 5
+  offTrackResetDuration: 3
   reverseDuration: 1.2
   postResetGraceDuration: 2

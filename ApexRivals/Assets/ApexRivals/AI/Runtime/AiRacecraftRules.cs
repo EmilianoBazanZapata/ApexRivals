@@ -6,11 +6,12 @@ namespace ApexRivals.AI.Runtime
     /// <summary>One other car expressed in the driver's path frame.</summary>
     public readonly struct AiTrafficCar
     {
-        public AiTrafficCar(float gap, float lateral, float speed)
+        public AiTrafficCar(float gap, float lateral, float speed, float lateralSpeed = 0f)
         {
             Gap = gap;
             Lateral = lateral;
             Speed = speed;
+            LateralSpeed = lateralSpeed;
         }
 
         /// <summary>Metres along the lap from the driver to this car; positive means ahead.</summary>
@@ -20,6 +21,7 @@ namespace ApexRivals.AI.Runtime
         public float Lateral { get; }
 
         public float Speed { get; }
+        public float LateralSpeed { get; }
     }
 
     public readonly struct AiTrafficAssessment
@@ -149,12 +151,17 @@ namespace ApexRivals.AI.Runtime
         }
 
         /// <summary>
-        /// Passing is attempted where the track is close to full speed; in corners side-by-side cars
-        /// collide, so drivers follow until the next straight.
+        /// Look far enough ahead to move across to the passing lane at the current road speed.
         /// </summary>
-        public static bool IsPassingZone(float freeSpeed, float straightSpeed)
+        public static float CalculatePassingPreviewDistance(float speed)
         {
-            return straightSpeed > 0f && freeSpeed >= straightSpeed * 0.8f;
+            return Mathf.Max(30f, Mathf.Max(0f, speed) * 2f);
+        }
+
+        /// <summary>Use local track geometry, independent of the driver's theoretical top speed.</summary>
+        public static bool IsPassingZone(float freeSpeed, float upcomingAbsoluteHeadingChange)
+        {
+            return freeSpeed >= 12f && upcomingAbsoluteHeadingChange >= 0f && upcomingAbsoluteHeadingChange <= 20f;
         }
 
         /// <summary>

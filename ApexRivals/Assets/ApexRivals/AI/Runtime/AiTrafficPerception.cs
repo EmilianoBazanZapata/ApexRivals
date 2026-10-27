@@ -72,7 +72,8 @@ namespace ApexRivals.AI.Runtime
                 var velocity = tracked.Body != null ? tracked.Body.linearVelocity : Vector3.zero;
                 var speedAlongPath = Vector3.Dot(velocity, projection.Tangent);
                 var gap = AiRacecraftRules.WrapLapGap(projection.DistanceAlongLap, self.DistanceAlongLap, path.LapLength);
-                _cars.Add(new AiTrafficCar(gap, projection.CrossTrackError, speedAlongPath));
+                var lateralSpeed = Vector3.Dot(velocity, Vector3.Cross(Vector3.up, projection.Tangent).normalized);
+                _cars.Add(new AiTrafficCar(gap, projection.CrossTrackError, speedAlongPath, lateralSpeed));
             }
 
             _stale.Clear();

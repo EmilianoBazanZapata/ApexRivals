@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000000}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071067}
-  m_LocalPosition: {x: -0.65801024, y: 0.3131896, z: 0.95176464}
+  m_LocalPosition: {x: -0.7567118, y: 0.36016804, z: 1.0945293}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -41,12 +41,12 @@ WheelCollider:
   m_GameObject: {fileID: 910000000000000000}
   serializedVersion: 2
   m_Center: {x: 0, y: 0, z: 0}
-  m_Radius: 0.26318973
+  m_Radius: 0.30266818
   m_SuspensionSpring:
     spring: 50000
     damper: 4500
     targetPosition: 0.5
-  m_SuspensionDistance: 0.1
+  m_SuspensionDistance: 0.115
   m_ForceAppPointDistance: 0
   m_Mass: 20
   m_WheelDampingRate: 0.25
@@ -96,7 +96,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000009}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.65801024, y: 0.26318958, z: 0.95176464}
+  m_LocalPosition: {x: -0.7567118, y: 0.302668, z: 1.0945293}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -128,7 +128,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000011}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.65801066, y: 0.2631894, z: 0.9517699}
+  m_LocalPosition: {x: 0.75671226, y: 0.3026678, z: 1.0945354}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -160,7 +160,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000013}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.6580103, y: 0.26318958, z: -0.88525814}
+  m_LocalPosition: {x: -0.75671184, y: 0.302668, z: -1.0180469}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -192,7 +192,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000015}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.6580106, y: 0.2631894, z: -0.8852529}
+  m_LocalPosition: {x: 0.7567122, y: 0.3026678, z: -1.0180408}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -225,7 +225,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000101}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071067}
-  m_LocalPosition: {x: 0.65801066, y: 0.31318942, z: 0.9517699}
+  m_LocalPosition: {x: 0.75671226, y: 0.36016783, z: 1.0945354}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -240,12 +240,12 @@ WheelCollider:
   m_GameObject: {fileID: 910000000000000101}
   serializedVersion: 2
   m_Center: {x: 0, y: 0, z: 0}
-  m_Radius: 0.26318973
+  m_Radius: 0.30266818
   m_SuspensionSpring:
     spring: 50000
     damper: 4500
     targetPosition: 0.5
-  m_SuspensionDistance: 0.1
+  m_SuspensionDistance: 0.115
   m_ForceAppPointDistance: 0
   m_Mass: 20
   m_WheelDampingRate: 0.25
@@ -296,7 +296,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000103}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071067}
-  m_LocalPosition: {x: -0.6580103, y: 0.3131896, z: -0.88525814}
+  m_LocalPosition: {x: -0.75671184, y: 0.36016804, z: -1.0180469}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -311,12 +311,12 @@ WheelCollider:
   m_GameObject: {fileID: 910000000000000103}
   serializedVersion: 2
   m_Center: {x: 0, y: 0, z: 0}
-  m_Radius: 0.26318973
+  m_Radius: 0.30266818
   m_SuspensionSpring:
     spring: 50000
     damper: 4500
     targetPosition: 0.5
-  m_SuspensionDistance: 0.1
+  m_SuspensionDistance: 0.115
   m_ForceAppPointDistance: 0
   m_Mass: 20
   m_WheelDampingRate: 0.25
@@ -367,7 +367,7 @@ Transform:
   m_GameObject: {fileID: 910000000000000105}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071067}
-  m_LocalPosition: {x: 0.6580106, y: 0.31318942, z: -0.8852529}
+  m_LocalPosition: {x: 0.7567122, y: 0.36016783, z: -1.0180408}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -382,12 +382,12 @@ WheelCollider:
   m_GameObject: {fileID: 910000000000000105}
   serializedVersion: 2
   m_Center: {x: 0, y: 0, z: 0}
-  m_Radius: 0.26318973
+  m_Radius: 0.30266818
   m_SuspensionSpring:
     spring: 50000
     damper: 4500
     targetPosition: 0.5
-  m_SuspensionDistance: 0.1
+  m_SuspensionDistance: 0.115
   m_ForceAppPointDistance: 0
   m_Mass: 20
   m_WheelDampingRate: 0.25
@@ -437,7 +437,7 @@ Transform:
   m_GameObject: {fileID: 1335482263894711695}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.3, z: -0.05}
+  m_LocalPosition: {x: 0, y: 0.22, z: -0.0575}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -471,7 +471,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.15, y: 1.15, z: 1.15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 910000000000000016}
@@ -559,7 +559,7 @@ Transform:
   m_GameObject: {fileID: 2772616404226057030}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.0745122, z: -0.2}
+  m_LocalPosition: {x: 0, y: 1.235689, z: -0.23}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -593,7 +593,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.15, y: 1.15, z: 1.15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 910000000000000010}
@@ -684,7 +684,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.15, y: 1.15, z: 1.15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 910000000000000012}
@@ -765,6 +765,7 @@ GameObject:
   - component: {fileID: 8756657145654126891}
   - component: {fileID: 7508865461629540387}
   - component: {fileID: 9174928163827465101}
+  - component: {fileID: 2373678514642246695}
   m_Layer: 0
   m_Name: Vehicle_Borshe911
   m_TagString: Untagged
@@ -834,7 +835,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 614e46882de111c4ca98b63d2ca1eac9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Vehicle.Runtime.VehicleResetter
   vehicleRigidbody: {fileID: 1704272003755814720}
   initialResetPose: {fileID: 2019651006293202734}
@@ -848,7 +849,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1fc3a231dd6b08a4aa0f271143b697a5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Race.Runtime.RaceParticipant
   raceCoordinator: {fileID: 0}
   racerId: Player
@@ -863,7 +864,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 852912470ff88464cb343cf966374eea, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Input.Runtime.DrivingInputGate
   sourceInputProvider: {fileID: 1168455101451029648}
   drivingAllowed: 0
@@ -877,7 +878,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c2f5611dbc237cf48b3ab15210a6a122, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Input.Runtime.PlayerDrivingInput
   steeringDeadZone: 0.08
 --- !u!114 &6068830170467684869
@@ -890,7 +891,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 31f74267ee334fe47b80418d45da9c8c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.AI.Runtime.AiDrivingInputProvider
   configuration: {fileID: 0}
   racingLine: {fileID: 0}
@@ -927,7 +928,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 675e615b24334133a32547d1afbbbd8e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Vehicle.Runtime.WheelArcadeVehicleController
   configuration: {fileID: 11400000, guid: 3f2b047d65eb65e408327df936377b09, type: 2}
   inputProviderComponent: {fileID: 2198453246254338594}
@@ -1035,7 +1036,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: db7370fbeb754fd45a3608c90f64e85a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.RaceSetup.Runtime.RaceVehicleComposition
   vehicleController: {fileID: 8756657145654126891}
   vehicleResetter: {fileID: 1256359194261686615}
@@ -1056,15 +1057,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d03c00bdc0bc4f38b34498c0300c3e9d, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Vehicle.Runtime.VehicleRoofRecoveryDetector
   vehicleRigidbody: {fileID: 1704272003755814720}
   roofRecoveryRayOrigin: {fileID: 9174928163827465103}
   drivingInputGate: {fileID: 2198453246254338594}
   vehicleController: {fileID: 8756657145654126891}
   invertedDotThreshold: -0.5
-  roofRayDistance: 0.75
+  roofRayDistance: 0.86249995
   invertedDebounceDuration: 0.2
+  outsideTrackDebounceDuration: 0.6
   recoverySurfaceLayers:
     serializedVersion: 2
     m_Bits: 4294967291
@@ -1073,7 +1075,24 @@ MonoBehaviour:
   roofRayHit: 0
   roofHitDistance: -1
   canRecoverVehicle: 0
+  isOutsideTrack: 0
   lastRecoveryInput: 0
+--- !u!114 &2373678514642246695
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5125654590113072179}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fe3372eb135089489b4e34d0855cb76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Vehicle.Runtime.VehicleChassisStability
+  centerOfMassReference: {fileID: 3182245768433725362}
+  rollSpringAcceleration: 18
+  rollDamping: 7
+  maximumRollAcceleration: 18
 --- !u!1 &5878756176611708160
 GameObject:
   m_ObjectHideFlags: 0
@@ -1169,7 +1188,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.15, y: 1.15, z: 1.15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2706236252983910106}
@@ -1262,7 +1281,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.15, y: 1.15, z: 1.15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 910000000000000014}
@@ -1377,8 +1396,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.4697953, y: 0.5372561, z: 3.2341514}
-  m_Center: {x: 0, y: 0.4298049, z: 0}
+  m_Size: {x: 1.6902646, y: 0.6178445, z: 3.719274}
+  m_Center: {x: 0, y: 0.49427563, z: 0}
 --- !u!65 &8557496446940190015
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1398,8 +1417,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.1105121, y: 0.4298049, z: 1.5649118}
-  m_Center: {x: 0, y: 0.8273744, z: -0.1}
+  m_Size: {x: 1.2770889, y: 0.49427563, z: 1.7996485}
+  m_Center: {x: 0, y: 0.95148057, z: -0.115}
 --- !u!1 &9174928163827465102
 GameObject:
   m_ObjectHideFlags: 0
@@ -1425,7 +1444,7 @@ Transform:
   m_GameObject: {fileID: 9174928163827465102}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.3245122, z: -0.2}
+  m_LocalPosition: {x: 0, y: 1.5231891, z: -0.23}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

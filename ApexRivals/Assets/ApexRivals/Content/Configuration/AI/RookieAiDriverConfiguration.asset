@@ -14,37 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   difficultyName: Rookie
   difficultyMultiplier: 1
-  targetSpeed: 38
+  targetSpeed: 60
   minimumCornerSpeed: 10
-  steeringSensitivity: 1
-  brakingSensitivity: 1.25
-  driftCornerThreshold: 0.7
-  driftMinimumSpeed: 12
   stuckSpeedThreshold: 1.5
   stuckDetectionDuration: 2.5
-  recoveryCooldown: 5
   steeringSmoothing: 6
   throttleSmoothing: 6
   brakeSmoothing: 10
-  lookAheadWaypointCount: 2
-  waypointReachDistance: 5
-  cornerSpeedFactor: 0.82
+  enableCircuitPlan: 1
+  enablePredictivePlanning: 1
+  cornerSpeedFactor: 0.88
   curvatureSpeedScale: 4
-  corneringGrip: 5
+  corneringGrip: 7.2
   brakingPreviewDistance: 110
   brakingConfidence: 0.85
-  throttleGain: 4
+  throttleGain: 6
   brakeGain: 1.2
   headingGain: 1
   crossTrackGain: 1.6
   minimumLookahead: 10
   maximumLookahead: 30
-  lineWanderAmplitude: 1.2
-  reactionTime: 0.45
-  mistakeInterval: 20
+  lineWanderAmplitude: 0.6
+  reactionTime: 0.3
+  mistakeInterval: 30
   mistakeDuration: 1.5
   driftAffinity: 0
-  driftSkill: 0.4
+  driftSkill: 0.8
   driftEntrySpeedBonus: 0
   driftTargetSlipAngle: 18
   driftMaximumSlipAngle: 45
@@ -53,6 +48,6 @@ MonoBehaviour:
   overtakeLateralOffset: 3.5
   maximumLateralOffset: 5
   offTrackDistance: 10
-  offTrackResetDuration: 5
+  offTrackResetDuration: 3
   reverseDuration: 1.2
   postResetGraceDuration: 2

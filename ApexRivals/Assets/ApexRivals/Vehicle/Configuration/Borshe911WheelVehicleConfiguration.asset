@@ -110,10 +110,10 @@ MonoBehaviour:
   countersteerEnabled: 1
   countersteerGuardAngle: 120
   countersteerStrength: 1
-  wheelRadius: 0.26318973
+  wheelRadius: 0.30266818
   wheelMass: 20
   wheelDampingRate: 0.25
-  suspensionDistance: 0.1
+  suspensionDistance: 0.115
   forceAppPointDistance: 0
   suspensionSpring: 50000
   suspensionDamper: 4500

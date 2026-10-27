@@ -22,17 +22,20 @@ MonoBehaviour:
     startingGridIndex: 2
     aiConfigurationId: rookie
     aiConfiguration: {fileID: 11400000, guid: 99329d2f00e34b53b7c0c78490f0242e, type: 2}
-    performanceMultiplier: 0.92
+    performanceMultiplier: 1.4949999
+    handlingMultiplier: 1.5
   - participantId: AI_02
     vehicleId: sunaru
     startingGridIndex: 1
     aiConfigurationId: professional
     aiConfiguration: {fileID: 11400000, guid: 5cfa4f012fce411196f13d7619f8f52b, type: 2}
-    performanceMultiplier: 1
+    performanceMultiplier: 1.8199999
+    handlingMultiplier: 1.65
   - participantId: AI_03
     vehicleId: borshe911
     startingGridIndex: 0
     aiConfigurationId: expert
     aiConfiguration: {fileID: 11400000, guid: 6bf5342210d24013967b86a79abfa659, type: 2}
-    performanceMultiplier: 1.08
+    performanceMultiplier: 2.0149999
+    handlingMultiplier: 1.8
   usePerOpponentDifficulty: 1

@@ -44,6 +44,7 @@ namespace ApexRivals.AI.Runtime
     {
         /// <summary>Share of the path-following steer kept during a drift; the slide control does the rest.</summary>
         private const float DriftPathSteeringWeight = 0.5f;
+        private const float DriftCornerSpeedMargin = 1.15f;
 
         private float _smoothedSteering;
         private float _smoothedThrottle;
@@ -57,9 +58,6 @@ namespace ApexRivals.AI.Runtime
 
         /// <summary>Speed the track allows here without traffic or obstacles.</summary>
         public float FreeSpeed { get; private set; }
-
-        /// <summary>The driver's straight-line speed with the current corner factor.</summary>
-        public float StraightSpeed { get; private set; }
 
         public Vector3 SteeringTarget { get; private set; }
 
@@ -98,10 +96,17 @@ namespace ApexRivals.AI.Runtime
             var cornerFactor = configuration.CornerSpeedFactor * personality.CornerSpeedMultiplier * driftBonus;
             var confidence = configuration.BrakingConfidence * personality.BrakingConfidenceMultiplier;
             var sample = path.GetSample(projection.SegmentIndex);
-            var brakingLimit = path.GetBrakingLimitedSpeed(projection, configuration.BrakingPreviewDistance, settings.BrakingDeceleration * confidence, cornerFactor);
-            FreeSpeed = Mathf.Min(sample.TargetSpeed * cornerFactor, brakingLimit);
-            StraightSpeed = tuning.TargetSpeed * cornerFactor;
-
+            var deceleration = settings.BrakingDeceleration * confidence;
+            if (tracker.CircuitPlan != null)
+            {
+                FreeSpeed = tracker.CircuitPlan.GetSpeed(projection, deceleration, cornerFactor);
+            }
+            else
+            {
+                var preview = AiDriverRules.CalculateBrakingPreviewDistance(speed, deceleration, configuration.BrakingPreviewDistance);
+                var brakingLimit = path.GetBrakingLimitedSpeed(projection, preview, deceleration, cornerFactor);
+                FreeSpeed = Mathf.Min(sample.TargetSpeed * cornerFactor, brakingLimit);
+            }
             var targetSpeed = Mathf.Min(FreeSpeed, Mathf.Min(trafficSpeedLimit, obstacleSpeedLimit));
             if (rejoining)
             {
@@ -151,10 +156,22 @@ namespace ApexRivals.AI.Runtime
                     ? drift.CornerDirection
                     : Mathf.Clamp(DriftPathSteeringWeight * steering + drift.SteeringCorrection, -1f, 1f);
 
-                // The slide is the brake: power holds the angle and the vehicle countersteers.
+                // Power holds the angle and the vehicle countersteers; excessive speed still needs braking.
                 ThrottleCommand = drift.Throttle;
                 BrakeCommand = 0f;
-                ApplySmoothed(tuning, deltaTime, drift.ButtonPressed);
+                // A drift does not guarantee enough speed scrub. Keep a small entry margin, but brake
+                // before the slide carries the car through a tightening corner and off the road.
+                var driftSpeedLimit = FreeSpeed * DriftCornerSpeedMargin;
+                var safetyLimit = Mathf.Min(driftSpeedLimit, Mathf.Min(trafficSpeedLimit, obstacleSpeedLimit));
+                var safetyBraking = speed > safetyLimit;
+                if (safetyBraking)
+                {
+                    var safetyCommand = IdealRacingDriverRules.CalculateSpeedCommand(speed, safetyLimit, configuration.ThrottleGain, configuration.BrakeGain);
+                    ThrottleCommand = 0f;
+                    BrakeCommand = Mathf.Min(settings.MaximumBrake, AiDriverRules.BlendBrakeWithSteering(safetyCommand.Brake, SteeringCommand));
+                }
+
+                ApplySmoothed(tuning, deltaTime, drift.ButtonPressed && !safetyBraking);
                 return;
             }
 
@@ -208,6 +225,16 @@ namespace ApexRivals.AI.Runtime
             _smoothedSteering = Smooth(_smoothedSteering, SteeringCommand, tuning.SteeringSmoothing, deltaTime);
             _smoothedThrottle = AiDriverRules.SmoothPedal(_smoothedThrottle, ThrottleCommand, tuning.ThrottleSmoothing, deltaTime);
             _smoothedBrake = AiDriverRules.SmoothPedal(_smoothedBrake, BrakeCommand, tuning.BrakeSmoothing, deltaTime);
+            // A released normal brake must unlock the wheels before powering out of a corner or kicking
+            // a drift. Likewise, do not carry engine torque into a newly requested braking phase.
+            if (BrakeCommand > 0f)
+            {
+                _smoothedThrottle = 0f;
+            }
+            else if (ThrottleCommand > 0f)
+            {
+                _smoothedBrake = 0f;
+            }
             Input = new DrivingInput(_smoothedThrottle, _smoothedBrake, _smoothedSteering, drift, false);
         }
 

@@ -18,5 +18,10 @@ namespace ApexRivals.Vehicle.Runtime
         {
             return canRecoverVehicle && inputSource != RecoveryInputSource.None;
         }
+
+        public static bool CanRecoverOutsideTrack(bool isOutsideTrack, float outsideTime, float debounceDuration)
+        {
+            return isOutsideTrack && outsideTime >= debounceDuration;
+        }
     }
 }

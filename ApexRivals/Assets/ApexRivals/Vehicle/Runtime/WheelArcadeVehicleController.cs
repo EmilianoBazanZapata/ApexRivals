@@ -210,7 +210,7 @@ namespace ApexRivals.Vehicle.Runtime
 
             UpdateVehicleDiagnostics();
             UpdateForwardDriftState(input);
-            ApplySteering(input.Steering);
+            ApplySteering(input);
             ApplyBrakes(input);
             ApplyRearSidewaysFriction();
             ApplyDriftAssist();
@@ -369,20 +369,25 @@ namespace ApexRivals.Vehicle.Runtime
             CurrentAverageDrivenWheelRpm = CalculateAverageDrivenWheelRpm();
             CurrentGearRatio = _effectiveTuning.GetGearRatio(_currentGearIndex);
             CurrentRawCalculatedEngineRpm = CalculateRawEngineRpm(CurrentGearRatio);
-            CurrentSteeringSpeed = rearRightWheel.rpm * rearRightWheel.radius * Mathf.PI * 2f
+            // Preserve the existing curve's distance-per-minute units, but use chassis
+            // speed. A locked/slipping rear tyre must not switch fast driving back to
+            // the roughly 63-degree parking-speed steering range during a handbrake drift.
+            CurrentSteeringSpeed = CurrentPlanarSpeed * 60f
                 / Mathf.Max(0.001f, _effectiveTuning.steeringSpeedScale);
         }
 
-        private void ApplySteering(float steeringInput)
+        private void ApplySteering(DrivingInput input)
         {
-            CurrentSteeringInput = Mathf.Clamp(steeringInput, -1f, 1f);
+            CurrentSteeringInput = Mathf.Clamp(input.Steering, -1f, 1f);
             var baseSteer = CurrentSteeringInput * _effectiveTuning.steeringCurve.Evaluate(CurrentSteeringSpeed)
                 * _performanceSteeringMultiplier;
             CurrentCountersteerCorrection = CalculateCountersteerCorrection();
-            CurrentFrontWheelSteerAngle = Mathf.Clamp(
+            CurrentFrontWheelSteerAngle = VehicleDriveInputRules.LimitLaunchSteeringAngle(
                 baseSteer + CurrentCountersteerCorrection,
-                -Mathf.Max(0f, _effectiveTuning.maximumSteeringAngle),
-                Mathf.Max(0f, _effectiveTuning.maximumSteeringAngle));
+                CurrentPlanarSpeed,
+                _effectiveTuning.maximumSteeringAngle,
+                Mathf.Abs(ResolveMotorInput(input)) > 0f,
+                input.Drift || ForwardDriftActive);
             frontLeftWheel.steerAngle = CurrentFrontWheelSteerAngle;
             frontRightWheel.steerAngle = CurrentFrontWheelSteerAngle;
         }

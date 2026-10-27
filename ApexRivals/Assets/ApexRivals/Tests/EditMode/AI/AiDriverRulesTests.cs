@@ -1,11 +1,113 @@
 using ApexRivals.AI.Runtime;
 using NUnit.Framework;
+using ApexRivals.AI.Configuration;
+using UnityEditor;
 using UnityEngine;
 
 namespace ApexRivals.Tests.EditMode.AI
 {
     public sealed class AiDriverRulesTests
     {
+        [Test]
+        public void PassingPreview_ChicaneDoesNotBecomeAStraightWhenOppositeTurnsCancel()
+        {
+            var root = CreateIdealLine(out var line,
+                Vector3.zero, new Vector3(0f, 0f, 40f), new Vector3(20f, 0f, 40f),
+                new Vector3(20f, 0f, 120f), new Vector3(100f, 0f, 120f), new Vector3(100f, 0f, 0f));
+            try
+            {
+                Assert.That(IdealRacingPath.TryBuild(line, 4f, 86f, 14f, 4f, 6.1f, out var path), Is.True);
+                var position = new Vector3(0f, 0f, 20f);
+                Assert.That(path.TryProjectLocal(position, path.FindNearestSegment(position), 4, 4, out var projection), Is.True);
+                Assert.That(Mathf.Abs(path.GetHeadingChange(projection, 0f, 65f)), Is.LessThan(1f));
+                var bending = path.GetAbsoluteHeadingChange(projection, 0f, 65f);
+                Assert.That(bending, Is.GreaterThan(150f));
+                Assert.That(AiRacecraftRules.IsPassingZone(24f, bending), Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void BrakingPreview_FastStraightFindsCornerBeyondAuthoredPreview()
+        {
+            var root = CreateIdealLine(out var line,
+                Vector3.zero, new Vector3(0f, 0f, 1000f),
+                new Vector3(100f, 0f, 1000f), new Vector3(100f, 0f, 0f));
+            try
+            {
+                Assert.That(IdealRacingPath.TryBuild(line, 4f, 86f, 14f, 4f, 6.1f, out var path), Is.True);
+                var position = new Vector3(0f, 0f, 500f);
+                Assert.That(path.TryProjectLocal(position, path.FindNearestSegment(position), 4, 4, out var projection), Is.True);
+                var shortPreviewLimit = path.GetBrakingLimitedSpeed(projection, 180f, 5f, 1f);
+                var adaptivePreview = AiDriverRules.CalculateBrakingPreviewDistance(80f, 5f, 180f);
+                var safeLimit = path.GetBrakingLimitedSpeed(projection, adaptivePreview, 5f, 1f);
+                Assert.That(shortPreviewLimit, Is.GreaterThan(80f), "A fixed preview incorrectly permits acceleration before the distant corner.");
+                Assert.That(safeLimit, Is.LessThan(80f), "At high speed the driver must already brake for the same corner.");
+                Assert.That(AiDriverRules.CalculateBrakingPreviewDistance(80f, 4f, 180f), Is.GreaterThan(adaptivePreview));
+                Assert.That(AiDriverRules.CalculateBrakingPreviewDistance(20f, 5f, 180f), Is.EqualTo(180f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void BrakingPreview_ZeroSpeedAndDecelerationRemainFinite()
+        {
+            Assert.That(AiDriverRules.CalculateBrakingPreviewDistance(0f, 0f, 180f), Is.EqualTo(180f));
+            var preview = AiDriverRules.CalculateBrakingPreviewDistance(80f, 0f, 180f);
+            Assert.That(float.IsInfinity(preview) || float.IsNaN(preview), Is.False);
+        }
+
+        [Test]
+        public void ProductionDifficulties_ProgressInPaceWithoutForcedDrift()
+        {
+            var previousStraight = 0f;
+            var previousGrip = 0f;
+            foreach (var name in new[] { "Rookie", "Amateur", "Professional", "Expert" })
+            {
+                var path = $"Assets/ApexRivals/Content/Configuration/AI/{name}AiDriverConfiguration.asset";
+                var profile = AssetDatabase.LoadAssetAtPath<AiDriverConfiguration>(path);
+                Assert.That(profile, Is.Not.Null, path);
+                var straight = profile.CreateTuning().TargetSpeed * profile.CornerSpeedFactor;
+                Assert.That(straight, Is.GreaterThan(previousStraight), $"{name} must not be slower than the previous difficulty.");
+                Assert.That(profile.CorneringGrip, Is.GreaterThan(previousGrip), $"{name} must carry more corner speed.");
+                Assert.That(profile.DriftAffinity, Is.Zero, $"{name} must not force a handbrake drift.");
+                Assert.That(profile.OffTrackResetDuration, Is.EqualTo(3f), $"{name} must end a failed rejoin after three seconds.");
+                previousStraight = straight;
+                previousGrip = profile.CorneringGrip;
+            }
+            var standard = AssetDatabase.LoadAssetAtPath<AiDriverConfiguration>("Assets/ApexRivals/Content/Configuration/AI/StandardAiDriverConfiguration.asset");
+            Assert.That(standard, Is.Not.Null);
+            Assert.That(standard.DriftAffinity, Is.Zero);
+        }
+
+        [Test]
+        public void IdealDriver_ExpertKeepsFullPowerUntilCloseToStraightTarget()
+        {
+            var command = IdealRacingDriverRules.CalculateSpeedCommand(43f, 46f, 6f, 1.2f);
+            Assert.That(command.Throttle, Is.EqualTo(1f));
+            Assert.That(command.Brake, Is.Zero);
+            var approach = IdealRacingDriverRules.CalculateSpeedCommand(45.5f, 46f, 6f, 1.2f);
+            Assert.That(approach.Throttle, Is.GreaterThan(0f).And.LessThan(1f));
+        }
+
+        [Test]
+        public void IdealDriver_StopAndOverspeedNeverRequestPower()
+        {
+            var stop = IdealRacingDriverRules.CalculateSpeedCommand(8f, 0f, 6f, 1.2f);
+            Assert.That(stop.Throttle, Is.Zero);
+            Assert.That(stop.Brake, Is.EqualTo(1f));
+            var overspeed = IdealRacingDriverRules.CalculateSpeedCommand(48f, 46f, 6f, 1.2f);
+            Assert.That(overspeed.Throttle, Is.Zero);
+            Assert.That(overspeed.Brake, Is.GreaterThan(0f));
+            Assert.That(IdealRacingDriverRules.CalculateSpeedCommand(0f, 0f, 6f, 1.2f).Throttle, Is.Zero);
+        }
+
         [Test]
         public void WrapWaypointIndex_EndOfClosedLine_ReturnsFirstIndex()
         {

@@ -16,6 +16,7 @@ namespace ApexRivals.Vehicle.Runtime
         private Quaternion _latestValidRotation;
         private bool _hasResetPose;
         private BoxCollider[] _bodyColliders;
+        private IVehicleRecoveryPoseProvider _recoveryPoseProvider;
         private readonly Collider[] _overlaps = new Collider[16];
         /// <summary>Read-only teleport revision for presentation systems that must break their trails.</summary>
         public int ResetVersion { get; private set; }
@@ -92,10 +93,14 @@ namespace ApexRivals.Vehicle.Runtime
 
         public bool TryResetVehicle()
         {
+            if (_recoveryPoseProvider is Object owner && owner == null) _recoveryPoseProvider = null;
+            if (_recoveryPoseProvider != null && !_recoveryPoseProvider.TryPrepareRecoveryPose()) return false;
             if (vehicleRigidbody == null || !_hasResetPose || !IsPoseClear(_latestValidPosition, _latestValidRotation)) return false;
             ResetVehicle();
             return true;
         }
+
+        public void ConfigureRecoveryPoseProvider(IVehicleRecoveryPoseProvider provider) => _recoveryPoseProvider = provider;
 
         private bool IsPoseClear(Vector3 position, Quaternion rotation)
         {

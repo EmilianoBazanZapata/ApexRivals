@@ -322,6 +322,17 @@ namespace ApexRivals.AI.Runtime
         /// </summary>
         public float GetHeadingChange(Projection projection, float fromDistance, float toDistance)
         {
+            return MeasureHeadingChange(projection, fromDistance, toDistance, false);
+        }
+
+        /// <summary>Total bending ahead; opposite turns in a chicane must not cancel into a fake straight.</summary>
+        public float GetAbsoluteHeadingChange(Projection projection, float fromDistance, float toDistance)
+        {
+            return MeasureHeadingChange(projection, fromDistance, toDistance, true);
+        }
+
+        private float MeasureHeadingChange(Projection projection, float fromDistance, float toDistance, bool absolute)
+        {
             var start = Mathf.Max(0f, fromDistance);
             var end = Mathf.Max(start, toDistance);
             var index = projection.SegmentIndex;
@@ -332,7 +343,8 @@ namespace ApexRivals.AI.Runtime
                 var next = IdealRacingDriverRules.WrapIndex(index + 1, SampleCount);
                 if (distance + _segmentLengths[index] >= start)
                 {
-                    total += Vector3.SignedAngle(_forwards[index], _forwards[next], Vector3.up);
+                    var change = Vector3.SignedAngle(_forwards[index], _forwards[next], Vector3.up);
+                    total += absolute ? Mathf.Abs(change) : change;
                 }
 
                 distance += _segmentLengths[index];

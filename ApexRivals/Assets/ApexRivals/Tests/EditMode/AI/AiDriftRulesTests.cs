@@ -1,4 +1,5 @@
 using ApexRivals.AI.Runtime;
+using ApexRivals.AI.Configuration;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -6,6 +7,119 @@ namespace ApexRivals.Tests.EditMode.AI
 {
     public sealed class AiDriftRulesTests
     {
+        [Test]
+        public void SustainedDrift_FollowsCornerRotationButCatchesExcessYaw()
+        {
+            var root = new GameObject("SustainedCornerTest");
+            var configuration = ScriptableObject.CreateInstance<AiDriverConfiguration>();
+            try
+            {
+                JsonUtility.FromJsonOverwrite("{\"targetSpeed\":40,\"minimumCornerSpeed\":14,\"curvatureSpeedScale\":0,\"corneringGrip\":0,\"driftAffinity\":1}", configuration);
+                var positions = new[] { Vector3.zero, new Vector3(0f, 0f, 80f), new Vector3(80f, 0f, 80f), new Vector3(80f, 0f, 0f) };
+                var points = new Transform[positions.Length];
+                for (var index = 0; index < points.Length; index++)
+                {
+                    points[index] = new GameObject("Waypoint").transform;
+                    points[index].SetParent(root.transform);
+                    points[index].position = positions[index];
+                }
+
+                var line = root.AddComponent<RacingLine>();
+                line.Configure(points);
+                var tracker = new AiPathTracker();
+                var position = new Vector3(0f, 0f, 64f);
+                Assert.That(tracker.TryBuild(line, 4f, configuration, position, null), Is.True);
+                Assert.That(tracker.TryProject(position, 4, 4), Is.True);
+                var drift = new AiDriftController();
+                drift.Update(tracker.Path, tracker.Projection, 15f, 15f, 0f, 0f, true, configuration, 0.02f);
+                var lateralSpeed = -15f * Mathf.Tan(configuration.DriftTargetSlipAngle * Mathf.Deg2Rad);
+                drift.Update(tracker.Path, tracker.Projection, 15f, 15f, lateralSpeed, 45f, true, configuration, 0.02f);
+                drift.Update(tracker.Path, tracker.Projection, 15f, 15f, lateralSpeed, 45f, true, configuration, 0.02f);
+                Assert.That(drift.Phase, Is.EqualTo(AiDriftPhase.Sustain));
+                Assert.That(drift.SteeringCorrection, Is.EqualTo(0f).Within(0.001f), "Holding the angle through a corner must not damp the necessary road rotation to zero.");
+                drift.Update(tracker.Path, tracker.Projection, 15f, 15f, lateralSpeed, 90f, true, configuration, 0.02f);
+                Assert.That(drift.SteeringCorrection, Is.LessThan(0f), "Excess rotation must still trigger countersteer.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(configuration);
+            }
+        }
+
+        [TestCase(false, 15f)]
+        [TestCase(true, 15f)]
+        [TestCase(false, 20f)]
+        [TestCase(true, 20f)]
+        public void DriftControl_KeepsPowerInClearCornerButBrakesForTrafficOrProps(bool prop, float entrySpeed)
+        {
+            var root = new GameObject("DriftControlTest");
+            var configuration = ScriptableObject.CreateInstance<AiDriverConfiguration>();
+            try
+            {
+                JsonUtility.FromJsonOverwrite("{\"targetSpeed\":40,\"minimumCornerSpeed\":14,\"curvatureSpeedScale\":0,\"corneringGrip\":0,\"driftAffinity\":1,\"steeringSmoothing\":0,\"throttleSmoothing\":6,\"brakeSmoothing\":10}", configuration);
+                var line = root.AddComponent<RacingLine>();
+                var points = new[] { Vector3.zero, new Vector3(0f, 0f, 80f), new Vector3(80f, 0f, 80f), new Vector3(80f, 0f, 0f) };
+                var waypoints = new Transform[points.Length];
+                for (var index = 0; index < points.Length; index++)
+                {
+                    waypoints[index] = new GameObject("Waypoint").transform;
+                    waypoints[index].SetParent(root.transform);
+                    waypoints[index].position = points[index];
+                }
+
+                line.Configure(waypoints);
+                var vehicle = new GameObject("Driver").transform;
+                vehicle.SetParent(root.transform);
+                vehicle.position = new Vector3(0f, 0f, 64f);
+                var tracker = new AiPathTracker();
+                Assert.That(tracker.TryBuild(line, 4f, configuration, vehicle.position, null), Is.True);
+                Assert.That(tracker.TryProject(vehicle.position, 4, 4), Is.True);
+                var drift = new AiDriftController();
+                drift.Update(tracker.Path, tracker.Projection, entrySpeed, entrySpeed, 0f, 0f, true, configuration, 0.02f);
+                Assert.That(drift.IsDrifting, Is.True, "The corner must initiate a real drift.");
+                var control = new AiVehicleControl();
+                var settings = new AiControlSettings(2f, 4.5f, 0.75f, 7f, 9f, 0.6f);
+                var personality = new AiDriverPersonality();
+                var tuning = configuration.CreateTuning();
+                control.Drive(tracker, vehicle, entrySpeed, 0f, 0f, float.PositiveInfinity, float.PositiveInfinity, false, personality, drift, configuration, tuning, settings, 0.02f);
+                Assert.That(control.Input.Drift, Is.True);
+                Assert.That(control.ThrottleCommand, Is.EqualTo(1f));
+                Assert.That(control.BrakeCommand, Is.Zero);
+
+                control.Drive(tracker, vehicle, entrySpeed, 0f, 0f, prop ? float.PositiveInfinity : 5f, prop ? 5f : float.PositiveInfinity, false, personality, drift, configuration, tuning, settings, 0.02f);
+                Assert.That(control.ThrottleCommand, Is.Zero);
+                Assert.That(control.BrakeCommand, Is.GreaterThan(0f).And.LessThanOrEqualTo(0.75f));
+                Assert.That(control.Input.Drift, Is.False, "Emergency braking must release the handbrake kick.");
+                Assert.That(control.Input.Throttle, Is.Zero, "Residual throttle must not fight the brake.");
+                control.Drive(tracker, vehicle, entrySpeed, 0f, 0f, float.PositiveInfinity, float.PositiveInfinity, false, personality, drift, configuration, tuning, settings, 0.02f);
+                Assert.That(control.Input.Brake, Is.Zero, "Release the normal brake immediately when returning to drift power.");
+                JsonUtility.FromJsonOverwrite("{\"cornerSpeedFactor\":0.25}", configuration);
+                control.Drive(tracker, vehicle, entrySpeed, 0f, 0f, float.PositiveInfinity, float.PositiveInfinity, false, personality, drift, configuration, tuning, settings, 0.02f);
+                Assert.That(control.ThrottleCommand, Is.Zero, "A tightening corner must stop drift acceleration before leaving the road.");
+                Assert.That(control.Input.Brake, Is.GreaterThan(0f));
+                Assert.That(control.Input.Drift, Is.False, "Normal braking must release the handbrake.");
+                drift.Update(tracker.Path, tracker.Projection, entrySpeed, entrySpeed, 0f, 0f, true, configuration, 0.61f);
+                Assert.That(drift.ButtonPressed, Is.False, "The handbrake pulse must always have a bounded duration.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(configuration);
+            }
+        }
+
+        [Test]
+        public void ExitThrottle_ExpertRecoversPowerAsTheCarSettles()
+        {
+            Assert.That(AiDriftRules.CalculateExitThrottle(5f, 15f, 1f), Is.EqualTo(1f));
+            Assert.That(AiDriftRules.CalculateExitThrottle(25f, 15f, 1f), Is.EqualTo(0.5f));
+            Assert.That(AiDriftRules.CalculateExitThrottle(5f, 90f, 1f), Is.EqualTo(0.5f));
+            Assert.That(AiDriftRules.CalculateExitThrottle(15f, 45f, 1f), Is.GreaterThan(0.5f).And.LessThan(1f));
+            Assert.That(AiDriftRules.CalculateExitThrottle(-15f, -45f, 1f), Is.EqualTo(AiDriftRules.CalculateExitThrottle(15f, 45f, 1f)));
+            Assert.That(AiDriftRules.CalculateExitThrottle(5f, 15f, 0.5f), Is.LessThan(AiDriftRules.CalculateExitThrottle(5f, 15f, 1f)));
+        }
+
         [Test]
         public void MinimumCornerAngle_FallsWithAffinityAndNeverDriftsAtZero()
         {

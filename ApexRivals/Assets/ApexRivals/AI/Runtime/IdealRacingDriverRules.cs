@@ -79,7 +79,9 @@ namespace ApexRivals.AI.Runtime
             if (speedError >= 0f)
             {
                 return new IdealSpeedCommand(
-                    Mathf.Clamp01(speedError / safeTargetSpeed * Mathf.Max(0f, throttleGain)),
+                    // Use a bounded speed-error window: a fast straight must not make the driver
+                    // lift many metres per second before its target, especially after a drift.
+                    Mathf.Clamp01(speedError / Mathf.Min(10f, safeTargetSpeed) * Mathf.Max(0f, throttleGain)),
                     0f);
             }
 
