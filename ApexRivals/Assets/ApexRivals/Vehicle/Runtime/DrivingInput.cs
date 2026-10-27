@@ -10,7 +10,8 @@ namespace ApexRivals.Vehicle.Runtime
             float steering,
             bool drift,
             bool resetRequested,
-            RecoveryInputSource recoveryInputSource = RecoveryInputSource.None)
+            RecoveryInputSource recoveryInputSource = RecoveryInputSource.None,
+            bool nitro = false)
         {
             Throttle = Mathf.Clamp01(throttle);
             Brake = Mathf.Clamp01(brake);
@@ -18,6 +19,7 @@ namespace ApexRivals.Vehicle.Runtime
             Drift = drift;
             ResetRequested = resetRequested;
             RecoveryRequestSource = recoveryInputSource;
+            Nitro = nitro;
         }
 
         public float Throttle { get; }
@@ -25,6 +27,7 @@ namespace ApexRivals.Vehicle.Runtime
         public float Steering { get; }
         public bool Drift { get; }
         public bool ResetRequested { get; }
+        public bool Nitro { get; }
         public RecoveryInputSource RecoveryRequestSource { get; }
         public bool RecoverVehicleRequested => RecoveryRequestSource != RecoveryInputSource.None;
 
@@ -32,12 +35,12 @@ namespace ApexRivals.Vehicle.Runtime
 
         public DrivingInput WithoutResetRequest()
         {
-            return new DrivingInput(Throttle, Brake, Steering, Drift, false, RecoveryRequestSource);
+            return new DrivingInput(Throttle, Brake, Steering, Drift, false, RecoveryRequestSource, Nitro);
         }
 
         public DrivingInput WithoutRecoveryRequest()
         {
-            return new DrivingInput(Throttle, Brake, Steering, Drift, ResetRequested);
+            return new DrivingInput(Throttle, Brake, Steering, Drift, ResetRequested, nitro: Nitro);
         }
     }
 }

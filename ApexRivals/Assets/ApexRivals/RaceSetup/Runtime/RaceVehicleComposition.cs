@@ -84,6 +84,14 @@ namespace ApexRivals.RaceSetup.Runtime
             raceParticipant.Configure(raceCoordinator, participantId, progressTransform != null ? progressTransform : transform);
             _vehicleRuntime.ConfigureRuntime(drivingInputGate, vehicleResetter);
             _vehicleRuntime.ApplyPerformanceStats(effectiveStats);
+            var wheelMotor = vehicleController as WheelArcadeVehicleController;
+            if (wheelMotor != null)
+            {
+                var nitro = GetComponent<PlayerVehicleNitro>();
+                if (nitro == null) nitro = gameObject.AddComponent<PlayerVehicleNitro>();
+                nitro.Configure(wheelMotor, drivingInputGate, drivingInputGate, vehicleResetter);
+                nitro.enabled = true;
+            }
             var playerRecovery = GetComponent<PlayerCheckpointRecovery>();
             if (playerRecovery == null) playerRecovery = gameObject.AddComponent<PlayerCheckpointRecovery>();
             playerRecovery.Configure(raceCoordinator, raceParticipant, vehicleResetter);
@@ -110,6 +118,8 @@ namespace ApexRivals.RaceSetup.Runtime
             AiDriverConfiguration aiConfiguration,
             RacingLine racingLine)
         {
+            var playerNitro = GetComponent<PlayerVehicleNitro>();
+            if (playerNitro != null) playerNitro.enabled = false;
             // Identity first: the driver seeds its personality from the racer id when it is configured.
             raceParticipant.Configure(raceCoordinator, participantId, progressTransform != null ? progressTransform : transform);
             aiInputProvider.Configure(

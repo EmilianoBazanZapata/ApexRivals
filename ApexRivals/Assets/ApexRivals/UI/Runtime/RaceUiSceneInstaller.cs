@@ -136,6 +136,7 @@ namespace ApexRivals.UI.Runtime
             _settingsPresenter = null;
             hudView?.Bind(null);
             hudView?.BindTelemetry(null);
+            hudView?.BindNitro(null);
             if (minimapView != null) minimapView.Bind(null);
             _hudSource = null;
             _hudPresenter = null;
@@ -152,6 +153,8 @@ namespace ApexRivals.UI.Runtime
             _hudPresenter = new RaceHudPresenter(hudView, _hudSource);
             hudView.Bind(_hudPresenter);
             hudView.BindTelemetry(session.PlayerVehicleTelemetry);
+            var player = session.PlayerVehicleRigidbody;
+            hudView.BindNitro(player != null ? player.GetComponent<PlayerVehicleNitro>() : null);
             if (minimapView != null && raceCoordinator != null && racingLine != null)
             {
                 minimapView.Bind(new RaceCoordinatorMinimapSource(raceCoordinator, racingLine));

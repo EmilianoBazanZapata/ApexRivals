@@ -15,6 +15,7 @@ namespace ApexRivals.Input.Runtime
         private InputAction _brakeAction;
         private InputAction _steeringAction;
         private InputAction _driftAction;
+        private InputAction _nitroAction;
         private InputAction _resetAction;
         private InputAction _recoverVehicleAction;
         private DrivingInput _currentInput;
@@ -28,7 +29,8 @@ namespace ApexRivals.Input.Runtime
             _currentInput.Steering,
             _currentInput.Drift,
             _resetRequested,
-            _recoveryInputSource);
+            _recoveryInputSource,
+            _currentInput.Nitro);
 
         private void Awake()
         {
@@ -55,7 +57,8 @@ namespace ApexRivals.Input.Runtime
                 steering,
                 _driftAction.IsPressed(),
                 _resetRequested,
-                _recoveryInputSource);
+                _recoveryInputSource,
+                _nitroAction.IsPressed());
         }
 
         private void OnDisable()
@@ -110,6 +113,10 @@ namespace ApexRivals.Input.Runtime
             _driftAction = _drivingActions.AddAction("Drift", InputActionType.Button, expectedControlLayout: "Button");
             _driftAction.AddBinding("<Keyboard>/space");
             _driftAction.AddBinding("<Gamepad>/buttonSouth");
+
+            _nitroAction = _drivingActions.AddAction("Nitro", InputActionType.Button, expectedControlLayout: "Button");
+            _nitroAction.AddBinding("<Keyboard>/leftShift");
+            _nitroAction.AddBinding("<Gamepad>/buttonWest");
 
             _resetAction = _drivingActions.AddAction("Reset", InputActionType.Button, expectedControlLayout: "Button");
             _resetAction.AddBinding("<Keyboard>/r");

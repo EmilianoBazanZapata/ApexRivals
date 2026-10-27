@@ -25,9 +25,10 @@ namespace ApexRivals.Tests.PlayMode
         private readonly List<GameObject> _objects = new List<GameObject>();
         private const float Step = 0.02f;
 
-        private sealed class Input : IDrivingInputProvider
+        private sealed class Input : IDrivingInputProvider, IDrivingInputAvailability
         {
             public DrivingInput CurrentInput { get; set; }
+            public bool DrivingAllowed { get; set; } = true;
             public void ConsumeResetRequest() => CurrentInput = CurrentInput.WithoutResetRequest();
             public void ConsumeRecoveryRequest() => CurrentInput = CurrentInput.WithoutRecoveryRequest();
         }
@@ -467,6 +468,43 @@ namespace ApexRivals.Tests.PlayMode
             car.Controller.SendMessage("FixedUpdate");
             Debug.Log($"LOCKED_WHEEL_STEERING roadSpeed={car.Controller.CurrentPlanarSpeed:F2}m/s rearRpm={car.Controller.RearRightWheelRpm:F2} angle={car.Controller.CurrentFrontWheelSteerAngle:F2}deg");
             Assert.That(Mathf.Abs(car.Controller.CurrentFrontWheelSteerAngle), Is.LessThan(25), "Locking rear tyres at speed must not enable parking-speed steering angles.");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Nitro_DriftChargesAndBoostAddsPropulsionWithoutChangingVehicleStats()
+        {
+            var baseline = CreateCar(-20f);
+            var boosted = CreateCar(20f);
+            Settle(baseline, boosted);
+            var nitro = boosted.Root.AddComponent<PlayerVehicleNitro>();
+            nitro.Configure(boosted.Controller, boosted.Input, boosted.Input, boosted.Resetter);
+            var stats = boosted.Controller.CurrentPerformanceStats;
+            Assert.That(nitro.NormalizedCharge, Is.Zero);
+            for (var i = 0; i < 50; i++)
+            {
+                boosted.Body.rotation = Quaternion.identity;
+                boosted.Body.angularVelocity = Vector3.zero;
+                boosted.Body.linearVelocity = new Vector3(12f, 0f, 20f);
+                Simulate(boosted);
+            }
+            Assert.That(nitro.NormalizedCharge, Is.GreaterThan(0.01f), "Actual grounded slip must earn nitro without holding the handbrake.");
+            baseline.Body.rotation = boosted.Body.rotation = Quaternion.identity;
+            baseline.Body.angularVelocity = boosted.Body.angularVelocity = Vector3.zero;
+            baseline.Body.linearVelocity = boosted.Body.linearVelocity = Vector3.forward * 20f;
+            baseline.Input.CurrentInput = new DrivingInput(1f, 0f, 0f, false, false);
+            boosted.Input.CurrentInput = new DrivingInput(1f, 0f, 0f, false, false, nitro: true);
+            var fuel = nitro.NormalizedCharge;
+            Simulate(baseline, boosted);
+            Assert.That(boosted.Body.linearVelocity.z, Is.GreaterThan(baseline.Body.linearVelocity.z + 0.05f));
+            Assert.That(nitro.NormalizedCharge, Is.LessThan(fuel));
+            Assert.That(boosted.Controller.CurrentPerformanceStats.Acceleration, Is.EqualTo(stats.Acceleration));
+            Assert.That(boosted.Controller.CurrentPerformanceStats.TopSpeed, Is.EqualTo(stats.TopSpeed));
+            boosted.Input.DrivingAllowed = false;
+            fuel = nitro.NormalizedCharge;
+            Simulate(boosted);
+            Assert.That(nitro.NormalizedCharge, Is.EqualTo(fuel));
+            Assert.That(nitro.IsBoosting, Is.False);
             yield return null;
         }
 

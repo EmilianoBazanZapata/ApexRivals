@@ -16,6 +16,7 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Text speedValueText;
         [SerializeField] private Text gearValueText;
         [SerializeField] private Text rpmValueText;
+        [SerializeField] private NitroHudUguiView nitroView;
 
         private RaceHudPresenter _presenter;
         private IVehicleTelemetry _telemetry;
@@ -47,6 +48,11 @@ namespace ApexRivals.UI.Runtime
         {
             _telemetry = telemetry;
             _hasRenderedTelemetry = false;
+        }
+
+        public void BindNitro(PlayerVehicleNitro nitro)
+        {
+            if (nitroView != null) nitroView.Bind(nitro);
         }
 
         public void Render(RaceHudViewModel viewModel)

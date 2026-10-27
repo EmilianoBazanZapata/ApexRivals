@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ApexRivals.Input.Runtime
 {
     [DisallowMultipleComponent]
-    public sealed class DrivingInputGate : MonoBehaviour, IDrivingInputProvider
+    public sealed class DrivingInputGate : MonoBehaviour, IDrivingInputProvider, IDrivingInputAvailability
     {
         [SerializeField]
         private MonoBehaviour sourceInputProvider;
