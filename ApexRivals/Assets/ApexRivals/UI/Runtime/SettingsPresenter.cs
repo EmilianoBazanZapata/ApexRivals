@@ -116,6 +116,17 @@ namespace ApexRivals.UI.Runtime
             Render(PresentationFailure.None, string.Empty);
         }
 
+        public void SetAmbienceVolume(float value)
+        {
+            if (_operationActive)
+            {
+                return;
+            }
+
+            _settings.EditAmbienceVolume(value);
+            Render(PresentationFailure.None, string.Empty);
+        }
+
         public void Cancel()
         {
             if (_operationActive)
@@ -183,7 +194,8 @@ namespace ApexRivals.UI.Runtime
                 _settings.HasUnsavedChanges,
                 !_operationActive && _settings.HasUnsavedChanges,
                 failure,
-                messageKey ?? string.Empty);
+                messageKey ?? string.Empty,
+                _settings.Draft.AmbienceVolume);
         }
 
         private static string ToMessageKey(SettingsOperationStatus status)

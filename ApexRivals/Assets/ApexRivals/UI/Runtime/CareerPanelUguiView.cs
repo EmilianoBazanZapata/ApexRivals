@@ -7,9 +7,14 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class CareerPanelUguiView : MonoBehaviour
     {
+        [SerializeField, Tooltip("Colors (and border widths) this control switches between with its state.")] private ApexUiPalette palette;
+        private ApexUiPalette Palette => ApexUiPalette.Resolve(palette);
+
         [SerializeField] private GameObject root;
         [SerializeField] private Text completionText;
         [SerializeField, Tooltip("Horizontal filled image showing completion.")] private Image completionFill;
+        [SerializeField, Tooltip("Chevron progress row; used instead of the filled image when assigned.")] private ChevronProgressBar completionBar;
+        [SerializeField, Tooltip("\"68%\" beside a fixed CAREER PROGRESS title; without it the completion text carries the percent.")] private Text completionPercentText;
         [SerializeField] private Text objectiveTitleText;
         [SerializeField] private Text objectiveDetailText;
         [SerializeField] private Text collectionText;
@@ -29,11 +34,24 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            UguiViewText.Set(completionText, viewModel.CompletionText);
+            if (completionPercentText != null)
+            {
+                UguiViewText.Set(completionPercentText, Mathf.Clamp(viewModel.CompletionPercent, 0, 100) + "%");
+            }
+            else
+            {
+                UguiViewText.Set(completionText, viewModel.CompletionText);
+            }
+
+            if (completionBar != null)
+            {
+                completionBar.Value = viewModel.CompletionPercent / 100f;
+            }
+
             if (completionFill != null)
             {
                 completionFill.fillAmount = Mathf.Clamp01(viewModel.CompletionPercent / 100f);
-                completionFill.color = viewModel.IsComplete ? ApexUiVisualStyle.PrimaryText : ApexUiVisualStyle.PrimaryRed;
+                completionFill.color = viewModel.IsComplete ? Palette.PrimaryText : Palette.PrimaryRed;
             }
 
             UguiViewText.Set(objectiveTitleText, viewModel.ObjectiveTitle);

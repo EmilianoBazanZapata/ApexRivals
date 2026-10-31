@@ -9,10 +9,25 @@ using UnityEngine.UI;
 namespace ApexRivals.UI.Runtime
 {
     [DisallowMultipleComponent]
-    public sealed class SettingsUguiView : MonoBehaviour, ISettingsView, ICancelHandler
+    public sealed class SettingsUguiView : MonoBehaviour, ISettingsView, ICancelHandler, IUiTabNavigation
     {
-        private const string DesktopRefreshRateLabel = "Desktop";
-        private static readonly string[] DesktopRefreshRateOptions = { DesktopRefreshRateLabel };
+        [SerializeField, Tooltip("Disable to preserve Navigation mode, links and wrapping authored on the Selectable components. Enable to rebuild links as controls appear/disappear.")] private bool useDynamicNavigation = true;
+
+        [SerializeField] private string refreshRateFormat = "{0} HZ";
+
+        [Header("Display text")]
+        [SerializeField] private string displayRollbackError = "DISPLAY MODE NOT SAVED. APPLY AGAIN.";
+        [SerializeField] private string unsupportedResolutionError = "THIS RESOLUTION IS NOT SUPPORTED.";
+        [SerializeField] private string displayError = "COULD NOT CHANGE THE DISPLAY MODE.";
+        [SerializeField] private string storageError = "COULD NOT SAVE THE SETTINGS.";
+        [SerializeField] private string applyError = "COULD NOT APPLY THE SETTINGS.";
+        [SerializeField] private string defaultRefreshRateLabel = "DEFAULT";
+        [SerializeField] private string windowedLabel = "WINDOWED";
+        [SerializeField] private string exclusiveFullscreenLabel = "EXCLUSIVE FULLSCREEN";
+        [SerializeField] private string borderlessLabel = "BORDERLESS";
+
+        [SerializeField] private string desktopRefreshRateLabel = "DESKTOP";
+
 
         [SerializeField] private Button displayTabButton;
         [SerializeField] private Button audioTabButton;
@@ -25,6 +40,7 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Slider musicVolumeSlider;
         [SerializeField, FormerlySerializedAs("sfxVolumeSlider")] private Slider uiVolumeSlider;
         [SerializeField] private Slider vehicleVolumeSlider;
+        [SerializeField] private Slider ambienceVolumeSlider;
         [SerializeField] private Button applyButton;
         [SerializeField] private Button cancelButton;
         [SerializeField] private Button restoreDefaultsButton;
@@ -83,12 +99,11 @@ namespace ApexRivals.UI.Runtime
             SetSlider(musicVolumeSlider, viewModel.MusicVolume);
             SetSlider(uiVolumeSlider, viewModel.UiVolume);
             SetSlider(vehicleVolumeSlider, viewModel.VehicleVolume);
+            SetSlider(ambienceVolumeSlider, viewModel.AmbienceVolume);
             SetButton(applyButton, viewModel.CanApply);
             SetButton(cancelButton, true);
             SetButton(restoreDefaultsButton, true);
-            UguiViewText.Set(statusText, viewModel.MessageKey == "ui.settings.display.rollbackFailed"
-                ? "Display mode not saved. Apply again."
-                : viewModel.MessageKey);
+            UguiViewText.Set(statusText, StatusLine(viewModel.MessageKey));
             if (navigationChanged) ConfigureNavigation();
             _renderedCanApply = viewModel.CanApply;
             _rendering = false;
@@ -187,6 +202,11 @@ namespace ApexRivals.UI.Runtime
                 vehicleVolumeSlider.onValueChanged.AddListener(OnVehicleVolumeChanged);
             }
 
+            if (ambienceVolumeSlider != null)
+            {
+                ambienceVolumeSlider.onValueChanged.AddListener(OnAmbienceVolumeChanged);
+            }
+
             if (applyButton != null)
             {
                 applyButton.onClick.AddListener(OnApplyClicked);
@@ -257,6 +277,11 @@ namespace ApexRivals.UI.Runtime
                 vehicleVolumeSlider.onValueChanged.RemoveListener(OnVehicleVolumeChanged);
             }
 
+            if (ambienceVolumeSlider != null)
+            {
+                ambienceVolumeSlider.onValueChanged.RemoveListener(OnAmbienceVolumeChanged);
+            }
+
             if (applyButton != null)
             {
                 applyButton.onClick.RemoveListener(OnApplyClicked);
@@ -311,7 +336,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (!_rendering)
             {
-                _presenter?.SetMasterVolume(value);
+                _presenter?.SetMasterVolume(NormalizedSliderValue(masterVolumeSlider, value));
                 UiAudioEvents.Raise(UiSound.Move);
             }
         }
@@ -320,7 +345,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (!_rendering)
             {
-                _presenter?.SetMusicVolume(value);
+                _presenter?.SetMusicVolume(NormalizedSliderValue(musicVolumeSlider, value));
                 UiAudioEvents.Raise(UiSound.Move);
             }
         }
@@ -329,7 +354,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (!_rendering)
             {
-                _presenter?.SetUiVolume(value);
+                _presenter?.SetUiVolume(NormalizedSliderValue(uiVolumeSlider, value));
                 UiAudioEvents.Raise(UiSound.Move);
             }
         }
@@ -338,7 +363,16 @@ namespace ApexRivals.UI.Runtime
         {
             if (!_rendering)
             {
-                _presenter?.SetVehicleVolume(value);
+                _presenter?.SetVehicleVolume(NormalizedSliderValue(vehicleVolumeSlider, value));
+                UiAudioEvents.Raise(UiSound.Move);
+            }
+        }
+
+        private void OnAmbienceVolumeChanged(float value)
+        {
+            if (!_rendering)
+            {
+                _presenter?.SetAmbienceVolume(NormalizedSliderValue(ambienceVolumeSlider, value));
                 UiAudioEvents.Raise(UiSound.Move);
             }
         }
@@ -374,6 +408,30 @@ namespace ApexRivals.UI.Runtime
         private void OnAudioTabClicked()
         {
             ShowAudioTab(true);
+        }
+
+        // Q/E and LB/RB: with two tabs, previous and next both switch to the other one.
+        public void ShowPreviousTab() => SwitchTab();
+
+        public void ShowNextTab() => SwitchTab();
+
+        private void SwitchTab()
+        {
+            if (!isActiveAndEnabled || audioTabButton == null || audioPanel == null)
+            {
+                return;
+            }
+
+            if (audioPanel.activeSelf)
+            {
+                OnDisplayTabClicked();
+            }
+            else
+            {
+                OnAudioTabClicked();
+            }
+
+            UiAudioEvents.Raise(UiSound.Move);
         }
 
         private void ShowDisplayTab(bool selectFirstControl)
@@ -481,7 +539,7 @@ namespace ApexRivals.UI.Runtime
                 && EventSystem.current.currentSelectedGameObject == refreshRateSelector.gameObject;
 
             refreshRateSelector.interactable = false;
-            refreshRateSelector.SetOptions(DesktopRefreshRateOptions, 0);
+            refreshRateSelector.SetOptions(new[] { desktopRefreshRateLabel }, 0);
 
             if (wasSelected)
             {
@@ -530,7 +588,8 @@ namespace ApexRivals.UI.Runtime
 
         private void ConfigureNavigation()
         {
-            var rows = new List<Selectable>(4);
+            if (!useDynamicNavigation) return;
+            var rows = new List<Selectable>(5);
             if (displayPanel != null && displayPanel.activeSelf)
             {
                 AddRowIfPresent(rows, resolutionSelector);
@@ -547,28 +606,49 @@ namespace ApexRivals.UI.Runtime
                 AddRowIfPresent(rows, musicVolumeSlider);
                 AddRowIfPresent(rows, uiVolumeSlider);
                 AddRowIfPresent(rows, vehicleVolumeSlider);
+                AddRowIfPresent(rows, ambienceVolumeSlider);
             }
 
             var firstRow = rows.Count > 0 ? rows[0] : null;
             var lastRow = rows.Count > 0 ? rows[rows.Count - 1] : null;
 
-            // The audio tab is optional; never link to a missing tab or navigation dead-ends.
+            // Tabs stack in a column on the left with the open tab's rows to their right; Restore Defaults closes
+            // the rows and the footer holds Back and Apply. Left/right inside a row change its value, so a row's
+            // way back to the tabs is up from the first row. The audio tab is optional: never link to a missing one.
+            var currentTab = audioTabButton != null && audioPanel != null && audioPanel.activeSelf ? (Selectable)audioTabButton : displayTabButton;
             var lastTab = audioTabButton != null ? (Selectable)audioTabButton : displayTabButton;
-            var belowTabs = firstRow != null ? firstRow : restoreDefaultsButton;
+            var rightOfTabs = firstRow != null ? firstRow : restoreDefaultsButton;
 
-            SetNavigation(displayTabButton, applyButton, audioTabButton != null ? audioTabButton : belowTabs, null, audioTabButton);
-            SetNavigation(audioTabButton, displayTabButton, belowTabs, displayTabButton, null);
+            SetNavigation(displayTabButton, null, audioTabButton != null ? audioTabButton : cancelButton, null, rightOfTabs);
+            SetNavigation(audioTabButton, displayTabButton, cancelButton, null, rightOfTabs);
 
             for (var index = 0; index < rows.Count; index++)
             {
-                var up = index == 0 ? lastTab : rows[index - 1];
+                var up = index == 0 ? currentTab : rows[index - 1];
                 var down = index == rows.Count - 1 ? (Selectable)restoreDefaultsButton : rows[index + 1];
                 SetNavigation(rows[index], up, down, null, null);
             }
 
-            SetNavigation(restoreDefaultsButton, lastRow != null ? lastRow : lastTab, cancelButton, null, cancelButton);
-            SetNavigation(cancelButton, restoreDefaultsButton, applyButton, restoreDefaultsButton, applyButton);
-            SetNavigation(applyButton, cancelButton, displayTabButton, cancelButton, null);
+            SetNavigation(restoreDefaultsButton, lastRow != null ? lastRow : currentTab, applyButton, null, null);
+            SetNavigation(cancelButton, lastTab, null, null, applyButton);
+            SetNavigation(applyButton, restoreDefaultsButton, null, cancelButton, null);
+        }
+
+        /// <summary>
+        /// Player-facing status line: only failures are shown. Success and info keys (applied, cancelled,
+        /// defaults pending) stay silent, and raw message keys never reach the screen.
+        /// </summary>
+        private string StatusLine(string messageKey)
+        {
+            return messageKey switch
+            {
+                "ui.settings.display.rollbackFailed" => displayRollbackError,
+                "ui.settings.resolution.unsupported" => unsupportedResolutionError,
+                "ui.settings.display.failed" => displayError,
+                "ui.settings.storage.failed" => storageError,
+                "ui.settings.failed" => applyError,
+                _ => string.Empty
+            };
         }
 
         private static void AddRowIfPresent(List<Selectable> rows, Selectable row)
@@ -579,18 +659,18 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
-        private static string CreateRefreshRateLabel(int refreshRate)
+        private string CreateRefreshRateLabel(int refreshRate)
         {
-            return refreshRate > 0 ? $"{refreshRate} Hz" : "Default";
+            return refreshRate > 0 ? UguiViewText.FormatTemplate(refreshRateFormat, "{0} HZ", refreshRate) : defaultRefreshRateLabel;
         }
 
-        private static string CreateFullScreenModeLabel(FullScreenMode mode)
+        private string CreateFullScreenModeLabel(FullScreenMode mode)
         {
             return mode switch
             {
-                FullScreenMode.Windowed => "Windowed",
-                FullScreenMode.ExclusiveFullScreen => "Exclusive Fullscreen",
-                _ => "Borderless"
+                FullScreenMode.Windowed => windowedLabel,
+                FullScreenMode.ExclusiveFullScreen => exclusiveFullscreenLabel,
+                _ => borderlessLabel
             };
         }
 
@@ -628,13 +708,16 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
+        private static float NormalizedSliderValue(Slider slider, float value)
+        {
+            return slider != null ? Mathf.InverseLerp(slider.minValue, slider.maxValue, value) : Mathf.Clamp01(value);
+        }
+
         private static void SetSlider(Slider slider, float value)
         {
             if (slider != null)
             {
-                slider.minValue = 0f;
-                slider.maxValue = 1f;
-                slider.value = value;
+                slider.SetValueWithoutNotify(Mathf.Lerp(slider.minValue, slider.maxValue, Mathf.Clamp01(value)));
             }
         }
 

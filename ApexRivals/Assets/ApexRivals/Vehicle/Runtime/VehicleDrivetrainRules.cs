@@ -88,6 +88,33 @@ namespace ApexRivals.Vehicle.Runtime
             return new EngineRpmEvaluation(targetEngineRpm, engineRpm);
         }
 
+        /// <summary>
+        /// Engine RPM to show and play (not to drive with). Off the throttle the engine follows the road (engine
+        /// braking). On it, the driven wheels may rev it up to <paramref name="wheelspinFlareRpm"/> past road speed,
+        /// or to <paramref name="launchFlareRpm"/> above idle when launching, so a slow drift does not read as the redline.
+        /// </summary>
+        public static float EvaluatePresentedEngineRpm(
+            float drivenWheelEngineRpm,
+            float roadEngineRpm,
+            bool onThrottle,
+            float idleRpm,
+            float redlineRpm,
+            float wheelspinFlareRpm,
+            float launchFlareRpm)
+        {
+            var minimumEngineRpm = Max(1f, idleRpm);
+            var maximumEngineRpm = Max(minimumEngineRpm, redlineRpm);
+            var road = MathF.Abs(roadEngineRpm);
+            if (!onThrottle)
+            {
+                return Clamp(road, minimumEngineRpm, maximumEngineRpm);
+            }
+
+            var limit = Max(road + Max(0f, wheelspinFlareRpm), minimumEngineRpm + Max(0f, launchFlareRpm));
+            var engineRpm = MathF.Min(Max(MathF.Abs(drivenWheelEngineRpm), road * 0.9f), limit);
+            return Clamp(engineRpm, minimumEngineRpm, maximumEngineRpm);
+        }
+
         public static float EvaluateIdleEngineRpm(float currentEngineRpm, float idleRpm, float followAmount)
         {
             return Lerp(currentEngineRpm, Max(1f, idleRpm), followAmount);

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a4908c97fcaabb409f674595bac25b0, type: 3}
+  m_Name: I6
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.EngineSoundProfile
+  displayName: 3.0 Inline 6
+  description: 'Inline six, 3.0 L. Two three-into-one manifolds: perfectly even,
+    silky and smooth.'
+  firingOrder: 010000000500000003000000060000000200000004000000
+  firingAngles:
+  - 0
+  - 120
+  - 240
+  - 360
+  - 480
+  - 600
+  firingBanks: 000000000100000000000000010000000000000001000000
+  idleRpm: 800
+  redlineRpm: 7400
+  displacement: 3
+  pipeLengths:
+  - 0.75
+  - 0.75
+  pipeFeedback: 0.48
+  mufflerCutoff: 1300
+  collectorResonance: 210
+  roughness: 0.05
+  intakeLevel: 0.28
+  mechanicalLevel: 0.07
+  turboLevel: 0
+  afterfire: 0.03

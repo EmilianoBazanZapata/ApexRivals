@@ -12,7 +12,7 @@ namespace ApexRivals.UI.Runtime
 
         private void Awake()
         {
-            UguiViewText.Set(promptText, "RETURN TO TRACK\nPress E / View to recover");
+            // Keep the message authored on promptText; only visibility changes at runtime.
             _isVisible = true;
             SetVisible(false);
         }

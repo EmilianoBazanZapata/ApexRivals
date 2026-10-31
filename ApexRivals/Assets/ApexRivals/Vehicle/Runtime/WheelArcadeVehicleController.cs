@@ -5,7 +5,7 @@ namespace ApexRivals.Vehicle.Runtime
 {
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class WheelArcadeVehicleController : MonoBehaviour, IVehicleRuntime, IVehicleTelemetry
+    public sealed class WheelArcadeVehicleController : MonoBehaviour, IVehicleRuntime, IVehicleTelemetry, IVehicleTachometer
     {
         // Presentation-only threshold for the HUD's reverse ("R") gear text; distinct
         // from the reverseEntrySpeed tuning field, which governs when reverse motor/
@@ -89,6 +89,7 @@ namespace ApexRivals.Vehicle.Runtime
         private float _driftAssistSessionRemaining;
         private IDrivingInputProvider _inputProvider;
         private float _engineRpm;
+        private float _presentedEngineRpm;
         private float _tractionFactor = 1f;
         private float _shiftTimeRemaining;
         private float _shiftCooldownRemaining;
@@ -119,6 +120,12 @@ namespace ApexRivals.Vehicle.Runtime
         public float CurrentHandbrakeTorque { get; private set; }
         public float CurrentSteeringSpeed { get; private set; }
         public float CurrentEngineRpm => _engineRpm;
+        /// <summary>
+        /// Engine RPM shown on the tachometer and heard from the engine: follows road speed in the current gear, with
+        /// only a limited flare for wheelspin, and drops quickly through a gear change. Physics keeps using
+        /// <see cref="CurrentEngineRpm"/>.
+        /// </summary>
+        public float CurrentPresentedEngineRpm => _presentedEngineRpm;
         public int CurrentGear => _currentGearIndex + 1;
         public float RearLeftWheelRpm { get; private set; }
         public float RearRightWheelRpm { get; private set; }
@@ -149,8 +156,9 @@ namespace ApexRivals.Vehicle.Runtime
 
         float IVehicleTelemetry.SpeedKph => VehicleTelemetryPresentation.ConvertSpeedToKph(CurrentForwardSpeed);
         int IVehicleTelemetry.CurrentGear => CurrentGear;
-        float IVehicleTelemetry.EngineRpm => CurrentEngineRpm;
+        float IVehicleTelemetry.EngineRpm => CurrentPresentedEngineRpm;
         bool IVehicleTelemetry.IsReversing => CurrentForwardSpeed < -ReversingDisplaySpeedThreshold;
+        float IVehicleTachometer.RedlineRpm => _effectiveTuning.redlineRpm;
 
         private void Awake()
         {
@@ -217,6 +225,7 @@ namespace ApexRivals.Vehicle.Runtime
             var canSelectGear = AdvanceGearboxTiming();
             ApplyRearMotorTorque(input, canSelectGear);
             UpdateWheelSlipDiagnostics();
+            UpdatePresentedEngineRpm();
         }
 
         /// <summary>
@@ -252,18 +261,11 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
-            _rigidbody.useGravity = true;
-            // Physics advances at the fixed timestep while the chase camera samples this
-            // Rigidbody every rendered frame. Interpolate the rendered Rigidbody pose so
-            // its CameraTarget child is continuous between physics steps.
-            _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
-            _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            _rigidbody.constraints = RigidbodyConstraints.None;
-            _rigidbody.ResetCenterOfMass();
-            _rigidbody.ResetInertiaTensor();
-
+            // Rigidbody modes, constraints and automatic/custom mass properties are authored on
+            // the prefab. Configuration owns only the explicit tuning applied below.
             RefreshEffectiveTuning();
             _engineRpm = Mathf.Max(1f, _effectiveTuning.idleRpm);
+            _presentedEngineRpm = _engineRpm;
         }
 
         private void RefreshEffectiveTuning()
@@ -477,6 +479,12 @@ namespace ApexRivals.Vehicle.Runtime
         private const float TractionMinimumSlipAllowance = 2f;
         private const float TractionMinimumTorqueFactor = 0.15f;
         private const float TractionRecoveryPerSecond = 2.5f;
+        // Presented (tachometer/sound) rpm: how far spinning wheels may rev past road speed, the most a launch from
+        // standstill may rev above idle, and how fast the needle follows (faster through a gear change).
+        private const float PresentedWheelspinFlareRpm = 900f;
+        private const float PresentedLaunchFlareRpm = 2400f;
+        private const float PresentedRpmResponse = 9f;
+        private const float PresentedShiftRpmResponse = 24f;
 
         private float UpdateTractionControl(bool drivingForward)
         {
@@ -603,6 +611,25 @@ namespace ApexRivals.Vehicle.Runtime
             _engineRpm = VehicleDrivetrainRules.EvaluateIdleEngineRpm(_engineRpm, _effectiveTuning.idleRpm, followAmount);
         }
 
+        private void UpdatePresentedEngineRpm()
+        {
+            var gearRatio = _effectiveTuning.GetGearRatio(_currentGearIndex);
+            var roadEngineRpm = VehicleDrivetrainRules.CalculateRawEngineRpm(
+                VehicleDrivetrainRules.CalculateGroundWheelRpm(CurrentForwardSpeed, rearLeftWheel.radius),
+                gearRatio,
+                _effectiveTuning.differential);
+            var target = VehicleDrivetrainRules.EvaluatePresentedEngineRpm(
+                CalculateRawEngineRpm(gearRatio),
+                roadEngineRpm,
+                CurrentTorqueBeforeShiftSuppression > 0f,
+                _effectiveTuning.idleRpm,
+                _effectiveTuning.redlineRpm,
+                PresentedWheelspinFlareRpm,
+                PresentedLaunchFlareRpm);
+            var response = ShiftInProgress ? PresentedShiftRpmResponse : PresentedRpmResponse;
+            _presentedEngineRpm = Mathf.Lerp(_presentedEngineRpm, target, 1f - Mathf.Exp(-response * Time.fixedDeltaTime));
+        }
+
         private float CalculateAverageDrivenWheelRpm()
         {
             return VehicleDrivetrainRules.CalculateAverageDrivenWheelRpm(rearLeftWheel.rpm, rearRightWheel.rpm);
@@ -629,6 +656,7 @@ namespace ApexRivals.Vehicle.Runtime
             _shiftCooldownRemaining = 0f;
             CurrentRequestedGear = 1;
             _engineRpm = Mathf.Max(1f, _effectiveTuning.idleRpm);
+            _presentedEngineRpm = _engineRpm;
             CurrentMotorTorque = 0f;
             CurrentTorqueBeforeShiftSuppression = 0f;
             CurrentPowerCurveEvaluation = 0f;

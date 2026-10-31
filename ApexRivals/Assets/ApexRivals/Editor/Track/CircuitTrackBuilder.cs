@@ -13,11 +13,11 @@ using Object = UnityEngine.Object;
 namespace ApexRivals.Editor.Track
 {
     /// <summary>
-    /// Rebuilds a race scene circuit from its layout JSON: a closed centreline (metres, x/z, start line first,
+    /// Creates a circuit only in an empty race scene; existing authored circuits are preserved. Generates from its layout JSON: a closed centreline (metres, x/z, start line first,
     /// clockwise) traced from a reference F1 layout and scaled to ~2 km, with optional per-point heights for bridges.
     /// Each circuit (<see cref="CircuitProfile"/>) has its own scene, layout and folder for the generated meshes. The road, kerbs and run-off are
     /// generated along that spline with Kenney Racing Kit materials; barriers, grandstands, pits, gantry and scenery
-    /// are Racing Kit models. Checkpoints, AI waypoints and the starting grid are re-placed along the same spline.
+    /// are Racing Kit models. AI waypoints and the starting grid are initialized only when empty. Checkpoints remain Editor-owned.
     /// </summary>
     public static class CircuitTrackBuilder
     {
@@ -62,8 +62,6 @@ namespace ApexRivals.Editor.Track
         private const float WaypointSpacing = 12f;
         private const float WaypointHeight = 0.2f;
         private const float SpawnHeight = 0.25f;
-        private const float CheckpointHeight = 1.5f;
-        private static readonly Vector3 CheckpointSize = new Vector3(HalfWidth * 2f + 8f, 4f, 3f);
         private const float LevelSeparation = 4f;
         private const float ElevatedThreshold = 0.05f;
         private const float DeckHalfWidth = CornerBarrierOffset + 1.5f;
@@ -78,13 +76,13 @@ namespace ApexRivals.Editor.Track
         private const float GridSlotSpacing = 8f;
         private const float GridLateralOffset = 2.8f;
 
-        [MenuItem("ApexRivals/Track/Rebuild Race Circuit")]
+        [MenuItem("ApexRivals/Track/Create Missing Race Circuit")]
         public static void RebuildFromMenu() => RebuildFromMenu(RaceCircuit);
 
-        [MenuItem("ApexRivals/Track/Rebuild Dunes Circuit")]
+        [MenuItem("ApexRivals/Track/Create Missing Dunes Circuit")]
         public static void RebuildDunesFromMenu() => RebuildFromMenu(DunesCircuit);
 
-        [MenuItem("ApexRivals/Track/Rebuild Suzuka Circuit")]
+        [MenuItem("ApexRivals/Track/Create Missing Suzuka Circuit")]
         public static void RebuildSuzukaFromMenu() => RebuildFromMenu(SuzukaCircuit);
 
         private static void RebuildFromMenu(CircuitProfile profile)
@@ -101,71 +99,58 @@ namespace ApexRivals.Editor.Track
             }
 
             Debug.Log(Rebuild(profile));
-            EditorSceneManager.MarkSceneDirty(scene);
         }
 
-        /// <summary>Rebuilds the Race scene circuit in the open scene and returns a short summary.</summary>
+        /// <summary>Initializes an empty Race circuit in the open scene; preserves existing content and returns a short summary.</summary>
         public static string Rebuild() => Rebuild(RaceCircuit);
 
-        /// <summary>Rebuilds <paramref name="profile"/>'s circuit in the open scene and returns a short summary.</summary>
+        /// <summary>Initializes an empty circuit in the matching open scene; preserves existing content and returns a short summary.</summary>
         public static string Rebuild(CircuitProfile profile)
         {
-            _generatedDirectory = profile.GeneratedDirectory;
-            var centreline = Centreline.Load(profile.LayoutPath);
-            var sceneRoot = GameObject.Find("RaceSceneRoot") ?? throw new InvalidOperationException("RaceSceneRoot not found; open the Race scene.");
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Exit Play Mode first.");
+            var scene = EditorSceneManager.GetActiveScene();
+            if (scene.path != profile.ScenePath) throw new InvalidOperationException("Open the matching circuit scene: " + profile.ScenePath);
+            var sceneRoot = scene.GetRootGameObjects().FirstOrDefault(r => r.name == "RaceSceneRoot");
+            if (sceneRoot == null) throw new InvalidOperationException("RaceSceneRoot missing in " + scene.path);
             var track = sceneRoot.transform.Find("Track");
             var environment = sceneRoot.transform.Find("Environment");
+            var line = sceneRoot.GetComponentInChildren<RacingLine>(true);
+            var grid = sceneRoot.GetComponentInChildren<StartingGrid>(true);
+            if (track == null || environment == null || line == null || grid == null)
+                throw new InvalidOperationException("Missing Track, Environment, RacingLine or StartingGrid in " + scene.path);
 
-            RemoveLegacyGeometry(track, environment);
+            // An existing circuit is authored content. Do not try to reconstruct its missing children:
+            // doing so would mix a new layout with edited geometry, checkpoints and spawn positions.
+            if (track.Find("Circuit") != null || track.Find("RoadSurface") != null ||
+                track.Find("Barriers") != null || environment.Find("CircuitProps") != null ||
+                environment.Find("Ground") != null || line.transform.childCount > 0 || grid.transform.childCount > 0 ||
+                new SerializedObject(line).FindProperty("waypoints").arraySize > 0 ||
+                new SerializedObject(grid).FindProperty("spawnPoints").arraySize > 0 ||
+                track.GetComponentsInChildren<RaceCheckpoint>(true).Length > 0)
+                return "Circuit preserved: geometry or race layout already exists. Edit it in the Inspector; generation only initializes an empty circuit.";
+
+            _generatedDirectory = profile.GeneratedDirectory;
+            var centreline = Centreline.Load(profile.LayoutPath);
             Directory.CreateDirectory(_generatedDirectory);
-
-            var surface = Recreate(track, "Circuit");
+            var surface = CreateGroup(track, "Circuit");
             BuildSurface(centreline, surface);
-
             var pillars = BuildBridges(centreline, surface);
-
-            var barriers = Recreate(track, "Barriers");
+            var barriers = CreateGroup(track, "Barriers");
             var barrierCount = BuildBarriers(centreline, barriers);
-
-            var props = Recreate(environment, "CircuitProps");
+            var props = CreateGroup(environment, "CircuitProps");
             BuildGround(centreline, environment);
             var propCount = BuildStartArea(centreline, props) + BuildTrackside(centreline, props) + BuildScenery(centreline, props);
-
-            var checkpoints = PlaceCheckpoints(centreline, track.Find("Checkpoints"));
-            var waypoints = PlaceWaypoints(centreline, sceneRoot.transform.Find("RacingLine").GetComponent<RacingLine>());
-            PlaceGrid(centreline, sceneRoot.transform.Find("StartingGrid").GetComponent<StartingGrid>());
-
-            AssetDatabase.SaveAssets();
-            return $"Circuit rebuilt: {centreline.Length:F0} m, {checkpoints} checkpoints, {waypoints} waypoints, {barrierCount} barrier pieces, {propCount} props, {pillars} bridge pillars.";
+            var waypoints = PlaceWaypoints(centreline, line);
+            PlaceGrid(centreline, grid);
+            EditorSceneManager.MarkSceneDirty(scene);
+            return $"Missing circuit created: {centreline.Length:F0} m, {waypoints} waypoints, {barrierCount} barriers, {propCount} props, {pillars} pillars. Configure checkpoints in the Editor.";
         }
 
-        private static void RemoveLegacyGeometry(Transform track, Transform environment)
+        private static Transform CreateGroup(Transform parent, string name)
         {
-            foreach (var name in new[] { "RoadSurface", "TrackLimitLeft", "TrackLimitRight", "StartFinishStripe", "StuntRamps" })
-            {
-                DestroyChild(track, name);
-            }
-
-            foreach (var name in new[] { "Ground", "Rocks", "Vegetation", "Grandstands", "Buildings" })
-            {
-                DestroyChild(environment, name);
-            }
-        }
-
-        private static void DestroyChild(Transform parent, string name)
-        {
-            var child = parent.Find(name);
-            if (child != null)
-            {
-                Object.DestroyImmediate(child.gameObject);
-            }
-        }
-
-        private static Transform Recreate(Transform parent, string name)
-        {
-            DestroyChild(parent, name);
             var root = new GameObject(name).transform;
             root.SetParent(parent, false);
+            Undo.RegisterCreatedObjectUndo(root.gameObject, "Create missing circuit group");
             return root;
         }
 
@@ -284,11 +269,11 @@ namespace ApexRivals.Editor.Track
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing == null)
             {
+                if (File.Exists(path)) throw new InvalidOperationException("Existing mesh cannot be loaded: " + path);
                 AssetDatabase.CreateAsset(mesh, path);
                 return mesh;
             }
 
-            EditorUtility.CopySerialized(mesh, existing);
             Object.DestroyImmediate(mesh);
             return existing;
         }
@@ -740,29 +725,10 @@ namespace ApexRivals.Editor.Track
 
         // ---------------------------------------------------------------- race wiring
 
-        private static int PlaceCheckpoints(Centreline c, Transform parent)
-        {
-            var checkpoints = parent.GetComponentsInChildren<RaceCheckpoint>(true).OrderBy(cp => cp.CheckpointIndex).ToArray();
-            for (var n = 0; n < checkpoints.Length; n++)
-            {
-                var i = c.IndexAt(c.Length * n / checkpoints.Length);
-                var transform = checkpoints[n].transform;
-                transform.SetPositionAndRotation(c.Offset(i, 0f, CheckpointHeight), Quaternion.LookRotation(c.Tangent(i), Vector3.up));
-                var box = checkpoints[n].GetComponent<BoxCollider>();
-                box.center = Vector3.zero;
-                box.size = CheckpointSize;
-                EditorUtility.SetDirty(box);
-            }
-
-            return checkpoints.Length;
-        }
-
         private static int PlaceWaypoints(Centreline c, RacingLine line)
         {
-            for (var i = line.transform.childCount - 1; i >= 0; i--)
-            {
-                Object.DestroyImmediate(line.transform.GetChild(i).gameObject);
-            }
+            var existing = new SerializedObject(line).FindProperty("waypoints");
+            if (existing.arraySize > 0 || line.transform.childCount > 0) return existing.arraySize;
 
             var count = Mathf.RoundToInt(c.Length / WaypointSpacing);
             var waypoints = new Transform[count];
@@ -789,10 +755,7 @@ namespace ApexRivals.Editor.Track
         /// <summary>Grid slots behind the start line, pole first; the roster decides who starts where.</summary>
         private static void PlaceGrid(Centreline c, StartingGrid grid)
         {
-            for (var i = grid.transform.childCount - 1; i >= 0; i--)
-            {
-                Object.DestroyImmediate(grid.transform.GetChild(i).gameObject);
-            }
+            if (grid.transform.childCount > 0 || new SerializedObject(grid).FindProperty("spawnPoints").arraySize > 0) return;
 
             var slots = new Transform[GridSlotCount];
             for (var n = 0; n < GridSlotCount; n++)

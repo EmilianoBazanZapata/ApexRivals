@@ -7,6 +7,8 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class UguiMainMenuNavigationController : MonoBehaviour
     {
+        [SerializeField, Tooltip("Disable to preserve Navigation mode, links and wrapping authored on the Selectable components. Enable to rebuild links as controls appear/disappear.")] private bool useDynamicNavigation = true;
+
         [SerializeField] private GameObject menuPanel;
         [SerializeField] private Button playButton;
         [SerializeField] private Button garageButton;
@@ -20,6 +22,7 @@ namespace ApexRivals.UI.Runtime
 
         public void RefreshNavigation()
         {
+            if (!useDynamicNavigation) return;
             var buttons = new[] { playButton, garageButton, settingsButton, exitButton };
             for (var index = 0; index < buttons.Length; index++)
             {

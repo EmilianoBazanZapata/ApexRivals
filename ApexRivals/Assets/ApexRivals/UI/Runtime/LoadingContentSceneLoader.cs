@@ -18,6 +18,7 @@ namespace ApexRivals.UI.Runtime
         private readonly IContentSceneLoader _inner;
         private readonly ISceneLoadingPresentation _presentation;
         private readonly Action<Exception> _report;
+        private ContentSceneId? _currentScene;
 
         public LoadingContentSceneLoader(IContentSceneLoader inner, ISceneLoadingPresentation presentation, Action<Exception> report = null)
         {
@@ -34,18 +35,20 @@ namespace ApexRivals.UI.Runtime
         public async Task<ContentSceneLoadResult> LoadContentSceneAsync(ContentSceneId sceneId, string sceneName,
             bool reloadCurrentScene, CancellationToken cancellationToken = default)
         {
-            // Initial boot and race retries deliberately keep their existing presentation.
+            // Initial boot and race retries deliberately keep their existing presentation; the light garage-to-menu
+            // hop switches directly, without the loading screen.
             var covered = !reloadCurrentScene && !string.IsNullOrEmpty(CurrentContentSceneName)
-                && (sceneId == ContentSceneId.Race || sceneId == ContentSceneId.MainMenu);
+                && (sceneId == ContentSceneId.Race
+                    || (sceneId == ContentSceneId.MainMenu && _currentScene != ContentSceneId.Garage));
             if (!covered)
-                return await _inner.LoadContentSceneAsync(sceneId, sceneName, reloadCurrentScene, cancellationToken);
+                return Track(await _inner.LoadContentSceneAsync(sceneId, sceneName, reloadCurrentScene, cancellationToken));
 
             var succeeded = false;
             try
             {
                 try { await _presentation.ShowAsync(); }
                 catch (Exception exception) { Report(exception); }
-                var result = await _inner.LoadContentSceneAsync(sceneId, sceneName, reloadCurrentScene, cancellationToken);
+                var result = Track(await _inner.LoadContentSceneAsync(sceneId, sceneName, reloadCurrentScene, cancellationToken));
                 succeeded = result.Succeeded;
                 return result;
             }
@@ -55,6 +58,12 @@ namespace ApexRivals.UI.Runtime
                 try { _presentation.Hide(succeeded); }
                 catch (Exception exception) { Report(exception); }
             }
+        }
+
+        private ContentSceneLoadResult Track(ContentSceneLoadResult result)
+        {
+            if (result.Succeeded) _currentScene = result.SceneId;
+            return result;
         }
 
         private void Report(Exception exception)

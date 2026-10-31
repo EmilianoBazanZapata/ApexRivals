@@ -87,14 +87,21 @@ namespace ApexRivals.RaceSetup.Runtime
             var wheelMotor = vehicleController as WheelArcadeVehicleController;
             if (wheelMotor != null)
             {
+                // Every car prefab carries the nitro, disabled; only the player's is switched on.
                 var nitro = GetComponent<PlayerVehicleNitro>();
-                if (nitro == null) nitro = gameObject.AddComponent<PlayerVehicleNitro>();
-                nitro.Configure(wheelMotor, drivingInputGate, drivingInputGate, vehicleResetter);
-                nitro.enabled = true;
+                if (nitro != null)
+                {
+                    nitro.Configure(wheelMotor, drivingInputGate, drivingInputGate, vehicleResetter);
+                    nitro.enabled = true;
+                }
+                else
+                {
+                    Debug.LogError(name + " has no PlayerVehicleNitro; add it to the car prefab (ApexRivals/Vehicle/Install Race Components On Cars).", this);
+                }
             }
             var playerRecovery = GetComponent<PlayerCheckpointRecovery>();
-            if (playerRecovery == null) playerRecovery = gameObject.AddComponent<PlayerCheckpointRecovery>();
-            playerRecovery.Configure(raceCoordinator, raceParticipant, vehicleResetter);
+            if (playerRecovery != null) playerRecovery.Configure(raceCoordinator, raceParticipant, vehicleResetter);
+            else Debug.LogError(name + " has no PlayerCheckpointRecovery; add it to the car prefab (ApexRivals/Vehicle/Install Race Components On Cars).", this);
         }
 
         public void ConfigureAI(

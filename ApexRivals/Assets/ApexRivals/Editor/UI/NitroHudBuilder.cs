@@ -12,6 +12,8 @@ namespace ApexRivals.Editor.UI
         public static NitroHudUguiView Create(RaceHudUguiView hud)
         {
             if (hud == null) throw new ArgumentNullException(nameof(hud));
+            var existing = new SerializedObject(hud).FindProperty("nitroView").objectReferenceValue as NitroHudUguiView;
+            if (existing != null) return existing;
             if (hud.transform.Find("NitroPanel") != null) throw new InvalidOperationException("NitroPanel already exists in " + hud.gameObject.scene.path);
             var sample = hud.GetComponentInChildren<Text>(true);
             if (sample == null || sample.font == null) throw new InvalidOperationException("Race HUD has no reference font.");

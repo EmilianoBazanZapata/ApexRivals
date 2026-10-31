@@ -30,6 +30,8 @@ namespace ApexRivals.Settings.Runtime
             var rawUi = PlayerPrefs.GetFloat(SettingsPreferenceKeys.UiVolume, rawLegacySfx);
             var rawVehicle = PlayerPrefs.GetFloat(SettingsPreferenceKeys.VehicleVolume, rawLegacySfx);
 
+            var rawAmbience = PlayerPrefs.GetFloat(SettingsPreferenceKeys.AmbienceVolume, SettingsState.DefaultAmbienceVolume);
+
             var settings = new SettingsState(
                 rawWidth,
                 rawHeight,
@@ -38,7 +40,8 @@ namespace ApexRivals.Settings.Runtime
                 rawMaster,
                 rawMusic,
                 rawUi,
-                rawVehicle);
+                rawVehicle,
+                rawAmbience);
 
             var invalid = PlayerPrefs.GetInt(SettingsPreferenceKeys.SchemaVersion, CurrentVersion) != CurrentVersion
                 || rawWidth <= 0
@@ -52,7 +55,8 @@ namespace ApexRivals.Settings.Runtime
                 || rawMusic < 0f
                 || rawMusic > 1f
                 || IsInvalidVolume(rawUi)
-                || IsInvalidVolume(rawVehicle);
+                || IsInvalidVolume(rawVehicle)
+                || IsInvalidVolume(rawAmbience);
 
             return invalid
                 ? new SettingsStorageReadResult(SettingsStorageReadStatus.Invalid, settings, "Stored preferences contained unsupported values.")
@@ -70,6 +74,7 @@ namespace ApexRivals.Settings.Runtime
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.MusicVolume, settings.MusicVolume);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.UiVolume, settings.UiVolume);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.VehicleVolume, settings.VehicleVolume);
+            PlayerPrefs.SetFloat(SettingsPreferenceKeys.AmbienceVolume, settings.AmbienceVolume);
             PlayerPrefs.Save();
             return new SettingsStorageWriteResult(true, string.Empty);
         }
@@ -96,6 +101,7 @@ namespace ApexRivals.Settings.Runtime
             public const string LegacySfxVolume = "ApexRivals.Settings.Audio.Sfx";
             public const string UiVolume = "ApexRivals.Settings.Audio.Ui";
             public const string VehicleVolume = "ApexRivals.Settings.Audio.Vehicles";
+            public const string AmbienceVolume = "ApexRivals.Settings.Audio.Ambience";
         }
     }
 }

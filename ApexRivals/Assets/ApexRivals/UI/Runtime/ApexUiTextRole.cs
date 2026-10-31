@@ -17,12 +17,16 @@ namespace ApexRivals.UI.Runtime
         AccentValue,
         AccentLabel,
         StatLabel,
-        StatValue
+        StatValue,
+
+        /// <summary>Styled by the screen builder itself; the editor styling pass leaves it alone.</summary>
+        Authored
     }
 
     /// <summary>
-    /// Declares the typographic role of a uGUI text so <see cref="ApexUiTheme"/> styles it explicitly
-    /// instead of inferring the style from the GameObject name.
+    /// Declares the typographic role of a uGUI text: the screen builders' editor styling pass styles it by role
+    /// instead of inferring the style from the GameObject name, and button subtitles rest in the secondary color.
+    /// Only data; it never restyles the text itself.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Text))]

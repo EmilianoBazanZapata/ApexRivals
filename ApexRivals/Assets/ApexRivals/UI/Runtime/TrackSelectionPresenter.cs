@@ -10,8 +10,8 @@ using ApexRivals.Tracks.Runtime;
 namespace ApexRivals.UI.Runtime
 {
     /// <summary>
-    /// Race Select screen shown between the garage and the race: browses the track catalog, loads the
-    /// chosen track's scene and returns to the garage on Back. With a career, locked circuits stay visible
+    /// Race Select screen opened from the main menu: browses the track catalog, loads the chosen track's
+    /// scene and returns to the main menu on Back. With a career, locked circuits stay visible
     /// with their requirement and the career final is listed as an extra event after the circuits.
     /// </summary>
     public sealed class TrackSelectionPresenter : IDisposable
@@ -60,7 +60,16 @@ namespace ApexRivals.UI.Runtime
 
             // Unlocks can change while the garage is open (purchases), so rebuild the cards every time.
             _items = CreateItems();
-            Current = new TrackSelectionViewModel(_items, _selectedIndex, _operationActive, _status, _messageKey, _feedback, CreateObjectiveText());
+            var careerPercent = -1;
+            var careerNext = string.Empty;
+            if (_career != null)
+            {
+                var summary = _career.GetSummary();
+                careerPercent = Math.Max(0, Math.Min(100, summary.CompletionPercent));
+                careerNext = summary.IsComplete ? "CAREER COMPLETE" : "NEXT: " + summary.Objective.Title.ToUpperInvariant();
+            }
+
+            Current = new TrackSelectionViewModel(_items, _selectedIndex, _operationActive, _status, _messageKey, _feedback, CreateObjectiveText(), careerPercent, careerNext);
             _view.Render(Current);
         }
 
@@ -75,11 +84,23 @@ namespace ApexRivals.UI.Runtime
             Present();
         }
 
-        public void Back()
+        /// <summary>Back (button or Cancel) leaves Track Select for the main menu, where the screen is opened from.</summary>
+        public async Task Back()
         {
             if (!CanRender || _operationActive) return;
 
-            _screenNavigator.Show(PresentationScreenState.Garage);
+            _operationActive = true;
+            Present();
+            var result = await _sceneFlow.OpenMainMenu();
+            if (!CanRender) return;
+            _operationActive = false;
+            if (!result.Succeeded)
+            {
+                Fail("ui.trackSelect.backFailed");
+                return;
+            }
+
+            Present();
         }
 
         public void SelectTrack(int index)
@@ -231,7 +252,7 @@ namespace ApexRivals.UI.Runtime
             items.Add(new TrackSelectionItemViewModel(
                 track.TrackId,
                 finale.Title,
-                "FINAL EVENT - " + track.DisplayName + " - " + finale.Goal,
+                "FINAL EVENT - " + track.DisplayName,
                 UguiViewText.FormatTrackLength(track.LengthMeters),
                 track.Laps,
                 track.Environment,
@@ -241,7 +262,8 @@ namespace ApexRivals.UI.Runtime
                 !status.Qualified,
                 lockText,
                 status.State == CareerFinaleState.Won ? "CHAMPION" : string.Empty,
-                true));
+                true,
+                finale.Goal));
         }
     }
 }

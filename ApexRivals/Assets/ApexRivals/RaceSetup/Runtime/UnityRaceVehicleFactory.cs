@@ -1,4 +1,3 @@
-using ApexRivals.Audio.Runtime;
 using UnityEngine;
 
 namespace ApexRivals.RaceSetup.Runtime
@@ -23,11 +22,8 @@ namespace ApexRivals.RaceSetup.Runtime
                 return false;
             }
 
-            if (instance.GetComponent<VehicleEngineAudio>() == null)
-            {
-                instance.AddComponent<VehicleEngineAudio>();
-            }
-
+            // Engine, tyre, hit and nitro sounds are AudioSources set up on the car prefab itself
+            // (ApexRivals/Audio/Set Up Audio Sources).
             message = string.Empty;
             return true;
         }

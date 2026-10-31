@@ -195,7 +195,7 @@ namespace ApexRivals.Tests.PlayMode
                 Assert.That(session.State, Is.EqualTo(RaceSessionLifecycleState.Paused), "Immediate duplicate is debounced.");
                 yield return new WaitForSecondsRealtime(0.22f);
                 PressPause(keyboard);
-                Assert.That(session.State, Is.EqualTo(RaceSessionLifecycleState.Paused), "Escape is handled by the UI cancel path while normally paused.");
+                Assert.That(session.State, Is.EqualTo(RaceSessionLifecycleState.Racing), "Without a UI cancel owner, the configured pause action owns both pause and resume.");
                 PressPause(gamepad);
                 Assert.That(session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
                 Assert.That(Time.timeScale, Is.EqualTo(0.5f));
@@ -408,6 +408,7 @@ namespace ApexRivals.Tests.PlayMode
             var uiInput = _bootstrapper.gameObject.AddComponent<BootstrapUiInputSystem>();
             using (var serialized = new SerializedObject(uiInput))
             {
+                serialized.FindProperty("configureModuleFromBootstrap").boolValue = true;
                 serialized.FindProperty("inputActions").objectReferenceValue = actions;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
             }
@@ -453,7 +454,11 @@ namespace ApexRivals.Tests.PlayMode
                 var garageView = FindInScene<GarageUguiView>("Garage");
                 Assert.That(garageView, Is.Not.Null);
                 Assert.That(UiFocus.IsUsable(UiFocus.SelectableOf(UiFocus.CurrentSelection)), Is.True);
-                ReadReference<Button>(garageView, "startRaceButton").onClick.Invoke();
+                // The garage has no START; races begin from the main menu's track selection.
+                ReadReference<Button>(garageView, "returnToMainMenuButton").onClick.Invoke();
+                yield return WaitForApplicationState(ApplicationState.MainMenu);
+                ReadReference<Button>(FindInScene<MainMenuUguiView>("MainMenu"), "startButton").onClick.Invoke();
+                yield return WaitForApplicationState(ApplicationState.Garage);
                 yield return null;
                 Assert.That(FindInScene<UguiScreenNavigator>("Garage").CurrentScreen, Is.EqualTo(PresentationScreenState.TrackSelection));
                 Assert.That(UiFocus.IsUsable(UiFocus.SelectableOf(UiFocus.CurrentSelection)), Is.True);

@@ -10,6 +10,9 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class RaceUiSceneInstaller : MonoBehaviour, IContentSceneInstaller
     {
+        [SerializeField, Tooltip("Authored session bindings. If unassigned, standalone prototypes retain Escape / Start.")] private InputActionAsset sessionInputActions;
+        [SerializeField] private string pauseActionPath = "Session/Pause";
+
         [SerializeField] private UguiScreenNavigator screenNavigator;
         [SerializeField] private RaceSessionSceneInstaller raceSessionInstaller;
         [SerializeField] private RaceHudUguiView hudView;
@@ -24,8 +27,10 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private ApexRivals.AI.Runtime.RacingLine racingLine;
 
         private ApplicationContext _context;
+        private BootstrapUiInputSystem _uiInputOwner;
         private RaceSessionCoordinator _session;
         private RaceHudPresenter _hudPresenter;
+        private RaceStandingsTracker _standingsTracker;
         private VehicleRecoveryPromptPresenter _vehicleRecoveryPromptPresenter;
         private PausePresenter _pausePresenter;
         private ResultsPresenter _resultsPresenter;
@@ -56,6 +61,7 @@ namespace ApexRivals.UI.Runtime
                 CreatePauseAction();
             }
             _context = context;
+            _uiInputOwner = FindFirstObjectByType<BootstrapUiInputSystem>();
             if (context == null || context.Navigation == null || raceSessionInstaller == null || raceSessionInstaller.Session == null)
             {
                 Debug.LogWarning("Race UI is present but race session is not available yet.", this);
@@ -137,6 +143,10 @@ namespace ApexRivals.UI.Runtime
             hudView?.Bind(null);
             hudView?.BindTelemetry(null);
             hudView?.BindNitro(null);
+            hudView?.BindStandings(null);
+            if (resultsView != null) resultsView.BindTiming(null);
+            _standingsTracker?.Dispose();
+            _standingsTracker = null;
             if (minimapView != null) minimapView.Bind(null);
             _hudSource = null;
             _hudPresenter = null;
@@ -155,6 +165,13 @@ namespace ApexRivals.UI.Runtime
             hudView.BindTelemetry(session.PlayerVehicleTelemetry);
             var player = session.PlayerVehicleRigidbody;
             hudView.BindNitro(player != null ? player.GetComponent<PlayerVehicleNitro>() : null);
+            if (raceCoordinator != null)
+            {
+                _standingsTracker = new RaceStandingsTracker(raceCoordinator);
+                hudView.BindStandings(_standingsTracker);
+                if (resultsView != null) resultsView.BindTiming(_standingsTracker);
+            }
+
             if (minimapView != null && raceCoordinator != null && racingLine != null)
             {
                 minimapView.Bind(new RaceCoordinatorMinimapSource(raceCoordinator, racingLine));
@@ -185,9 +202,22 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            _pauseAction = new InputAction("Pause", InputActionType.Button);
-            _pauseAction.AddBinding("<Keyboard>/escape");
-            _pauseAction.AddBinding("<Gamepad>/start");
+            if (sessionInputActions != null)
+            {
+                var authored = sessionInputActions.FindAction(pauseActionPath, false);
+                if (authored == null) { Debug.LogError("Pause action missing: " + pauseActionPath, this); return; }
+                var map = authored.actionMap.Clone();
+                map.bindingMask = authored.actionMap.bindingMask ?? sessionInputActions.bindingMask;
+                map.devices = authored.actionMap.devices ?? sessionInputActions.devices;
+                _pauseAction = map.FindAction(authored.name, true);
+                _pauseAction.bindingMask = authored.bindingMask;
+            }
+            else
+            {
+                _pauseAction = new InputAction("Pause", InputActionType.Button);
+                _pauseAction.AddBinding("<Keyboard>/escape");
+                _pauseAction.AddBinding("<Gamepad>/start");
+            }
             _pauseAction.performed += OnPausePerformed;
             _pauseAction.Enable();
         }
@@ -230,7 +260,7 @@ namespace ApexRivals.UI.Runtime
 
             if (session.State == RaceSessionLifecycleState.Paused)
             {
-                if (context.control != null && context.control.path.Contains("/escape"))
+                if (_uiInputOwner != null && _uiInputOwner.CanHandleCancelInput && _uiInputOwner.IsCancelControl(context.control))
                 {
                     return;
                 }
@@ -248,6 +278,7 @@ namespace ApexRivals.UI.Runtime
             }
 
             _lastPauseInputTime = context.time;
+            pauseView?.SuppressCancelForCurrentFrame();
             _pausePresenter?.Pause();
 
             if (session.State != RaceSessionLifecycleState.Paused)
@@ -320,6 +351,8 @@ namespace ApexRivals.UI.Runtime
 
         private void OnPauseViewResumeRequested()
         {
+            // Cancel may resume before this event's Pause callback is delivered.
+            _lastPauseInputTime = UnityEngine.InputSystem.LowLevel.InputState.currentTime;
             if (_fallbackPauseActive)
             {
                 CloseFallbackPause();

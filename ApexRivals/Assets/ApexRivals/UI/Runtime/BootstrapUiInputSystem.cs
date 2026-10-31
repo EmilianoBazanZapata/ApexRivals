@@ -9,8 +9,18 @@ using UnityEngine.UI;
 namespace ApexRivals.UI.Runtime
 {
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(EventSystem), typeof(InputSystemUIInputModule))]
     public sealed class BootstrapUiInputSystem : MonoBehaviour
     {
+        [Header("Input ownership")]
+        [SerializeField, Tooltip("Legacy opt-in: Bootstrap rewrites the module from Input Actions / repeat settings below. Disable to use the module's authored asset, action references and repeat values unchanged.")] private bool configureModuleFromBootstrap;
+        [SerializeField, Tooltip("Legacy opt-in. When disabled, other active input owners are reported without disabling components or GameObjects.")] private bool disableCompetingInputOwners;
+        [SerializeField, Tooltip("Optional authored tab actions, including assets whose action map is not named UI.")] private InputActionReference previousTabInput;
+        [SerializeField] private InputActionReference nextTabInput;
+        private bool _configuredBootstrapMode;
+        private readonly HashSet<int> _reportedInputOwners = new HashSet<int>();
+        private bool PointerInputAllowed => configureModuleFromBootstrap ? allowPointerInput : inputModule != null && inputModule.point != null && inputModule.point.action != null;
+
         public const string PreviousTabActionName = "PreviousTab";
         public const string NextTabActionName = "NextTab";
 
@@ -47,6 +57,16 @@ namespace ApexRivals.UI.Runtime
         private readonly HashSet<object> _loadingBlockOwners = new HashSet<object>();
         private bool _moduleEnabledBeforeLoading;
         public bool IsLoadingInputBlocked => _loadingBlockOwners.Count > 0;
+        private bool CanProcessUiInput => isActiveAndEnabled && inputModule != null && inputModule.isActiveAndEnabled && !IsLoadingInputBlocked;
+        public bool CanHandleCancelInput => CanProcessUiInput;
+
+        public bool IsCancelControl(InputControl control)
+        {
+            if (control == null || _cancelAction == null) return false;
+            foreach (var boundControl in _cancelAction.controls)
+                if (boundControl == control) return true;
+            return false;
+        }
 
         public void RestoreSceneFocusAfterLoading()
         {
@@ -102,13 +122,13 @@ namespace ApexRivals.UI.Runtime
 
         private void LateUpdate()
         {
-            if (allowPointerInput != _configuredAllowPointerInput)
+            if (PointerInputAllowed != _configuredAllowPointerInput || configureModuleFromBootstrap != _configuredBootstrapMode)
             {
                 ConfigureInputModule();
             }
 
             if (Screen.fullScreenMode != _lastAppliedFullScreenMode
-                || allowPointerInput != _lastAppliedAllowPointerInput
+                || PointerInputAllowed != _lastAppliedAllowPointerInput
                 || IsGameplayActive() != _lastAppliedGameplayActive)
             {
                 ApplyCursorPolicy();
@@ -125,9 +145,9 @@ namespace ApexRivals.UI.Runtime
         private void ApplyCursorPolicy()
         {
             _lastAppliedFullScreenMode = Screen.fullScreenMode;
-            _lastAppliedAllowPointerInput = allowPointerInput;
+            _lastAppliedAllowPointerInput = PointerInputAllowed;
             _lastAppliedGameplayActive = IsGameplayActive();
-            var policy = UiCursorPolicy.Resolve(allowPointerInput, UiInputModality.Current, _lastAppliedGameplayActive, _lastAppliedFullScreenMode);
+            var policy = UiCursorPolicy.Resolve(PointerInputAllowed, UiInputModality.Current, _lastAppliedGameplayActive, _lastAppliedFullScreenMode);
             if (Cursor.visible == policy.visible && Cursor.lockState == policy.lockMode)
             {
                 return;
@@ -147,7 +167,7 @@ namespace ApexRivals.UI.Runtime
 
         private void SetModality(UiInputMode mode)
         {
-            if (!allowPointerInput)
+            if (!PointerInputAllowed)
             {
                 mode = UiInputMode.Navigation;
             }
@@ -217,30 +237,32 @@ namespace ApexRivals.UI.Runtime
                 eventSystem = GetComponent<EventSystem>();
             }
 
-            if (eventSystem == null)
-            {
-                eventSystem = gameObject.AddComponent<EventSystem>();
-            }
-
             if (inputModule == null)
             {
                 inputModule = GetComponent<InputSystemUIInputModule>();
-            }
-
-            if (inputModule == null)
-            {
-                inputModule = gameObject.AddComponent<InputSystemUIInputModule>();
-            }
-
-            var standaloneInput = GetComponent<StandaloneInputModule>();
-            if (standaloneInput != null)
-            {
-                Destroy(standaloneInput);
             }
         }
 
         private void ConfigureInputModule()
         {
+            if (_configuredBootstrapMode != configureModuleFromBootstrap) _moduleConfigured = false;
+            _configuredBootstrapMode = configureModuleFromBootstrap;
+            if (!configureModuleFromBootstrap)
+            {
+                if (inputModule == null) return;
+                // Observe the authored module; never reassign its references or repeat settings.
+                UnsubscribeUiActions();
+                var authoredMap = inputModule.actionsAsset != null ? inputModule.actionsAsset.FindActionMap("UI", false) : null;
+                _configuredAllowPointerInput = PointerInputAllowed;
+                _moduleConfigured = true;
+                SubscribeUiActions(authoredMap);
+                if (inputModule.submit == null) _submitAction?.Enable();
+                if (inputModule.cancel == null) _cancelAction?.Enable();
+                _previousTabAction?.Enable();
+                _nextTabAction?.Enable();
+                return;
+            }
+
             var pointerSettingChanged = _configuredAllowPointerInput != allowPointerInput;
             _configuredAllowPointerInput = allowPointerInput;
             if (inputActions == null || inputModule == null)
@@ -329,13 +351,13 @@ namespace ApexRivals.UI.Runtime
 
         private void SubscribeUiActions(InputActionMap uiMap)
         {
-            _navigateAction = FindRequiredAction(uiMap, "Navigate");
-            _submitAction = FindRequiredAction(uiMap, "Submit");
-            _cancelAction = FindRequiredAction(uiMap, "Cancel");
-            _pointAction = allowPointerInput ? uiMap.FindAction("Point", false) : null;
-            _clickAction = allowPointerInput ? uiMap.FindAction("Click", false) : null;
-            _previousTabAction = FindRequiredAction(uiMap, PreviousTabActionName);
-            _nextTabAction = FindRequiredAction(uiMap, NextTabActionName);
+            _navigateAction = configureModuleFromBootstrap ? FindRequiredAction(uiMap, "Navigate") : inputModule.move != null ? inputModule.move.action : null;
+            _submitAction = !configureModuleFromBootstrap && inputModule.submit != null ? inputModule.submit.action : uiMap?.FindAction("Submit", false);
+            _cancelAction = !configureModuleFromBootstrap && inputModule.cancel != null ? inputModule.cancel.action : uiMap?.FindAction("Cancel", false);
+            _pointAction = configureModuleFromBootstrap ? allowPointerInput ? uiMap.FindAction("Point", false) : null : inputModule.point != null ? inputModule.point.action : null;
+            _clickAction = configureModuleFromBootstrap ? allowPointerInput ? uiMap.FindAction("Click", false) : null : inputModule.leftClick != null ? inputModule.leftClick.action : null;
+            _previousTabAction = previousTabInput != null ? previousTabInput.action : uiMap?.FindAction(PreviousTabActionName, false);
+            _nextTabAction = nextTabInput != null ? nextTabInput.action : uiMap?.FindAction(NextTabActionName, false);
 
             if (_navigateAction != null)
             {
@@ -432,7 +454,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnNavigatePerformed(InputAction.CallbackContext context)
         {
-            if (IsLoadingInputBlocked) return;
+            if (!CanProcessUiInput) return;
             if (context.ReadValue<Vector2>().sqrMagnitude < 0.25f)
             {
                 return;
@@ -444,7 +466,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnSubmitPerformed(InputAction.CallbackContext context)
         {
-            if (IsLoadingInputBlocked) return;
+            if (!CanProcessUiInput) return;
             if (!context.ReadValueAsButton())
             {
                 return;
@@ -456,6 +478,12 @@ namespace ApexRivals.UI.Runtime
             }
 
             SetModality(UiInputMode.Navigation);
+
+            if (!configureModuleFromBootstrap && inputModule != null && inputModule.submit != null)
+            {
+                // The native module owns dispatch; do not submit a second time.
+                return;
+            }
 
             // Validate before notifying the coordinator: NotifyNavigationInput repairs focus, and a
             // submit must never activate a control the player did not have focused when pressing it.
@@ -476,7 +504,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnCancelPerformed(InputAction.CallbackContext context)
         {
-            if (IsLoadingInputBlocked) return;
+            if (!CanProcessUiInput) return;
             if (!context.ReadValueAsButton())
             {
                 return;
@@ -489,12 +517,13 @@ namespace ApexRivals.UI.Runtime
 
             SetModality(UiInputMode.Navigation);
             _focusCoordinator?.NotifyNavigationInput();
-            _focusCoordinator?.NotifyCancelInput();
+            if (configureModuleFromBootstrap || inputModule == null || inputModule.cancel == null)
+                _focusCoordinator?.NotifyCancelInput();
         }
 
         private void OnPreviousTabPerformed(InputAction.CallbackContext context)
         {
-            if (IsLoadingInputBlocked) return;
+            if (!CanProcessUiInput) return;
             if (context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Navigation);
@@ -512,7 +541,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnNextTabPerformed(InputAction.CallbackContext context)
         {
-            if (IsLoadingInputBlocked) return;
+            if (!CanProcessUiInput) return;
             if (context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Navigation);
@@ -625,7 +654,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnPointPerformed(InputAction.CallbackContext context)
         {
-            if (IsLoadingInputBlocked) return;
+            if (!CanProcessUiInput) return;
             if (context.control?.device is not Mouse)
             {
                 return;
@@ -654,7 +683,7 @@ namespace ApexRivals.UI.Runtime
 
         private void OnClickPerformed(InputAction.CallbackContext context)
         {
-            if (IsLoadingInputBlocked) return;
+            if (!CanProcessUiInput) return;
             if (context.control?.device is Mouse && context.ReadValueAsButton())
             {
                 SetModality(UiInputMode.Mouse);
@@ -709,6 +738,12 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
+        private void ReportCompetingOwner(Behaviour owner)
+        {
+            if (!owner.isActiveAndEnabled || !_reportedInputOwners.Add(owner.GetInstanceID())) return;
+            Debug.LogWarning("Additional UI input owner '" + owner.name + "' in scene '" + owner.gameObject.scene.name + "'. Configure its enabled state in the Editor; Bootstrap only disables it when the explicit legacy option is enabled.", owner);
+        }
+
         private void DisableCompetingComponents(GameObject root)
         {
             var systems = root.GetComponentsInChildren<EventSystem>(true);
@@ -716,7 +751,8 @@ namespace ApexRivals.UI.Runtime
             {
                 if (systems[index] != null && systems[index] != eventSystem)
                 {
-                    systems[index].gameObject.SetActive(false);
+                    ReportCompetingOwner(systems[index]);
+                    if (disableCompetingInputOwners) systems[index].enabled = false;
                 }
             }
 
@@ -725,7 +761,8 @@ namespace ApexRivals.UI.Runtime
             {
                 if (modules[index] != null && modules[index] != inputModule)
                 {
-                    modules[index].enabled = false;
+                    ReportCompetingOwner(modules[index]);
+                    if (disableCompetingInputOwners) modules[index].enabled = false;
                 }
             }
         }

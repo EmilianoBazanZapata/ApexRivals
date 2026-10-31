@@ -4,93 +4,115 @@ using UnityEngine;
 namespace ApexRivals.Audio.Runtime
 {
     /// <summary>
-    /// Engine sound for one car: the shared engine loop pitched by the car's RPM, a little louder as the revs rise,
-    /// in 3D so rivals are heard where they are. Routed through the Vehicles bus; silent while the game is paused.
+    /// Engine sound for one car: its own <see cref="EngineSoundProfile"/> synthesised live by a
+    /// <see cref="ProceduralEngineSynth"/>, so every model sounds like its engine. The car's rpm is mapped onto the
+    /// profile's rev range (idle to redline sound the same share of the way). The load follows the throttle and drops
+    /// out for a moment on every gear change; the strain grows with how fast the revs are climbing, so pulling through
+    /// a gear sounds harder than cruising. 3D, routed through the Vehicles bus, silent while the game is paused and
+    /// silent altogether without a profile.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class VehicleEngineAudio : MonoBehaviour
     {
-        private const float MinimumPitch = 0.3f;
-        private const float MaximumPitch = 3f;
-        private const float PitchResponse = 12f;
-        private const float IdleLevel = 0.55f;
-        private const float RedlineRpm = 6500f;
+        private const float DefaultRedlineRpm = 6500f;
+        private const float LoadAttack = 10f;
+        private const float LoadRelease = 40f;
+        private const float UpshiftCutSeconds = 0.2f;
+        private const float DownshiftCutSeconds = 0.08f;
+        // Share of the redline per second of rev climb that counts as full strain.
+        private const float FullStrainRevRate = 0.2f;
+        private const float RevRateResponse = 6f;
+        private const float TipInSeconds = 0.35f;
 
-        [SerializeField, Range(0f, 1f)] private float level = 0.8f;
+        [SerializeField, Tooltip("The synth on this car's EngineSound child; its AudioSource is 3D and routed through the Vehicles bus.")]
+        private ProceduralEngineSynth synth;
 
         private IVehicleTelemetry _telemetry;
-        private AudioSource _source;
-        private GameAudio _audio;
-        private float _pitch = 1f;
+        private WheelArcadeVehicleController _controller;
+        private float _carRedlineRpm = DefaultRedlineRpm;
+        private float _load;
+        private float _shiftCut;
+        private float _tipIn;
+        private float _revRate;
+        private float _previousRpm;
+        private int _previousGear;
+        private bool _wasOnThrottle;
 
-        private void Awake()
-        {
-            _telemetry = GetComponentInChildren<IVehicleTelemetry>();
-            _source = gameObject.AddComponent<AudioSource>();
-            _source.playOnAwake = false;
-            _source.loop = true;
-            _source.spatialBlend = 1f;
-            _source.rolloffMode = AudioRolloffMode.Logarithmic;
-            _source.minDistance = 8f;
-            _source.maxDistance = 250f;
-            _source.dopplerLevel = 0.4f;
-            _source.volume = 0f;
-        }
+        public EngineSoundProfile Profile => synth != null ? synth.Profile : null;
 
         private void Start()
         {
-            _audio = GameAudio.Current;
-            if (_audio == null || _audio.EngineClip == null || _telemetry == null)
+            _telemetry = GetComponentInChildren<IVehicleTelemetry>();
+            _controller = GetComponentInChildren<WheelArcadeVehicleController>();
+            if (synth == null || synth.Profile == null || _telemetry == null)
             {
+                if (synth != null) synth.Running = false;
                 enabled = false;
                 return;
             }
 
-            _source.clip = _audio.EngineClip;
-            // Start each car at a different point of the loop so a full grid does not phase together.
-            _source.timeSamples = Random.Range(0, _audio.EngineClip.samples);
-            _source.Play();
+            if (_telemetry is IVehicleTachometer tachometer && tachometer.RedlineRpm > 0f)
+            {
+                _carRedlineRpm = tachometer.RedlineRpm;
+            }
+
+            _previousGear = _telemetry.CurrentGear;
+            _previousRpm = _telemetry.EngineRpm;
         }
 
         private void Update()
         {
-            var paused = Time.timeScale <= 0f;
-            if (paused != !_source.isPlaying)
-            {
-                if (paused) _source.Pause();
-                else _source.UnPause();
-            }
-
-            if (paused)
+            if (Time.timeScale <= 0f)
             {
                 return;
             }
 
-            var rpm = Mathf.Max(0f, _telemetry.EngineRpm);
-            var targetPitch = EnginePitch(rpm);
-            _pitch = Mathf.Lerp(_pitch, targetPitch, 1f - Mathf.Exp(-PitchResponse * Time.deltaTime));
-            _source.pitch = _pitch;
-            _source.volume = level * EngineLoudness(rpm) * _audio.Mixer.GetVolume(AudioBus.Vehicles);
-        }
-
-        /// <summary>Playback pitch that makes the engine loop sound at <paramref name="rpm"/>.</summary>
-        public static float EnginePitch(float rpm)
-        {
-            return Mathf.Clamp(rpm / ProceduralAudio.EngineLoopRpm, MinimumPitch, MaximumPitch);
-        }
-
-        /// <summary>Idle sits at <c>0.55</c> and the sound swells to full level at the redline.</summary>
-        public static float EngineLoudness(float rpm)
-        {
-            return Mathf.Lerp(IdleLevel, 1f, Mathf.Clamp01(rpm / RedlineRpm));
-        }
-
-        private void OnDestroy()
-        {
-            if (_source != null)
+            // A showcase car (menu, garage) is not driven: its engine stays off.
+            if (_controller == null || !_controller.isActiveAndEnabled)
             {
-                _source.Stop();
+                synth.Running = false;
+                return;
             }
+
+            var dt = Mathf.Max(Time.deltaTime, 0.0001f);
+            var onThrottle = _controller.CurrentTorqueBeforeShiftSuppression > 0f;
+
+            // Gear change: the clutch opens, so the engine goes off load for a moment - the audible break between gears.
+            var gear = _telemetry.CurrentGear;
+            if (gear != _previousGear)
+            {
+                _shiftCut = Mathf.Max(_shiftCut, gear > _previousGear ? UpshiftCutSeconds : DownshiftCutSeconds);
+                _previousGear = gear;
+            }
+
+            _shiftCut = Mathf.Max(0f, _shiftCut - dt);
+            var shifting = _shiftCut > 0f || _controller.ShiftInProgress;
+
+            if (onThrottle && !_wasOnThrottle) _tipIn = TipInSeconds;
+            _wasOnThrottle = onThrottle;
+            _tipIn = Mathf.Max(0f, _tipIn - dt);
+
+            // Traction control cutting power takes some of the load off too.
+            var traction = _controller.CurrentTractionFactor;
+            var targetLoad = onThrottle && !shifting ? Mathf.Lerp(0.6f, 1f, traction) : 0f;
+            var loadRate = targetLoad > _load ? LoadAttack : LoadRelease;
+            _load = Mathf.Lerp(_load, targetLoad, 1f - Mathf.Exp(-loadRate * dt));
+
+            // Strain: how fast the revs are climbing (relative to the rev range), plus a kick when the throttle goes down.
+            var carRpm = Mathf.Max(0f, _telemetry.EngineRpm);
+            var rate = (carRpm - _previousRpm) / dt / Mathf.Max(1f, _carRedlineRpm);
+            _previousRpm = carRpm;
+            _revRate = Mathf.Lerp(_revRate, rate, 1f - Mathf.Exp(-RevRateResponse * dt));
+            var climb = Mathf.Clamp01(_revRate / FullStrainRevRate);
+            var strain = onThrottle && !shifting
+                ? Mathf.Clamp01(0.3f + 0.7f * climb + _tipIn / TipInSeconds * 0.5f)
+                : 0f;
+
+            // The car's rev range is played on the engine's own: a high-revving engine screams where the car redlines.
+            synth.Rpm = carRpm * synth.Profile.RedlineRpm / Mathf.Max(1f, _carRedlineRpm);
+            synth.Throttle = _load;
+            synth.Strain = strain;
+            synth.Running = true;
         }
     }
 }

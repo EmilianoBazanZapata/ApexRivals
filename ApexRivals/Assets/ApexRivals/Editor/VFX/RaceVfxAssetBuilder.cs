@@ -27,32 +27,26 @@ namespace ApexRivals.Editor.VFX
             Folder(Root + "Meshes");
             Folder(Root + "Prefabs");
             Folder("Assets/ApexRivals/Content/Configuration/VFX");
-            var smoke = Material("DriftSmoke", "ApexRivals/VFX/Faceted Particle");
-            smoke.SetFloat("_LightInfluence", 0.85f);
-            var sparks = Material("ImpactSparks", "ApexRivals/VFX/Angular Streak");
-            sparks.SetFloat("_Glow", 2.5f);
-            sparks.SetFloat("_DstBlend", (float)BlendMode.One);
-            var rain = Material("Rain", "ApexRivals/VFX/Angular Streak");
-            rain.SetFloat("_Glow", 1f);
-            rain.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            var smoke = Material("DriftSmoke", "ApexRivals/VFX/Faceted Particle", m => m.SetFloat("_LightInfluence", 0.85f));
+            var sparks = Material("ImpactSparks", "ApexRivals/VFX/Angular Streak", m => { m.SetFloat("_Glow", 2.5f); m.SetFloat("_DstBlend", (float)BlendMode.One); });
+            var rain = Material("Rain", "ApexRivals/VFX/Angular Streak", m => { m.SetFloat("_Glow", 1f); m.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha); });
             var confetti = Material("VictoryConfetti", "ApexRivals/VFX/Confetti Overlay");
             var tireMarks = Material("TireMarks", "ApexRivals/VFX/Tire Marks");
             var mesh = CreateSmokeMesh();
             var definition = AssetDatabase.LoadAssetAtPath<RaceVfxDefinition>(DefinitionPath);
             if (definition == null)
             {
+                if (System.IO.File.Exists(DefinitionPath)) throw new InvalidOperationException("Existing definition cannot be loaded: " + DefinitionPath);
                 definition = ScriptableObject.CreateInstance<RaceVfxDefinition>();
                 AssetDatabase.CreateAsset(definition, DefinitionPath);
             }
-            Undo.RecordObject(definition, "Configure race VFX");
-            definition.driftSmokePrefab = Prefab("DriftSmoke", smoke, mesh, 0);
-            definition.impactSparksPrefab = Prefab("ImpactSparks", sparks, null, 1);
-            definition.rainPrefab = Prefab("Rain", rain, null, 2);
-            definition.confettiMaterial = confetti;
-            definition.skidmarkMaterial = tireMarks;
-            EditorUtility.SetDirty(definition);
-            foreach (var material in new[] { smoke, sparks, rain, confetti, tireMarks }) EditorUtility.SetDirty(material);
-            AssetDatabase.SaveAssets();
+            var refs = new SerializedObject(definition);
+            FillReference(refs, "driftSmokePrefab", Prefab("DriftSmoke", smoke, mesh, 0));
+            FillReference(refs, "impactSparksPrefab", Prefab("ImpactSparks", sparks, null, 1));
+            FillReference(refs, "rainPrefab", Prefab("Rain", rain, null, 2));
+            FillReference(refs, "confettiMaterial", confetti);
+            FillReference(refs, "skidmarkMaterial", tireMarks);
+            if (refs.ApplyModifiedProperties()) AssetDatabase.SaveAssetIfDirty(definition);
 
             var previous = EditorSceneManager.GetSceneManagerSetup();
             try
@@ -69,34 +63,39 @@ namespace ApexRivals.Editor.VFX
                     }
                     if (session == null || follow == null) throw new InvalidOperationException("Missing race composition in " + name);
                     var installer = session.GetComponent<RaceVfxSceneInstaller>();
-                    if (installer == null) installer = Undo.AddComponent<RaceVfxSceneInstaller>(session.gameObject);
+                    var created = installer == null;
+                    if (created) installer = Undo.AddComponent<RaceVfxSceneInstaller>(session.gameObject);
                     Undo.RecordObject(installer, "Bind race VFX");
                     var serialized = new SerializedObject(installer);
                     // Opening a scene can unload the native asset created before the scene swap.
                     var sceneDefinition = AssetDatabase.LoadAssetAtPath<RaceVfxDefinition>(DefinitionPath);
                     if (sceneDefinition == null) throw new InvalidOperationException("Race VFX definition did not survive asset import.");
-                    serialized.FindProperty("definition").objectReferenceValue = sceneDefinition;
-                    serialized.FindProperty("raceSessionInstaller").objectReferenceValue = session;
-                    serialized.FindProperty("outputCamera").objectReferenceValue = follow.GetComponent<UnityEngine.Camera>();
-                    serialized.FindProperty("enableRain").boolValue = name == "RaceSuzuka";
-                    serialized.ApplyModifiedProperties();
-                    EditorSceneManager.MarkSceneDirty(scene);
-                    EditorSceneManager.SaveScene(scene);
+                    FillReference(serialized, "definition", sceneDefinition);
+                    FillReference(serialized, "raceSessionInstaller", session);
+                    FillReference(serialized, "outputCamera", follow.GetComponent<UnityEngine.Camera>());
+                    if (created) serialized.FindProperty("enableRain").boolValue = name == "RaceSuzuka";
+                    if (serialized.ApplyModifiedProperties() || created)
+                    {
+                        EditorSceneManager.MarkSceneDirty(scene);
+                        EditorSceneManager.SaveScene(scene);
+                    }
                 }
             }
             finally { EditorSceneManager.RestoreSceneManagerSetup(previous); }
-            Debug.Log("Low-poly VFX authored: drift smoke, impact sparks, Suzuka rain and victory confetti.");
+            Debug.Log("Missing VFX assets and references initialized; existing materials, particles and scene settings preserved.");
         }
 
-        private static Material Material(string name, string shaderName)
+        private static Material Material(string name, string shaderName, Action<Material> initialize = null)
         {
-            var shader = Shader.Find(shaderName);
-            if (shader == null || ShaderUtil.ShaderHasError(shader)) throw new InvalidOperationException("Shader unavailable: " + shaderName);
             var path = Root + "Materials/" + name + ".mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material == null) { material = new Material(shader); AssetDatabase.CreateAsset(material, path); }
-            else Undo.RecordObject(material, "Configure VFX material");
-            material.shader = shader;
+            if (material != null) return material;
+            if (System.IO.File.Exists(path)) throw new InvalidOperationException("Existing material cannot be loaded: " + path);
+            var shader = Shader.Find(shaderName);
+            if (shader == null || ShaderUtil.ShaderHasError(shader)) throw new InvalidOperationException("Shader unavailable: " + shaderName);
+            material = new Material(shader);
+            initialize?.Invoke(material);
+            AssetDatabase.CreateAsset(material, path);
             return material;
         }
 
@@ -106,13 +105,13 @@ namespace ApexRivals.Editor.VFX
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Leave Play Mode before authoring materials.");
             var definition = AssetDatabase.LoadAssetAtPath<RaceVfxDefinition>(DefinitionPath);
             if (definition == null) throw new InvalidOperationException("Create the base race VFX assets first.");
+            if (definition.skidmarkMaterial != null) return;
             Folder(Root + "Materials");
             var material = Material("TireMarks", "ApexRivals/VFX/Tire Marks");
             Undo.RecordObject(definition, "Add tire mark material");
             definition.skidmarkMaterial = material;
-            EditorUtility.SetDirty(material);
             EditorUtility.SetDirty(definition);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(definition);
         }
 
         private static Mesh CreateSmokeMesh()
@@ -120,6 +119,7 @@ namespace ApexRivals.Editor.VFX
             var path = Root + "Meshes/FacetedSmoke.asset";
             var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (mesh != null) return mesh;
+            if (System.IO.File.Exists(path)) throw new InvalidOperationException("Existing smoke mesh cannot be loaded: " + path);
             // Eight independent triangles retain hard normals on the octahedron's faces.
             var points = new[] { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
             var faces = new[] { 0,4,3, 0,2,4, 0,5,2, 0,3,5, 1,3,4, 1,4,2, 1,2,5, 1,5,3 };
@@ -135,6 +135,15 @@ namespace ApexRivals.Editor.VFX
 
         private static ParticleSystem Prefab(string name, Material material, Mesh mesh, int kind)
         {
+            var path = Root + "Prefabs/" + name + ".prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null)
+            {
+                var particles = existing.GetComponent<ParticleSystem>();
+                if (particles == null) throw new InvalidOperationException("Existing prefab has no ParticleSystem: " + path);
+                return particles;
+            }
+            if (System.IO.File.Exists(path)) throw new InvalidOperationException("Existing prefab cannot be loaded: " + path);
             var root = new GameObject(name);
             try
             {
@@ -213,10 +222,16 @@ namespace ApexRivals.Editor.VFX
                 renderer.SetActiveVertexStreams(kind == 0
                     ? new List<ParticleSystemVertexStream> { ParticleSystemVertexStream.Position, ParticleSystemVertexStream.Normal, ParticleSystemVertexStream.Color, ParticleSystemVertexStream.UV }
                     : new List<ParticleSystemVertexStream> { ParticleSystemVertexStream.Position, ParticleSystemVertexStream.Color, ParticleSystemVertexStream.UV });
-                var prefab = PrefabUtility.SaveAsPrefabAsset(root, Root + "Prefabs/" + name + ".prefab");
+                var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
                 return prefab.GetComponent<ParticleSystem>();
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
+        }
+
+        private static void FillReference(SerializedObject target, string name, UnityEngine.Object value)
+        {
+            var property = target.FindProperty(name);
+            if (property.objectReferenceValue == null) property.objectReferenceValue = value;
         }
 
         private static void Folder(string path)

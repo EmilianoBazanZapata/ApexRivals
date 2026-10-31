@@ -46,6 +46,23 @@ namespace ApexRivals.UI.Runtime
             return RunOnce(_raceSession.Retry, PresentationFailure.RetryFailed, "ui.results.retryFailed");
         }
 
+        /// <summary>CONTINUE: back to Track Selection to pick the next race.</summary>
+        public async Task Continue()
+        {
+            if (!CanRender || _transitioning)
+            {
+                return;
+            }
+
+            _sceneFlow.RequestTrackSelection();
+            await RunOnce(_raceSession.ReturnToGarage, PresentationFailure.NavigationFailed, "ui.results.continueFailed");
+            if (_failure != PresentationFailure.None)
+            {
+                // The garage was not loaded, so nothing consumed the request; drop it.
+                _sceneFlow.ConsumeTrackSelectionRequest();
+            }
+        }
+
         public Task ReturnToGarage()
         {
             if (!CanRender)
@@ -125,7 +142,14 @@ namespace ApexRivals.UI.Runtime
                 _messageKey,
                 CareerViewText.FormatOutcomeTitle(result.CareerOutcome),
                 CreateCareerBody(result),
-                result.CareerOutcome.CareerCompleted);
+                result.CareerOutcome.CareerCompleted,
+                CareerPercent(result.CareerOutcome));
+        }
+
+        private static int CareerPercent(ApexRivals.Career.Runtime.CareerRaceOutcome outcome)
+        {
+            if (outcome == null || outcome.Status == ApexRivals.Career.Runtime.CareerRaceOutcomeStatus.None) return -1;
+            return outcome.CareerCompleted ? 100 : Math.Max(0, Math.Min(100, outcome.Summary.CompletionPercent));
         }
 
         private string CreateCareerBody(RaceSessionResult result)

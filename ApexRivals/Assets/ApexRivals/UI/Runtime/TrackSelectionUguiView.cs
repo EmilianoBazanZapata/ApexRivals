@@ -8,12 +8,27 @@ namespace ApexRivals.UI.Runtime
 {
     /// <summary>
     /// Race Select screen: large preview + details/minimap for the selected track and a card carousel.
-    /// Left/right moves between cards (focus previews the track), Q/E or LB/RB cycle tracks, Submit races
-    /// the selected track and Cancel returns to the garage.
+    /// Left/right moves between cards (focus previews the track), Q/E or LB/RB cycle tracks, Submit on a card
+    /// selects it and moves focus to START, START races the selected track and Cancel returns to the garage.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class TrackSelectionUguiView : MonoBehaviour, ITrackSelectionView, IUiTabNavigation, ICancelHandler
     {
+        [SerializeField, Tooltip("Disable to preserve Navigation mode, links and wrapping authored on the Selectable components. Enable to rebuild links as controls appear/disappear.")] private bool useDynamicNavigation = true;
+
+        [Header("Display text")]
+        [SerializeField] private string noTracksLabel = "NO TRACKS AVAILABLE";
+        [SerializeField] private string lockedPrefix = "LOCKED - ";
+        [SerializeField] private string finalEventLabel = "FINAL EVENT";
+        [SerializeField] private string startRaceError = "COULD NOT START THE RACE";
+        [SerializeField] private string noTrackError = "NO TRACK SELECTED";
+        [SerializeField] private string returnMainMenuError = "COULD NOT RETURN TO THE MAIN MENU";
+        [SerializeField] private string careerProgressFormat = "CAREER  <color={0}>{1}%</color>";
+
+        [SerializeField, Tooltip("Colors (and border widths) this control switches between with its state.")] private ApexUiPalette palette;
+        private ApexUiPalette Palette => ApexUiPalette.Resolve(palette);
+
+        [SerializeField, Tooltip("Automatically match previews to each sprite. Disable to preserve Aspect Ratio on each Image's AspectRatioFitter.")] private bool autoFitPreviewAspect = true;
         [SerializeField] private Image previewImage;
         [SerializeField] private GameObject previewPlaceholder;
 
@@ -39,6 +54,12 @@ namespace ApexRivals.UI.Runtime
         [Header("Career (optional)")]
         [SerializeField, Tooltip("Lock requirement or race status of the selected entry.")] private Text requirementText;
         [SerializeField, Tooltip("Career completion and next objective.")] private Text objectiveText;
+        [SerializeField, Tooltip("Header career box; hidden without a career.")] private GameObject careerRoot;
+        [SerializeField, Tooltip("\"CAREER 68%\" (the percent is drawn in red).")] private Text careerTitleText;
+        [SerializeField, Tooltip("Bar fill; its anchorMax.x is set to the completion ratio.")] private RectTransform careerProgressFill;
+        [SerializeField, Tooltip("\"NEXT: ...\" or \"CAREER COMPLETE\".")] private Text careerNextText;
+        [SerializeField, Tooltip("Chevron progress row; replaces the plain fill when assigned.")] private ChevronProgressBar careerProgressBar;
+        [SerializeField, Tooltip("\"68%\" beside a fixed CAREER PROGRESS title; without it the title carries the percent.")] private Text careerPercentText;
 
         private readonly List<TrackSelectionCardView> _cards = new List<TrackSelectionCardView>();
         private TrackSelectionPresenter _presenter;
@@ -71,6 +92,7 @@ namespace ApexRivals.UI.Runtime
             SetButton(backButton, !viewModel.OperationActive);
 
             UguiViewText.Set(objectiveText, viewModel.ObjectiveText);
+            RenderCareer(viewModel);
             var feedback = string.IsNullOrEmpty(viewModel.Feedback) ? FormatStatus(viewModel.MessageKey) : viewModel.Feedback.ToUpperInvariant();
             UguiViewText.Set(statusText, feedback);
             if (feedbackRoot != null)
@@ -105,14 +127,14 @@ namespace ApexRivals.UI.Runtime
         public void OnCancel(BaseEventData eventData)
         {
             eventData?.Use();
-            _presenter?.Back();
+            OnBackClicked();
         }
 
         private void RenderDetails(TrackSelectionViewModel viewModel)
         {
             if (!viewModel.HasSelection)
             {
-                UguiViewText.Set(trackNameText, "NO TRACKS AVAILABLE");
+                UguiViewText.Set(trackNameText, noTracksLabel);
                 UguiViewText.Set(requirementText, string.Empty);
                 UguiViewText.Set(locationText, string.Empty);
                 UguiViewText.Set(lengthValueText, "-");
@@ -125,11 +147,12 @@ namespace ApexRivals.UI.Runtime
             }
 
             var track = viewModel.Selected;
-            UguiViewText.Set(trackNameText, Upper(track.DisplayName));
-            UguiViewText.Set(requirementText, track.IsLocked ? "LOCKED - " + track.LockText : track.IsFinale ? "FINAL EVENT" + (string.IsNullOrEmpty(track.StatusText) ? string.Empty : " - " + track.StatusText) : track.StatusText);
+            UguiViewText.Set(trackNameText, TwoToneTitle(Upper(track.DisplayName)));
+            // Race status (WON, CHAMPION...) lives on the card badge; this line only explains locks and the final.
+            UguiViewText.Set(requirementText, track.IsLocked ? lockedPrefix + track.LockText : track.IsFinale ? FinaleLine(track) : string.Empty);
             if (requirementText != null)
             {
-                requirementText.color = track.IsLocked || track.IsFinale ? ApexUiVisualStyle.AccentText : ApexUiVisualStyle.SecondaryText;
+                requirementText.color = track.IsLocked || track.IsFinale ? Palette.AccentText : Palette.SecondaryText;
             }
 
             UguiViewText.Set(locationText, Upper(track.Location));
@@ -141,12 +164,67 @@ namespace ApexRivals.UI.Runtime
             if (minimap != null) minimap.SetPoints(track.MinimapPoints);
         }
 
+        private void RenderCareer(TrackSelectionViewModel viewModel)
+        {
+            if (careerRoot != null && careerRoot.activeSelf != viewModel.HasCareer)
+            {
+                careerRoot.SetActive(viewModel.HasCareer);
+            }
+
+            if (!viewModel.HasCareer)
+            {
+                return;
+            }
+
+            if (careerPercentText != null)
+            {
+                UguiViewText.Set(careerPercentText, viewModel.CareerPercent.ToString(CultureInfo.InvariantCulture) + "%");
+            }
+            else
+            {
+                UguiViewText.Set(careerTitleText, UguiViewText.FormatTemplate(
+                    careerProgressFormat, "CAREER  <color={0}>{1}%</color>",
+                    Palette.PrimaryRedHex,
+                    viewModel.CareerPercent));
+            }
+
+            UguiViewText.Set(careerNextText, viewModel.CareerNextText);
+            if (careerProgressBar != null)
+            {
+                careerProgressBar.Value = viewModel.CareerPercent / 100f;
+            }
+
+            if (careerProgressFill != null)
+            {
+                var max = careerProgressFill.anchorMax;
+                max.x = viewModel.CareerPercent / 100f;
+                careerProgressFill.anchorMax = max;
+            }
+        }
+
+        /// <summary>The final's goal ("FINISH 1ST AGAINST ...") plus "CHAMPION" once won; the subtitle names the circuit.</summary>
+        private string FinaleLine(TrackSelectionItemViewModel track)
+        {
+            var goal = string.IsNullOrEmpty(track.Goal) ? finalEventLabel : Upper(track.Goal);
+            return string.IsNullOrEmpty(track.StatusText) ? goal : goal + " - " + track.StatusText;
+        }
+
+        /// <summary>"APEX CIRCUIT" → first word in the primary text colour, the rest in red.</summary>
+        private string TwoToneTitle(string title)
+        {
+            var split = string.IsNullOrEmpty(title) ? -1 : title.IndexOf(' ');
+            return split <= 0
+                ? title
+                : title.Substring(0, split) + " <color=" + Palette.PrimaryRedHex + ">" + title.Substring(split + 1) + "</color>";
+        }
+
         private void SetPreview(Sprite sprite)
         {
             if (previewImage != null)
             {
                 previewImage.sprite = sprite;
                 previewImage.enabled = sprite != null;
+                UguiViewText.FitAspect(previewImage, sprite, autoFitPreviewAspect);
             }
 
             if (previewPlaceholder != null)
@@ -219,6 +297,7 @@ namespace ApexRivals.UI.Runtime
         /// </summary>
         private void ConfigureNavigation(int selectedIndex)
         {
+            if (!useDynamicNavigation) return;
             Selectable firstCard = null;
             Selectable lastCard = null;
             TrackSelectionCardView previous = null;
@@ -303,7 +382,8 @@ namespace ApexRivals.UI.Runtime
             _presenter?.SelectTrack(index);
         }
 
-        private async void OnCardSubmitted(int index)
+        /// <summary>Click / Submit on a card picks that track and hands focus to START; only START begins the race.</summary>
+        private void OnCardSubmitted(int index)
         {
             if (_presenter == null)
             {
@@ -311,7 +391,10 @@ namespace ApexRivals.UI.Runtime
             }
 
             _presenter.SelectTrack(index);
-            await _presenter.StartRace();
+            if (startRaceButton != null && startRaceButton.IsInteractable())
+            {
+                UiFocus.Request(startRaceButton);
+            }
         }
 
         private void OnEnable()
@@ -361,9 +444,12 @@ namespace ApexRivals.UI.Runtime
             _subscribed = false;
         }
 
-        private void OnBackClicked()
+        private async void OnBackClicked()
         {
-            _presenter?.Back();
+            if (_presenter != null)
+            {
+                await _presenter.Back();
+            }
         }
 
         private async void OnStartRaceClicked()
@@ -374,12 +460,13 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
-        private static string FormatStatus(string messageKey)
+        private string FormatStatus(string messageKey)
         {
             return messageKey switch
             {
-                "ui.trackSelect.startRaceFailed" => "COULD NOT START THE RACE",
-                "ui.trackSelect.noTrack" => "NO TRACK SELECTED",
+                "ui.trackSelect.startRaceFailed" => startRaceError,
+                "ui.trackSelect.noTrack" => noTrackError,
+                "ui.trackSelect.backFailed" => returnMainMenuError,
                 _ => string.Empty
             };
         }

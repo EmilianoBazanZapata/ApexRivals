@@ -11,6 +11,13 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Slider slider;
         [SerializeField] private Text label;
 
+        private float _displayedValue = float.NaN;
+
+        private void LateUpdate()
+        {
+            if (slider != null && _displayedValue != slider.normalizedValue) Show(slider.value);
+        }
+
         private void OnEnable()
         {
             if (slider != null)
@@ -30,7 +37,8 @@ namespace ApexRivals.UI.Runtime
 
         private void Show(float value)
         {
-            UguiViewText.Set(label, Format(value));
+            _displayedValue = slider != null ? slider.normalizedValue : value;
+            UguiViewText.Set(label, Format(_displayedValue));
         }
 
         public static string Format(float value)

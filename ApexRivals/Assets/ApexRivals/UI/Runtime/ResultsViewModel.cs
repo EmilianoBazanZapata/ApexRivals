@@ -19,8 +19,10 @@ namespace ApexRivals.UI.Runtime
             string messageKey,
             string careerTitle = "",
             string careerBody = "",
-            bool careerCompleted = false)
+            bool careerCompleted = false,
+            int careerPercent = -1)
         {
+            CareerPercent = careerPercent;
             CareerTitle = careerTitle ?? string.Empty;
             CareerBody = careerBody ?? string.Empty;
             CareerCompleted = careerCompleted;
@@ -61,5 +63,8 @@ namespace ApexRivals.UI.Runtime
         /// <summary>Objectives and bonuses, unlocks, next objective and any save problem.</summary>
         public string CareerBody { get; }
         public bool CareerCompleted { get; }
+
+        /// <summary>Career completion after this race (0..100), or -1 when the race does not count for a career.</summary>
+        public int CareerPercent { get; }
     }
 }

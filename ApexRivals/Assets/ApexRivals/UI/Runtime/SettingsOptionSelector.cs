@@ -12,6 +12,17 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class SettingsOptionSelector : Selectable, IPointerClickHandler
     {
+        [SerializeField, Tooltip("Use palette-driven states. Disable to use the Selectable's authored transition and graphic colors.")]
+        private bool usePaletteVisuals = true;
+
+        [Header("Arrow labels")]
+        [SerializeField] private string previousArrowLabel = "<";
+        [SerializeField] private string nextArrowLabel = ">";
+        [SerializeField] private string inlineValueFormat = "< {0} >";
+
+        [SerializeField, Tooltip("Colors (and border widths) this control switches between with its state.")] private ApexUiPalette palette;
+        private ApexUiPalette Palette => ApexUiPalette.Resolve(palette);
+
         [SerializeField] private Text labelText;
         [SerializeField] private Text previousArrowText;
         [SerializeField] private Text valueText;
@@ -35,7 +46,6 @@ namespace ApexRivals.UI.Runtime
         protected override void Awake()
         {
             base.Awake();
-            transition = Transition.None;
             ResolveReferences();
             RefreshVisuals();
         }
@@ -43,6 +53,9 @@ namespace ApexRivals.UI.Runtime
         protected override void OnEnable()
         {
             base.OnEnable();
+            // Focus given while the screen was still enabling never reached OnSelect. Read it once here only:
+            // during OnDeselect the EventSystem still reports this row as selected.
+            _isSelected = EventSystem.current != null && EventSystem.current.currentSelectedGameObject == gameObject;
             RefreshVisuals();
         }
 
@@ -164,7 +177,7 @@ namespace ApexRivals.UI.Runtime
 
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
-            base.DoStateTransition(state, instant);
+            if (!usePaletteVisuals) base.DoStateTransition(state, instant);
             RefreshVisuals();
         }
 
@@ -218,32 +231,35 @@ namespace ApexRivals.UI.Runtime
             if (valueText != null)
             {
                 var label = CurrentValueLabel();
-                valueText.text = inlineArrows && label.Length > 0 ? $"< {label} >" : label;
+                valueText.text = inlineArrows && label.Length > 0 ? UguiViewText.FormatTemplate(inlineValueFormat, "< {0} >", label) : label;
             }
 
-            var textColor = !enabledRow ? ApexUiVisualStyle.DisabledText : ApexUiVisualStyle.PrimaryText;
-            SetGraphicColor(background, !enabledRow ? ApexUiVisualStyle.Disabled : highlighted ? ApexUiVisualStyle.PrimaryRed : ApexUiVisualStyle.PanelElevated);
-            if (background is AngledPanelGraphic angledBackground && angledBackground.BorderThickness > 0f)
+            if (usePaletteVisuals)
             {
-                angledBackground.BorderColor = enabledRow && !highlighted ? ApexUiVisualStyle.PanelOutline : Color.clear;
-            }
+                var textColor = !enabledRow ? Palette.DisabledText : Palette.PrimaryText;
+                SetGraphicColor(background, !enabledRow ? Palette.Disabled : highlighted ? Palette.PrimaryRed : Palette.PanelElevated);
+                if (background is AngledPanelGraphic angledBackground && angledBackground.BorderThickness > 0f)
+                {
+                    angledBackground.BorderColor = enabledRow && !highlighted ? Palette.PanelOutline : Color.clear;
+                }
 
-            SetTextColor(labelText, ApexUiVisualStyle.SecondaryText);
-            SetTextColor(valueText, textColor);
-            SetTextColor(previousArrowText, textColor);
-            SetTextColor(nextArrowText, textColor);
-            SetGraphicColor(previousArrowIcon, textColor);
-            SetGraphicColor(nextArrowIcon, textColor);
+                SetTextColor(labelText, Palette.SecondaryText);
+                SetTextColor(valueText, textColor);
+                SetTextColor(previousArrowText, textColor);
+                SetTextColor(nextArrowText, textColor);
+                SetGraphicColor(previousArrowIcon, textColor);
+                SetGraphicColor(nextArrowIcon, textColor);
+            }
 
             // The arrow texts stay as hit targets; an icon replaces their glyph.
             if (previousArrowText != null)
             {
-                previousArrowText.text = previousArrowIcon != null ? string.Empty : "<";
+                previousArrowText.text = previousArrowIcon != null ? string.Empty : previousArrowLabel;
             }
 
             if (nextArrowText != null)
             {
-                nextArrowText.text = nextArrowIcon != null ? string.Empty : ">";
+                nextArrowText.text = nextArrowIcon != null ? string.Empty : nextArrowLabel;
             }
         }
 

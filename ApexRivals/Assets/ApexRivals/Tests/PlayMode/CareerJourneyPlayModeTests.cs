@@ -116,7 +116,7 @@ namespace ApexRivals.Tests.PlayMode
             // Main menu shows the career from the first frame.
             var menuPanel = FindInScene<CareerPanelUguiView>("MainMenu");
             Assert.That(menuPanel, Is.Not.Null, "Main menu career panel is wired.");
-            Assert.That(TextOf(menuPanel, "CareerCompletionTitle"), Is.EqualTo("CAREER 0%"));
+            Assert.That(TextOf(menuPanel, "CareerCompletionPercent"), Is.EqualTo("0%"));
             Assert.That(TextOf(menuPanel, "CareerObjectiveTitle"), Does.Contain("APEX CIRCUIT"));
 
             // Garage: Vanguard is granted and equipped; the Striker can be browsed but not bought yet.
@@ -211,7 +211,7 @@ namespace ApexRivals.Tests.PlayMode
             yield return WaitForTask(toMenu);
             Assert.That(toMenu.Result.Succeeded, Is.True, toMenu.Result.Message);
             yield return null;
-            Assert.That(TextOf(FindInScene<CareerPanelUguiView>("MainMenu"), "CareerCompletionTitle"), Is.EqualTo("CAREER 100%"));
+            Assert.That(TextOf(FindInScene<CareerPanelUguiView>("MainMenu"), "CareerCompletionPercent"), Is.EqualTo("100%"));
 
             var restartedState = new CareerState();
             var restartedProgression = new PlayerProgressionState();

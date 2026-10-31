@@ -28,43 +28,70 @@ namespace ApexRivals.Editor.Track
                 Directory.CreateDirectory(Folder + "/Art");
                 AssetDatabase.Refresh();
                 var shader = Shader.Find("ApexRivals/Assistance/Driving Line");
-                if (shader == null) throw new InvalidOperationException("Driving line shader is missing.");
+
                 var materialPath = Folder + "/Art/DrivingLine.mat";
                 var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-                if (material == null) { material = new Material(shader); AssetDatabase.CreateAsset(material, materialPath); }
-                var root = new GameObject("DrivingLine");
-                try
+                if (material == null)
                 {
-                    var line = root.AddComponent<DynamicDrivingLine>();
-                    root.GetComponent<MeshRenderer>().enabled = false;
-                    var serialized = new SerializedObject(line);
-                    serialized.FindProperty("lineMaterial").objectReferenceValue = material;
-                    serialized.ApplyModifiedPropertiesWithoutUndo();
-                    PrefabUtility.SaveAsPrefabAsset(root, Folder + "/DrivingLine.prefab");
+                    if (File.Exists(materialPath)) throw new InvalidOperationException("Existing material cannot be loaded: " + materialPath);
+                    if (shader == null) throw new InvalidOperationException("Driving line shader is missing.");
+                    material = new Material(shader);
+                    AssetDatabase.CreateAsset(material, materialPath);
                 }
-                finally { Object.DestroyImmediate(root); }
+                var prefabPath = Folder + "/DrivingLine.prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab == null)
+                {
+                    if (File.Exists(prefabPath)) throw new InvalidOperationException("Existing prefab cannot be loaded: " + prefabPath);
+                    var root = new GameObject("DrivingLine");
+                    try
+                    {
+                        var line = root.AddComponent<DynamicDrivingLine>();
+                        root.GetComponent<MeshRenderer>().enabled = false;
+                        var serialized = new SerializedObject(line);
+                        serialized.FindProperty("lineMaterial").objectReferenceValue = material;
+                        serialized.ApplyModifiedPropertiesWithoutUndo();
+                        PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                    }
+                    finally { Object.DestroyImmediate(root); }
+                }
                 foreach (var name in new[] { "Race", "RaceDunes", "RaceSuzuka" })
                 {
                     var scene = EditorSceneManager.OpenScene("Assets/ApexRivals/Scenes/" + name + ".unity");
-                    var previous = Find<DynamicDrivingLine>(scene);
-                    if (previous != null) Undo.DestroyObjectImmediate(previous.gameObject);
-                    var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Folder + "/DrivingLine.prefab"), scene);
-                    Undo.RegisterCreatedObjectUndo(instance, "Install driving line");
-                    var serialized = new SerializedObject(instance.GetComponent<DynamicDrivingLine>());
-                    serialized.FindProperty("coordinator").objectReferenceValue = Find<RaceCoordinator>(scene);
-                    serialized.FindProperty("sessionInstaller").objectReferenceValue = Find<RaceSessionSceneInstaller>(scene);
-                    serialized.FindProperty("racingLine").objectReferenceValue = Find<RacingLine>(scene);
-                    var sceneRoot = scene.GetRootGameObjects().First(r => r.name == "RaceSceneRoot");
-                    var road = sceneRoot.transform.Find("Track/Circuit/Road").GetComponent<MeshCollider>();
-                    serialized.FindProperty("road").objectReferenceValue = road;
-                    serialized.ApplyModifiedPropertiesWithoutUndo();
-                    PrefabUtility.RecordPrefabInstancePropertyModifications(instance.GetComponent<DynamicDrivingLine>());
-                    EditorSceneManager.MarkSceneDirty(scene);
-                    EditorSceneManager.SaveScene(scene);
+                    var line = Find<DynamicDrivingLine>(scene);
+                    var created = line == null;
+                    if (created)
+                    {
+                        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                        if (asset == null || asset.GetComponent<DynamicDrivingLine>() == null)
+                            throw new InvalidOperationException("Missing DynamicDrivingLine in " + prefabPath);
+                        var instance = (GameObject)PrefabUtility.InstantiatePrefab(asset, scene);
+                        Undo.RegisterCreatedObjectUndo(instance, "Install missing driving line");
+                        line = instance.GetComponent<DynamicDrivingLine>();
+                    }
+                    var serialized = new SerializedObject(line);
+                    FillReference(serialized, "coordinator", Find<RaceCoordinator>(scene));
+                    FillReference(serialized, "sessionInstaller", Find<RaceSessionSceneInstaller>(scene));
+                    FillReference(serialized, "racingLine", Find<RacingLine>(scene));
+                    var sceneRoot = scene.GetRootGameObjects().FirstOrDefault(r => r.name == "RaceSceneRoot");
+                    var road = sceneRoot != null ? sceneRoot.transform.Find("Track/Circuit/Road") : null;
+                    FillReference(serialized, "road", road != null ? road.GetComponent<MeshCollider>() : null);
+                    if (serialized.ApplyModifiedProperties() || created)
+                    {
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(line);
+                        EditorSceneManager.MarkSceneDirty(scene);
+                        EditorSceneManager.SaveScene(scene);
+                    }
                 }
-                AssetDatabase.SaveAssets();
+
             }
             finally { EditorSceneManager.RestoreSceneManagerSetup(setup); }
+        }
+
+        private static void FillReference(SerializedObject target, string name, Object value)
+        {
+            var property = target.FindProperty(name);
+            if (property.objectReferenceValue == null && value != null) property.objectReferenceValue = value;
         }
 
         private static T Find<T>(Scene scene) where T : Component => scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<T>(true)).FirstOrDefault();

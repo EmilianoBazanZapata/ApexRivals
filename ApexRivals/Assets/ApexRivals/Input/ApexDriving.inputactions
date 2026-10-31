@@ -1,0 +1,390 @@
+{
+    "version": 1,
+    "name": "ApexDriving",
+    "maps": [
+        {
+            "name": "Driving",
+            "id": "7ec7dd27-3f96-4219-b5f6-56fea79e00b8",
+            "actions": [
+                {
+                    "name": "Throttle",
+                    "type": "Value",
+                    "id": "523480f2-9834-4b17-af5b-320da395b5e1",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Brake",
+                    "type": "Value",
+                    "id": "62d96253-cded-49f7-b2c5-fb1f390c208b",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Steering",
+                    "type": "Value",
+                    "id": "3efcd8d0-27a4-490a-9d55-b8ba5fd5a358",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Drift",
+                    "type": "Button",
+                    "id": "a6c1e3cd-c60c-4d7b-9307-8df1c2430688",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Nitro",
+                    "type": "Button",
+                    "id": "07f686b3-c0ad-4655-b17a-1d3a86bf6c7f",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Reset",
+                    "type": "Button",
+                    "id": "0b7eadd1-f145-4cb9-91b2-a9d6a3dfe3c9",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "RecoverVehicle",
+                    "type": "Button",
+                    "id": "682b4abb-3f7e-4146-abb2-88582969c1cd",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "bea1c0ec-d9ee-41ce-bc70-7e97fa07b214",
+                    "path": "<Keyboard>/w",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Throttle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "07bff9ff-1792-4c06-8884-245263a172e2",
+                    "path": "<Keyboard>/upArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Throttle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "76affc39-5bf8-4f78-bc6e-36196df43f84",
+                    "path": "<Gamepad>/rightTrigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Throttle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b8342582-2a0f-459c-a307-25ade40296fa",
+                    "path": "<Keyboard>/s",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Brake",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "df7d182f-76b6-4374-b4b3-4554fd396d8b",
+                    "path": "<Keyboard>/downArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Brake",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c6de76f4-52e5-4ec0-987f-2bc87bae56aa",
+                    "path": "<Gamepad>/leftTrigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Brake",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "bc867e0e-a50c-4cc3-9aaf-22b4540591c6",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Steering",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "b1d9a6fe-8168-4daf-9954-a8f077fab5c1",
+                    "path": "<Keyboard>/a",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Steering",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "8b92e280-be95-4e39-90ee-a6ee25cfb9ab",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Steering",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "9aacf162-0ce9-45eb-b2b9-858e6cfa49a9",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Steering",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "75308071-551b-4907-aac9-6b71393d2a34",
+                    "path": "<Keyboard>/leftArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Steering",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "e69f5854-14c7-4240-9101-6e99b8b581d0",
+                    "path": "<Keyboard>/rightArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Steering",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "44d0d436-63d8-4b42-a085-2796954a8e47",
+                    "path": "<Gamepad>/leftStick/x",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Steering",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f5bfb08d-3367-4c09-a2b7-f6684c286636",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Drift",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "84e45ced-fe3d-4c02-bd9f-1bc990a724ac",
+                    "path": "<Gamepad>/buttonSouth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Drift",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9c244d92-7af3-4e88-b2aa-70a18d357d8e",
+                    "path": "<Keyboard>/leftShift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Nitro",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f8128838-3aad-4e00-8da0-505b69ea471c",
+                    "path": "<Gamepad>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Nitro",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3a315eab-cdb8-4c17-b8b2-0995394dbdc3",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Reset",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "eb9bf2ae-a968-43ce-b677-91cf1f7cd294",
+                    "path": "<Gamepad>/buttonNorth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Reset",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0cdb5d52-14cf-400d-af9e-4cc6613eb89b",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RecoverVehicle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ecb2bbe0-7e0b-4b4b-8402-4673428da807",
+                    "path": "<Gamepad>/select",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RecoverVehicle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Session",
+            "id": "546af51f-bfa1-4a16-b90a-699e358fc789",
+            "actions": [
+                {
+                    "name": "Pause",
+                    "type": "Button",
+                    "id": "33ed432f-7e51-41bd-ba9b-0f78c65222c4",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "SkipRaceIntroduction",
+                    "type": "Button",
+                    "id": "19ca05e4-256e-43b1-9839-a17bc5333288",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "97fb293a-810a-43dd-8491-2dc981a696a1",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Pause",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5c4dd54b-7f92-4349-a128-fb43d4d79c3b",
+                    "path": "<Gamepad>/start",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Pause",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "251ba207-5f5d-4592-915f-ab49bce1282e",
+                    "path": "<Keyboard>/enter",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SkipRaceIntroduction",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0c8d3217-7cc9-44a6-b2f2-af825f0ab2fc",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SkipRaceIntroduction",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "247517db-796f-4568-8395-77b2b23254d0",
+                    "path": "<Gamepad>/buttonSouth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SkipRaceIntroduction",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

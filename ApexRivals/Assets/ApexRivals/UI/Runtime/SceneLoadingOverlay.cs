@@ -1,22 +1,27 @@
 using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace ApexRivals.UI.Runtime
 {
+    /// <summary>
+    /// Opaque loading screen shown while content scenes load. The screen itself (canvas, wordmark, spinner) is the
+    /// SceneLoadingOverlay prefab placed under this object in the Bootstrap scene and assigned here; this only
+    /// shows it, spins the spinner and blocks UI input meanwhile.
+    /// </summary>
     [DisallowMultipleComponent]
     public sealed class SceneLoadingOverlay : MonoBehaviour, ISceneLoadingPresentation
     {
         [SerializeField, Min(0f), Tooltip("Unscaled seconds to show the overlay before content loading starts. Waiting here keeps the race countdown uncovered.")]
         private float preLoadDelaySeconds = 5f;
+        [SerializeField, Tooltip("The loading screen (inactive until shown).")] private GameObject surface;
+        [SerializeField, Tooltip("Rotated while the screen is visible.")] private RectTransform spinner;
+        [SerializeField, Tooltip("Spinner speed in degrees per second (negative turns clockwise).")] private float spinnerDegreesPerSecond = -220f;
 
         private BootstrapUiInputSystem _input;
-        private GameObject _surface;
-        private RectTransform _spinner;
         private GameObject _previousSelection;
         private Coroutine _focusRecovery;
-        public bool IsVisible => _surface != null && _surface.activeSelf;
+        public bool IsVisible => surface != null && surface.activeSelf;
         public float PreLoadDelaySeconds
         {
             get => preLoadDelaySeconds;
@@ -27,17 +32,25 @@ namespace ApexRivals.UI.Runtime
         {
             Hide(false);
             _input = input;
-            if (_surface == null) Build();
+            if (surface == null) Debug.LogWarning("Scene loading overlay has no loading screen assigned; loads will not be covered.", this);
+        }
+
+        /// <summary>Assigns the loading screen when the overlay is assembled in code (tests); scenes set it in the Inspector.</summary>
+        public void UseSurface(GameObject loadingScreen, RectTransform loadingSpinner)
+        {
+            surface = loadingScreen;
+            spinner = loadingSpinner;
+            if (surface != null) surface.SetActive(false);
         }
 
         public async Task ShowAsync()
         {
-            if (!isActiveAndEnabled || _surface == null) return;
+            if (!isActiveAndEnabled || surface == null) return;
             if (_focusRecovery != null) StopCoroutine(_focusRecovery);
             _focusRecovery = null;
             _previousSelection = UiFocus.CurrentSelection;
             var readyAt = Time.realtimeSinceStartupAsDouble + Mathf.Max(0f, preLoadDelaySeconds);
-            _surface.SetActive(true);
+            surface.SetActive(true);
             _input?.SetLoadingInputBlocked(this, true);
             UiFocus.Clear();
             Canvas.ForceUpdateCanvases();
@@ -54,7 +67,7 @@ namespace ApexRivals.UI.Runtime
         public void Hide(bool succeeded)
         {
             var wasVisible = IsVisible;
-            if (_surface != null) _surface.SetActive(false);
+            if (surface != null) surface.SetActive(false);
             if (wasVisible && !succeeded && _input != null) _input.RestoreSceneFocusAfterLoading();
             if (_input != null) _input.SetLoadingInputBlocked(this, false);
             var previous = _previousSelection;
@@ -77,7 +90,7 @@ namespace ApexRivals.UI.Runtime
 
         private void Update()
         {
-            if (IsVisible) _spinner.Rotate(0f, 0f, -220f * Time.unscaledDeltaTime);
+            if (IsVisible && spinner != null) spinner.Rotate(0f, 0f, spinnerDegreesPerSecond * Time.unscaledDeltaTime);
         }
 
         private void OnDisable()
@@ -90,69 +103,6 @@ namespace ApexRivals.UI.Runtime
         private void OnDestroy()
         {
             Hide(false);
-            if (_surface != null) Destroy(_surface);
-        }
-
-        private void Build()
-        {
-            _surface = new GameObject("SceneLoadingOverlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            _surface.transform.SetParent(transform, false);
-            var canvas = _surface.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = short.MaxValue;
-            var scaler = _surface.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-            var background = new GameObject("OpaqueBackground", typeof(RectTransform), typeof(Image));
-            background.transform.SetParent(_surface.transform, false);
-            var rect = background.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
-            background.GetComponent<Image>().color = ApexUiVisualStyle.Background;
-
-            // Existing MainMenu wordmark treatment: built-in font, bold italic, white/red.
-            Label("APEX", new Vector2(0f, 100f), new Vector2(650f, 140f), ApexUiVisualStyle.LogoPrimarySize, ApexUiVisualStyle.PrimaryText);
-            Label("RIVALS", new Vector2(0f, 0f), new Vector2(650f, 70f), ApexUiVisualStyle.LogoAccentSize, ApexUiVisualStyle.PrimaryRed);
-            _spinner = new GameObject("LoadingSpinner", typeof(RectTransform)).GetComponent<RectTransform>();
-            _spinner.SetParent(_surface.transform, false);
-            _spinner.anchoredPosition = new Vector2(0f, -150f);
-            _spinner.sizeDelta = new Vector2(64f, 64f);
-            for (var index = 0; index < 8; index++)
-            {
-                var dot = new GameObject("SpinnerSegment", typeof(RectTransform), typeof(Image));
-                dot.transform.SetParent(_spinner, false);
-                var dotRect = dot.GetComponent<RectTransform>();
-                var angle = index * Mathf.PI / 4f;
-                dotRect.anchoredPosition = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * 25f;
-                dotRect.sizeDelta = new Vector2(7f, 12f);
-                dotRect.localRotation = Quaternion.Euler(0f, 0f, -index * 45f);
-                var image = dot.GetComponent<Image>();
-                var color = ApexUiVisualStyle.PrimaryRed;
-                color.a = 0.2f + index * 0.1f;
-                image.color = color;
-                image.raycastTarget = false;
-            }
-            _surface.SetActive(false);
-        }
-
-        private void Label(string value, Vector2 position, Vector2 size, int fontSize, Color color)
-        {
-            var label = new GameObject(value, typeof(RectTransform), typeof(Text));
-            label.transform.SetParent(_surface.transform, false);
-            var rect = label.GetComponent<RectTransform>();
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            var text = label.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.text = value;
-            text.fontSize = fontSize;
-            text.fontStyle = FontStyle.BoldAndItalic;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = color;
-            text.raycastTarget = false;
         }
     }
 }

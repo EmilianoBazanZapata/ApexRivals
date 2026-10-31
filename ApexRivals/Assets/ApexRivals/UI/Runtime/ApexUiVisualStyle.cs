@@ -22,6 +22,13 @@ namespace ApexRivals.UI.Runtime
         public static readonly Color FocusOutline = new Color32(0xFF, 0x3B, 0x35, 0xFF);
         public static readonly Color PanelOutline = new Color32(0x3C, 0x46, 0x50, 0xFF);
         public static readonly Color Dimmer = new Color32(0x00, 0x00, 0x00, 0xB8);
+        public static readonly Color PanelDeep = new Color32(0x0C, 0x0E, 0x12, 0xEE);
+        public static readonly Color PrimaryRedIdle = new Color32(0xA8, 0x10, 0x0D, 0xFF);
+        public static readonly Color SuccessGreen = new Color32(0x2E, 0xB8, 0x45, 0xFF);
+        public static readonly Color KeycapOutline = new Color32(0xB8, 0xBE, 0xC6, 0xFF);
+
+        /// <summary>Rich-text hex of <see cref="PrimaryRed"/> for two-tone titles.</summary>
+        public const string PrimaryRedHex = "#E51612";
 
         public const int ScreenTitleSize = 42;
         public const int SectionTitleSize = 26;

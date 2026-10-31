@@ -5,6 +5,7 @@
         "ApexRivals.Runtime",
         "UnityEngine.UI",
         "Unity.InputSystem",
+        "Unity.Cinemachine",
         "Unity.ProBuilder",
         "Unity.ProBuilder.Editor"
     ],

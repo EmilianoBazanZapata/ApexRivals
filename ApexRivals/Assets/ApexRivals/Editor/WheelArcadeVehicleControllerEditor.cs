@@ -91,6 +91,7 @@ namespace ApexRivals.Editor
                 EditorGUILayout.FloatField("Front Wheel Steer Angle", controller.CurrentFrontWheelSteerAngle);
                 EditorGUILayout.FloatField("Countersteer Correction", controller.CurrentCountersteerCorrection);
                 EditorGUILayout.FloatField("Engine RPM", controller.CurrentEngineRpm);
+                EditorGUILayout.FloatField("Presented Engine RPM", controller.CurrentPresentedEngineRpm);
                 EditorGUILayout.IntField("Current Gear", controller.CurrentGear);
                 EditorGUILayout.FloatField("RL Wheel RPM", controller.RearLeftWheelRpm);
                 EditorGUILayout.FloatField("RR Wheel RPM", controller.RearRightWheelRpm);

@@ -3,61 +3,128 @@ using System;
 namespace ApexRivals.Audio.Runtime
 {
     /// <summary>
-    /// Sounds synthesised in code (mono PCM, -1..1) so the game ships audio without sample files: a seamless engine
-    /// loop, short UI cues and a seamless music loop. Deterministic: the same input always gives the same samples.
+    /// Sounds synthesised in code (mono PCM, -1..1) so the game ships audio without sample files: tyre skid and nitro
+    /// loops, collision hits, short UI cues and a seamless music loop. Engines have their own synthesiser
+    /// (<see cref="EngineSynthCore"/>). Deterministic: the same input always gives the same samples.
     /// </summary>
     public static class ProceduralAudio
     {
-        /// <summary>Fundamental of <see cref="CreateEngineLoop"/>; whole cycles fit the one-second loop.</summary>
-        public const float EngineLoopFrequency = 75f;
-
-        /// <summary>
-        /// Engine RPM the engine loop sounds like at pitch 1: a four-stroke four-cylinder fires twice per revolution,
-        /// so 75 Hz ≈ 2250 RPM. Pitch = RPM / this.
-        /// </summary>
-        public const float EngineLoopRpm = EngineLoopFrequency * 30f;
-
         public const int MusicBeatsPerMinute = 120;
         public const int MusicBars = 8;
 
         private const float TwoPi = (float)(Math.PI * 2.0);
         private const int TableSize = 2048;
 
-        // ------------------------------------------------------------------ engine
+        // ------------------------------------------------------------------ tyres, impacts, nitro
 
-        /// <summary>One-second seamless loop: harmonic-rich exhaust tone, a per-cycle combustion pulse and slight roughness.</summary>
-        public static float[] CreateEngineLoop(int sampleRate)
+        /// <summary>
+        /// Seamless one-second tyre skid: rubber hiss (band-limited noise) under a squeal whose pitch wobbles, as the
+        /// tread grips and lets go. Pitch it up a little with the slide's intensity.
+        /// </summary>
+        public static float[] CreateTireSkidLoop(int sampleRate)
         {
             var samples = new float[sampleRate];
-            var random = new Random(7);
-            const int harmonics = 12;
-            var phases = new float[harmonics + 1];
-            for (var h = 1; h <= harmonics; h++)
-            {
-                phases[h] = (float)random.NextDouble() * TwoPi;
-            }
-
-            var period = 1f / EngineLoopFrequency;
+            var random = new Random(23);
+            var low = 0f;
+            var high = 0f;
+            var previousNoise = 0f;
+            var phase = 0.0;
             for (var i = 0; i < samples.Length; i++)
             {
                 var t = i / (float)sampleRate;
-                var phase = TwoPi * EngineLoopFrequency * t;
-                var tone = 0f;
-                for (var h = 1; h <= harmonics; h++)
-                {
-                    tone += (float)Math.Sin(h * phase + phases[h]) / (float)Math.Pow(h, 0.85);
-                }
-
-                // Combustion pulse at the start of every cycle: a short rasp that decays within the cycle.
-                var inCycle = t % period;
-                var pulse = (float)(Math.Exp(-inCycle / (period * 0.18f)) * Math.Sin(TwoPi * EngineLoopFrequency * 7f * inCycle));
-
-                // 25 Hz roughness: an integer number of cycles per second, so the loop stays seamless.
-                var roughness = 1f + 0.18f * (float)Math.Sin(TwoPi * 25f * t);
-                samples[i] = (float)Math.Tanh(1.4f * (0.55f * tone + 0.6f * pulse) * roughness);
+                var noise = (float)(random.NextDouble() * 2.0 - 1.0);
+                // Band-pass around 1-3 kHz: high-pass then low-pass, both one-pole.
+                high = 0.94f * (high + noise - previousNoise);
+                previousNoise = noise;
+                low += 0.35f * (high - low);
+                // Squeal: ~950 Hz with a slow wobble (4 Hz and 7 Hz, whole cycles per second).
+                var frequency = 950.0 + 60.0 * Math.Sin(TwoPi * 4f * t) + 25.0 * Math.Sin(TwoPi * 7f * t);
+                phase += TwoPi * frequency / sampleRate;
+                var squealLevel = 0.6f + 0.4f * (float)Math.Sin(TwoPi * 3f * t);
+                var squeal = (float)(Math.Sin(phase) + 0.35 * Math.Sin(2.0 * phase) + 0.15 * Math.Sin(3.0 * phase));
+                samples[i] = 0.9f * low + 0.32f * squealLevel * squeal;
             }
 
-            return Normalize(samples, 0.8f);
+            return Normalize(LoopCrossfade(samples, sampleRate / 10), 0.75f);
+        }
+
+        /// <summary>
+        /// Collision hit: a low body thump, a crunchy noise burst and a few inharmonic metal partials ringing out.
+        /// <paramref name="variant"/> changes the partials so repeated hits do not sound identical.
+        /// </summary>
+        public static float[] CreateImpact(int sampleRate, int variant)
+        {
+            var samples = new float[(int)(sampleRate * 0.6f)];
+            var random = new Random(101 + variant * 17);
+            var partials = new float[5];
+            for (var p = 0; p < partials.Length; p++)
+            {
+                partials[p] = 320f + (float)random.NextDouble() * 2200f;
+            }
+
+            var low = 0f;
+            var thumpPhase = 0.0;
+            for (var i = 0; i < samples.Length; i++)
+            {
+                var t = i / (float)sampleRate;
+                var thumpFrequency = 55.0 + 70.0 * Math.Exp(-t / 0.03);
+                thumpPhase += TwoPi * thumpFrequency / sampleRate;
+                var thump = (float)(Math.Exp(-t / 0.09) * Math.Sin(thumpPhase));
+
+                var noise = (float)(random.NextDouble() * 2.0 - 1.0);
+                low += 0.25f * (noise - low);
+                var crunch = (float)Math.Exp(-t / 0.045) * (0.6f * low + 0.4f * noise);
+
+                var metal = 0f;
+                for (var p = 0; p < partials.Length; p++)
+                {
+                    metal += (float)(Math.Exp(-t / (0.08 + 0.05 * p)) * Math.Sin(TwoPi * partials[p] * t)) / (p + 1);
+                }
+
+                var attack = Math.Min(1f, t / 0.0015f);
+                samples[i] = attack * (0.9f * thump + 0.8f * crunch + 0.35f * metal);
+            }
+
+            return Normalize(samples, 0.9f);
+        }
+
+        /// <summary>Seamless one-second nitro burn: a deep rumble under a jet-like roar of filtered noise.</summary>
+        public static float[] CreateNitroLoop(int sampleRate)
+        {
+            var samples = new float[sampleRate];
+            var random = new Random(59);
+            var roar = 0f;
+            var rumble = 0f;
+            for (var i = 0; i < samples.Length; i++)
+            {
+                var t = i / (float)sampleRate;
+                var noise = (float)(random.NextDouble() * 2.0 - 1.0);
+                roar += 0.18f * (noise - roar);
+                rumble += 0.02f * (noise - rumble);
+                var pulse = 1f + 0.15f * (float)Math.Sin(TwoPi * 12f * t);
+                samples[i] = pulse * (0.8f * roar + 2.5f * rumble) + 0.15f * (float)Math.Sin(TwoPi * 60f * t);
+            }
+
+            return Normalize(LoopCrossfade(samples, sampleRate / 8), 0.7f);
+        }
+
+        /// <summary>
+        /// Makes noise-based buffers loop without a click: the last <paramref name="fade"/> samples are blended into
+        /// the start and the buffer is shortened by that much, so its end runs straight into its beginning.
+        /// </summary>
+        private static float[] LoopCrossfade(float[] samples, int fade)
+        {
+            fade = Math.Max(1, Math.Min(fade, samples.Length / 2));
+            var length = samples.Length - fade;
+            var looped = new float[length];
+            Array.Copy(samples, looped, length);
+            for (var i = 0; i < fade; i++)
+            {
+                var mix = i / (float)fade;
+                looped[i] = samples[length + i] * (1f - mix) + samples[i] * mix;
+            }
+
+            return looped;
         }
 
         // ------------------------------------------------------------------ UI

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -9,13 +10,14 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace ApexRivals.Editor.Track
 {
     /// <summary>
     /// Fills every <see cref="TrackDefinition"/> with data read from its race scene: the minimap outline
     /// (the AI racing line, rotated so it starts at the grid), the lap length and a preview image rendered
-    /// from behind the pole position. Re-run after a track layout changes.
+    /// from behind the pole position. Only missing fields are initialized; authored data and existing image import settings are preserved.
     /// </summary>
     public static class TrackSelectDataBaker
     {
@@ -36,27 +38,32 @@ namespace ApexRivals.Editor.Track
 
         public static string BakeAll()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Exit Play Mode first.");
+            for (var i = 0; i < SceneManager.sceneCount; i++)
+                if (SceneManager.GetSceneAt(i).isDirty) throw new InvalidOperationException("Save scene changes before baking track data.");
             var report = new StringBuilder();
-            var previousScene = SceneManager.GetActiveScene().path;
-            foreach (var guid in AssetDatabase.FindAssets("t:" + nameof(TrackDefinition)))
+            var setup = EditorSceneManager.GetSceneManagerSetup();
+            try
             {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var definition = AssetDatabase.LoadAssetAtPath<TrackDefinition>(path);
-                report.AppendLine(Bake(definition, path));
+                foreach (var guid in AssetDatabase.FindAssets("t:" + nameof(TrackDefinition)))
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    var definition = AssetDatabase.LoadAssetAtPath<TrackDefinition>(path);
+                    if (definition != null) report.AppendLine(Bake(definition, path));
+                }
             }
-
-            if (!string.IsNullOrEmpty(previousScene))
-            {
-                EditorSceneManager.OpenScene(previousScene);
-            }
-
-            AssetDatabase.SaveAssets();
+            finally { EditorSceneManager.RestoreSceneManagerSetup(setup); }
             return report.ToString();
         }
 
         private static string Bake(TrackDefinition definition, string definitionPath)
         {
             var trackId = definition.TrackId;
+            var authored = new SerializedObject(definition);
+            var needsLength = authored.FindProperty("lengthMeters").floatValue <= 0f;
+            var needsMinimap = authored.FindProperty("minimapPoints").arraySize == 0;
+            var needsPreview = authored.FindProperty("preview").objectReferenceValue == null;
+            if (!needsLength && !needsMinimap && !needsPreview) return trackId + ": existing track data preserved.";
             var scenePath = FindScenePath(definition.SceneName);
             if (scenePath == null)
             {
@@ -84,17 +91,18 @@ namespace ApexRivals.Editor.Track
 
             var length = TrackMinimap.ClosedLength(line);
             var minimap = TrackMinimap.Normalize(Downsample(line, MinimapPointBudget, ref startIndex), startIndex);
-            var preview = CapturePreview(definitionPath, pole);
+            var preview = needsPreview ? CapturePreview(definitionPath, pole) : null;
 
             // Opening the scene and importing the preview unload unreferenced assets, so reload the definition.
             definition = AssetDatabase.LoadAssetAtPath<TrackDefinition>(definitionPath);
             var serialized = new SerializedObject(definition);
-            serialized.FindProperty("lengthMeters").floatValue = Mathf.Round(length);
+            if (needsLength) serialized.FindProperty("lengthMeters").floatValue = Mathf.Round(length);
             var points = serialized.FindProperty("minimapPoints");
-            points.arraySize = minimap.Length;
-            for (var index = 0; index < minimap.Length; index++)
+            if (needsMinimap)
             {
-                points.GetArrayElementAtIndex(index).vector2Value = minimap[index];
+                points.arraySize = minimap.Length;
+                for (var index = 0; index < minimap.Length; index++)
+                    points.GetArrayElementAtIndex(index).vector2Value = minimap[index];
             }
 
             if (preview != null)
@@ -102,9 +110,8 @@ namespace ApexRivals.Editor.Track
                 serialized.FindProperty("preview").objectReferenceValue = preview;
             }
 
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(definition);
-            return $"{trackId}: {length:0} m, {minimap.Length} minimap points, preview {(preview != null ? AssetDatabase.GetAssetPath(preview) : "not captured")}.";
+            if (serialized.ApplyModifiedProperties()) AssetDatabase.SaveAssetIfDirty(definition);
+            return $"{trackId}: missing fields initialized; existing length, minimap and preview preserved.";
         }
 
         private static List<Vector2> Downsample(List<Vector2> line, int budget, ref int startIndex)
@@ -127,10 +134,13 @@ namespace ApexRivals.Editor.Track
 
         private static Sprite CapturePreview(string definitionPath, SpawnPose pole)
         {
+            var pngPath = Path.Combine(Path.GetDirectoryName(definitionPath) ?? "Assets", Path.GetFileNameWithoutExtension(definitionPath) + "_Preview.png").Replace('\\', '/');
+            if (File.Exists(pngPath)) return AssetDatabase.LoadAssetAtPath<Sprite>(pngPath);
             var forward = pole.Rotation * Vector3.forward;
             var cameraObject = new GameObject("TrackPreviewCamera") { hideFlags = HideFlags.HideAndDontSave };
             var texture = new RenderTexture(PreviewWidth, PreviewHeight, 24, RenderTextureFormat.ARGB32);
             var readback = new Texture2D(PreviewWidth, PreviewHeight, TextureFormat.RGB24, false);
+            var previous = RenderTexture.active;
             try
             {
                 var camera = cameraObject.AddComponent<UnityEngine.Camera>();
@@ -144,15 +154,17 @@ namespace ApexRivals.Editor.Track
                 camera.targetTexture = texture;
                 camera.Render();
 
-                var previous = RenderTexture.active;
                 RenderTexture.active = texture;
                 readback.ReadPixels(new Rect(0, 0, PreviewWidth, PreviewHeight), 0, 0);
                 readback.Apply();
                 RenderTexture.active = previous;
                 camera.targetTexture = null;
 
-                var pngPath = Path.Combine(Path.GetDirectoryName(definitionPath) ?? "Assets", Path.GetFileNameWithoutExtension(definitionPath) + "_Preview.png").Replace('\\', '/');
-                File.WriteAllBytes(pngPath, readback.EncodeToPNG());
+                using (var file = new FileStream(pngPath, FileMode.CreateNew, FileAccess.Write))
+                {
+                    var bytes = readback.EncodeToPNG();
+                    file.Write(bytes, 0, bytes.Length);
+                }
                 AssetDatabase.ImportAsset(pngPath, ImportAssetOptions.ForceUpdate);
                 if (AssetImporter.GetAtPath(pngPath) is TextureImporter importer)
                 {
@@ -167,6 +179,7 @@ namespace ApexRivals.Editor.Track
             }
             finally
             {
+                RenderTexture.active = previous;
                 Object.DestroyImmediate(cameraObject);
                 Object.DestroyImmediate(readback);
                 texture.Release();

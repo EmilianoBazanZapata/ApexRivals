@@ -6,6 +6,8 @@ namespace ApexRivals.Vehicle.Runtime
     [DisallowMultipleComponent, RequireComponent(typeof(Rigidbody))]
     public sealed class VehicleChassisStability : MonoBehaviour
     {
+        [SerializeField, Tooltip("Disable to use the Rigidbody's own automatic or custom centre of mass instead of the reference transform.")] private bool useCenterOfMassReference = true;
+
         [SerializeField] private Transform centerOfMassReference;
         [SerializeField, Min(0)] private float rollSpringAcceleration = 18;
         [SerializeField, Min(0)] private float rollDamping = 7;
@@ -29,8 +31,8 @@ namespace ApexRivals.Vehicle.Runtime
             CurrentRollAcceleration = 0;
             SupportedWheelCount = 0;
             if (_body == null || _body.isKinematic || _wheels == null) return;
-            // Apply after controller Awake has finished resetting the automatic mass.
-            if (!_centerOfMassApplied && centerOfMassReference != null)
+            // The reference is an explicit Inspector choice; the controller never resets mass properties.
+            if (useCenterOfMassReference && !_centerOfMassApplied && centerOfMassReference != null)
             {
                 _body.centerOfMass = transform.InverseTransformPoint(centerOfMassReference.position);
                 _centerOfMassApplied = true;

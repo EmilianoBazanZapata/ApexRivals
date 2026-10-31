@@ -4,7 +4,7 @@ using ApexRivals.Settings.Runtime;
 namespace ApexRivals.Audio.Runtime
 {
     /// <summary>
-    /// The game's audio bus: master × (music | UI | vehicles), following the audible settings (including the live
+    /// The game's audio bus: master × (music | UI | vehicles | ambience), following the audible settings (including the live
     /// preview while a slider is dragged). Volumes are slider positions mapped through a perceptual curve, so half
     /// way sounds about half as loud instead of barely quieter.
     /// </summary>
@@ -35,6 +35,7 @@ namespace ApexRivals.Audio.Runtime
             {
                 AudioBus.Music => _preferences.MusicVolume,
                 AudioBus.Ui => _preferences.UiVolume,
+                AudioBus.Ambience => _preferences.AmbienceVolume,
                 _ => _preferences.VehicleVolume
             };
 

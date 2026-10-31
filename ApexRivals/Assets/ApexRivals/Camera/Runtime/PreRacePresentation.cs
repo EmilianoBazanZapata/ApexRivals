@@ -10,7 +10,6 @@ using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace ApexRivals.Camera.Runtime
 {
@@ -18,6 +17,9 @@ namespace ApexRivals.Camera.Runtime
     [DisallowMultipleComponent]
     public sealed class PreRacePresentation : MonoBehaviour
     {
+        [SerializeField, Tooltip("Authored introduction skip bindings. Unassigned standalone prototypes retain Enter / Space / South.")] private InputActionAsset sessionInputActions;
+        [SerializeField] private string skipActionPath = "Session/SkipRaceIntroduction";
+
         [SerializeField] private WheelVehicleFollowCamera followCamera;
         [SerializeField] private UguiScreenNavigator screenNavigator;
         [SerializeField, Min(0.1f)] private float establishingSeconds = 1.3f;
@@ -29,6 +31,14 @@ namespace ApexRivals.Camera.Runtime
         [SerializeField] private Vector3 playerOffset = new Vector3(4f, 1.8f, 5f);
         [SerializeField] private LayerMask obstructionMask = ~0;
 
+        [Header("Authored in the scene")]
+        [SerializeField, Tooltip("SKIP INTRO hint, inactive until the introduction plays.")] private GameObject introductionHint;
+        [SerializeField, Tooltip("Inactive parent of the four shot cameras below.")] private GameObject shotRig;
+        [SerializeField, Tooltip("Wide shot of the whole grid.")] private CinemachineCamera gridShot;
+        [SerializeField, Tooltip("Close shot of a rival.")] private CinemachineCamera rivalsShot;
+        [SerializeField, Tooltip("Close shot of the player's car.")] private CinemachineCamera playerShot;
+        [SerializeField, Tooltip("Ends on the chase camera's pose; its field of view is matched to the chase camera.")] private CinemachineCamera handoffShot;
+
         private readonly List<HeldBody> _grid = new List<HeldBody>();
         private readonly List<Canvas> _hiddenCanvases = new List<Canvas>();
         private readonly RaycastHit[] _hits = new RaycastHit[32];
@@ -37,8 +47,6 @@ namespace ApexRivals.Camera.Runtime
         private BootstrapUiInputSystem _input;
         private UnityEngine.Camera _output;
         private CinemachineBrain _brain;
-        private GameObject _rig;
-        private GameObject _hint;
         private InputAction _skip;
         private Coroutine _routine;
         private bool _skipRequested;
@@ -177,24 +185,26 @@ namespace ApexRivals.Camera.Runtime
                 Debug.LogWarning("Race introduction found another camera owner; using the existing camera.", this);
                 yield break;
             }
+            // The brain (disabled, manual update, ignoring time scale, with its blend) and the shot cameras are
+            // set up in the scene; only their poses depend on this grid.
+            if (existingBrain == null || shotRig == null || gridShot == null || rivalsShot == null || playerShot == null || handoffShot == null)
+            {
+                Debug.LogWarning("Race introduction is not set up in this scene (Cinemachine brain or shot cameras missing); starting the normal countdown.", this);
+                yield break;
+            }
             var finalPose = new Pose(_output.transform.position, _output.transform.rotation);
             // Telemetry may live outside the navigator's racing panel. Hide scene UI without disabling its logic.
             foreach (var root in gameObject.scene.GetRootGameObjects())
                 foreach (var canvas in root.GetComponentsInChildren<Canvas>(true))
-                    if (canvas.enabled) { _hiddenCanvases.Add(canvas); canvas.enabled = false; }
+                    if (canvas.enabled && !IsIntroductionHint(canvas)) { _hiddenCanvases.Add(canvas); canvas.enabled = false; }
             _originalFov = _output.fieldOfView;
             _originalNear = _output.nearClipPlane;
             _followWasEnabled = followCamera.enabled;
             followCamera.enabled = false;
             _ownsCamera = true;
-            _brain = existingBrain != null ? existingBrain : _output.gameObject.AddComponent<CinemachineBrain>();
+            _brain = existingBrain;
             _brain.enabled = false;
-            _brain.UpdateMethod = CinemachineBrain.UpdateMethods.ManualUpdate;
-            _brain.IgnoreTimeScale = true;
-            _brain.DefaultBlend = new CinemachineBlendDefinition(CinemachineBlendDefinition.Styles.EaseInOut, blendSeconds);
-
-            _rig = new GameObject("PreRaceCinemachineRig");
-            _rig.transform.SetParent(transform, false);
+            shotRig.SetActive(true);
             var playerBody = _session.PlayerVehicleRigidbody;
             var target = _session.PlayerCameraTarget.position;
             var forward = Vector3.ProjectOnPlane(playerBody.transform.forward, Vector3.up).normalized;
@@ -216,20 +226,33 @@ namespace ApexRivals.Camera.Runtime
                 if (held.Body != null) radius = Mathf.Max(radius, Vector3.Distance(center, held.Body.position));
             var overviewOffset = new Vector3(8f + radius * 0.4f, 7f + radius * 0.5f, -12f - radius);
             var focuses = new[] { center, rival, target, target };
-            var cameras = new[]
-            {
-                CreateShot("Grid", SafePosition(center, center + basis * overviewOffset), center, 55f),
-                CreateShot("Rivals", SafePosition(rival, rival + basis * rivalOffset), rival, 52f),
-                CreateShot("Player", SafePosition(target, target + basis * playerOffset), target, 52f),
-                CreateShot("DrivingHandoff", finalPose.position, target, _originalFov)
-            };
-            cameras[3].transform.rotation = finalPose.rotation;
+            var cameras = new[] { gridShot, rivalsShot, playerShot, handoffShot };
+            foreach (var shotCamera in cameras) shotCamera.gameObject.SetActive(false);
+            Aim(gridShot, SafePosition(center, center + basis * overviewOffset), center);
+            Aim(rivalsShot, SafePosition(rival, rival + basis * rivalOffset), rival);
+            Aim(playerShot, SafePosition(target, target + basis * playerOffset), target);
+            handoffShot.transform.SetPositionAndRotation(finalPose.position, finalPose.rotation);
+            // The last shot must match the chase camera it hands over to.
+            handoffShot.Lens.FieldOfView = _originalFov;
             var durations = new[] { establishingSeconds, rivalSeconds, playerSeconds, Mathf.Max(handoffSeconds, blendSeconds) };
-            BuildHint();
-            _skip = new InputAction("SkipRaceIntroduction", InputActionType.Button);
-            _skip.AddBinding("<Keyboard>/enter");
-            _skip.AddBinding("<Keyboard>/space");
-            _skip.AddBinding("<Gamepad>/buttonSouth");
+            if (introductionHint != null) introductionHint.SetActive(true);
+            if (sessionInputActions != null)
+            {
+                var authored = sessionInputActions.FindAction(skipActionPath, false);
+                if (authored == null) throw new InvalidOperationException("Skip action missing: " + skipActionPath);
+                var map = authored.actionMap.Clone();
+                map.bindingMask = authored.actionMap.bindingMask ?? sessionInputActions.bindingMask;
+                map.devices = authored.actionMap.devices ?? sessionInputActions.devices;
+                _skip = map.FindAction(authored.name, true);
+                _skip.bindingMask = authored.bindingMask;
+            }
+            else
+            {
+                _skip = new InputAction("SkipRaceIntroduction", InputActionType.Button);
+                _skip.AddBinding("<Keyboard>/enter");
+                _skip.AddBinding("<Keyboard>/space");
+                _skip.AddBinding("<Gamepad>/buttonSouth");
+            }
             _skip.Enable();
             // Do not interpret a held track-selection confirmation as a request to skip.
             var armed = false;
@@ -258,18 +281,9 @@ namespace ApexRivals.Camera.Runtime
             }
         }
 
-        private CinemachineCamera CreateShot(string name, Vector3 position, Vector3 lookAt, float fov)
+        private static void Aim(CinemachineCamera shotCamera, Vector3 position, Vector3 lookAt)
         {
-            var go = new GameObject(name);
-            go.SetActive(false);
-            go.transform.SetParent(_rig.transform, false);
-            go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(lookAt - position, Vector3.up));
-            var camera = go.AddComponent<CinemachineCamera>();
-            camera.Priority = 100;
-            camera.Lens = LensSettings.FromCamera(_output);
-            camera.Lens.FieldOfView = fov;
-            camera.Lens.NearClipPlane = Mathf.Min(_originalNear, 0.15f);
-            return camera;
+            shotCamera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(lookAt - position, Vector3.up));
         }
 
         private Vector3 SafePosition(Vector3 origin, Vector3 candidate)
@@ -297,10 +311,8 @@ namespace ApexRivals.Camera.Runtime
             if (_finished) return;
             _finished = true;
             if (_brain != null) _brain.enabled = false;
-            if (_rig != null) { _rig.SetActive(false); Destroy(_rig); }
-            _rig = null;
-            if (_hint != null) { _hint.SetActive(false); Destroy(_hint); }
-            _hint = null;
+            if (shotRig != null) shotRig.SetActive(false);
+            if (introductionHint != null) introductionHint.SetActive(false);
             _skip?.Dispose();
             _skip = null;
             if (_ownsCamera && followCamera != null)
@@ -329,30 +341,10 @@ namespace ApexRivals.Camera.Runtime
             if (!startCountdown) ReleaseInput();
         }
 
-        private void BuildHint()
+        /// <summary>The SKIP INTRO hint stays visible while the rest of the scene UI is hidden.</summary>
+        private bool IsIntroductionHint(Canvas canvas)
         {
-            _hint = new GameObject("RaceIntroductionHint", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
-            _hint.transform.SetParent(transform, false);
-            var canvas = _hint.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 200;
-            var scaler = _hint.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            var label = new GameObject("SkipHint", typeof(RectTransform), typeof(Text));
-            label.transform.SetParent(_hint.transform, false);
-            var rect = label.GetComponent<RectTransform>();
-            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-48f, 40f);
-            rect.sizeDelta = new Vector2(600f, 50f);
-            var text = label.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.text = "ENTER / SPACE / A  ·  SKIP INTRO";
-            text.fontSize = 24;
-            text.alignment = TextAnchor.MiddleRight;
-            text.color = ApexUiVisualStyle.PrimaryText;
-            text.raycastTarget = false;
+            return introductionHint != null && canvas.transform.IsChildOf(introductionHint.transform);
         }
 
         private readonly struct HeldBody

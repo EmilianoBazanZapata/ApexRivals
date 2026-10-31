@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a4908c97fcaabb409f674595bac25b0, type: 3}
+  m_Name: V8Biturbo
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.EngineSoundProfile
+  displayName: 4.0 V8 Biturbo
+  description: Cross-plane V8, 4.0 L twin-turbo. Deep burble through the turbos,
+    crackle on lift.
+  firingOrder: 0100000005000000040000000200000006000000030000000700000008000000
+  firingAngles:
+  - 0
+  - 90
+  - 180
+  - 270
+  - 360
+  - 450
+  - 540
+  - 630
+  firingBanks: 0000000001000000000000000000000001000000000000000100000001000000
+  idleRpm: 800
+  redlineRpm: 7000
+  displacement: 4
+  pipeLengths:
+  - 0.8
+  - 0.9
+  pipeFeedback: 0.52
+  mufflerCutoff: 800
+  collectorResonance: 140
+  roughness: 0.13
+  intakeLevel: 0.25
+  mechanicalLevel: 0.06
+  turboLevel: 0.5
+  afterfire: 0.07

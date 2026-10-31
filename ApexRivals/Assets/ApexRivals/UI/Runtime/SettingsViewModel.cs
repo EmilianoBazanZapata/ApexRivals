@@ -17,7 +17,8 @@ namespace ApexRivals.UI.Runtime
             bool hasUnsavedChanges,
             bool canApply,
             PresentationFailure failure,
-            string messageKey)
+            string messageKey,
+            float ambienceVolume = SettingsState.DefaultAmbienceVolume)
         {
             AvailableResolutions = availableResolutions;
             SelectedResolution = selectedResolution;
@@ -26,6 +27,7 @@ namespace ApexRivals.UI.Runtime
             MusicVolume = musicVolume;
             UiVolume = uiVolume;
             VehicleVolume = vehicleVolume;
+            AmbienceVolume = ambienceVolume;
             HasUnsavedChanges = hasUnsavedChanges;
             CanApply = canApply;
             Failure = failure;
@@ -39,6 +41,7 @@ namespace ApexRivals.UI.Runtime
         public float MusicVolume { get; }
         public float UiVolume { get; }
         public float VehicleVolume { get; }
+        public float AmbienceVolume { get; }
         public bool HasUnsavedChanges { get; }
         public bool CanApply { get; }
         public PresentationFailure Failure { get; }

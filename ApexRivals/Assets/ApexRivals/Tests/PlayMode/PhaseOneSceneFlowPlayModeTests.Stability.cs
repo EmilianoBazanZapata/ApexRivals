@@ -173,6 +173,7 @@ namespace ApexRivals.Tests.PlayMode
             var input = _bootstrapper.gameObject.AddComponent<BootstrapUiInputSystem>();
             using (var serialized = new SerializedObject(input))
             {
+                serialized.FindProperty("configureModuleFromBootstrap").boolValue = true;
                 serialized.FindProperty("inputActions").objectReferenceValue = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
             }

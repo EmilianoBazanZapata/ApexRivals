@@ -11,6 +11,9 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class RaceStartLights : MonoBehaviour, IContentSceneInstaller
     {
+        [Header("Display text")]
+        [SerializeField] private string goLabel = "¡YA!";
+
         [SerializeField] private RaceCoordinator coordinator;
         [SerializeField] private RaceSessionSceneInstaller sessionInstaller;
         [SerializeField] private Text legacyCountdown;
@@ -74,11 +77,11 @@ namespace ApexRivals.UI.Runtime
             Stage = stage;
             _showing = true;
             display.enabled = !_paused;
-            label.text = stage < 0 ? "¡YA!" : stage.ToString();
+            label.text = stage < 0 ? goLabel : stage.ToString();
             animator.enabled = true;
             animator.Play(States[stage < 0 ? 1 : stage + 1], 0, 0f);
             animator.Update(0f); // Sample the lamps in the same frame as the cue.
-            audioSource.volume = cueVolume * (GameAudio.Current?.Mixer.GetVolume(AudioBus.Ui) ?? 1f);
+            AudioBusSource.SetIntensity(audioSource, cueVolume);
             audioSource.clip = stage < 0 ? goCue : countdownCue;
             audioSource.Play();
             if (_paused) audioSource.Pause();
@@ -88,7 +91,7 @@ namespace ApexRivals.UI.Runtime
         private void Update()
         {
             if (_session == null) return;
-            audioSource.volume = cueVolume * (GameAudio.Current?.Mixer.GetVolume(AudioBus.Ui) ?? 1f);
+            AudioBusSource.SetIntensity(audioSource, cueVolume);
             if (Stage == -1 && !_paused && animator.enabled && animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f)
                 Hide();
         }

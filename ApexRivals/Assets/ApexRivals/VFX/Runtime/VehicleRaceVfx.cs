@@ -112,7 +112,7 @@ namespace ApexRivals.VFX.Runtime
             var count = Mathf.Clamp(Mathf.RoundToInt(strength * 3f), 6, _definition.maximumSparkCount);
             var parameters = new ParticleSystem.EmitParams
             {
-                startColor = hitVehicle ? new Color(1f, 0.48f, 0.08f) : new Color(1f, 0.78f, 0.3f),
+                startColor = hitVehicle ? _definition.vehicleImpactSparkColor : _definition.wallImpactSparkColor,
                 applyShapeToPosition = true
             };
             _sparks.Emit(parameters, count);

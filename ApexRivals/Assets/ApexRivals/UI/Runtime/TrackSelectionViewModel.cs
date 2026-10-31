@@ -19,8 +19,10 @@ namespace ApexRivals.UI.Runtime
             bool isLocked = false,
             string lockText = "",
             string statusText = "",
-            bool isFinale = false)
+            bool isFinale = false,
+            string goal = "")
         {
+            Goal = goal ?? string.Empty;
             IsLocked = isLocked;
             LockText = lockText ?? string.Empty;
             StatusText = statusText ?? string.Empty;
@@ -55,6 +57,9 @@ namespace ApexRivals.UI.Runtime
 
         /// <summary>The career final entry (held on <see cref="TrackId"/>), not a normal race there.</summary>
         public bool IsFinale { get; }
+
+        /// <summary>Win condition of a special event (the final); empty for normal races.</summary>
+        public string Goal { get; }
     }
 
     public readonly struct TrackSelectionViewModel
@@ -66,10 +71,14 @@ namespace ApexRivals.UI.Runtime
             PresentationStatus status,
             string messageKey,
             string feedback = "",
-            string objectiveText = "")
+            string objectiveText = "",
+            int careerPercent = -1,
+            string careerNextText = "")
         {
             Feedback = feedback ?? string.Empty;
             ObjectiveText = objectiveText ?? string.Empty;
+            CareerPercent = careerPercent;
+            CareerNextText = careerNextText ?? string.Empty;
             Tracks = tracks ?? Array.Empty<TrackSelectionItemViewModel>();
             SelectedIndex = selectedIndex;
             OperationActive = operationActive;
@@ -88,6 +97,14 @@ namespace ApexRivals.UI.Runtime
 
         /// <summary>Career completion and next objective; empty without a career.</summary>
         public string ObjectiveText { get; }
+
+        /// <summary>Career completion 0-100, or -1 without a career.</summary>
+        public int CareerPercent { get; }
+
+        /// <summary>"NEXT: ..." objective or "CAREER COMPLETE"; empty without a career.</summary>
+        public string CareerNextText { get; }
+
+        public bool HasCareer => CareerPercent >= 0;
 
         public bool HasSelection => SelectedIndex >= 0 && SelectedIndex < Tracks.Count;
         public bool CanStartRace => HasSelection && !OperationActive && !Tracks[SelectedIndex].IsLocked;

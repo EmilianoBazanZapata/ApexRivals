@@ -63,6 +63,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1067772133143897781}
   - component: {fileID: 1523829592368485785}
+  - component: {fileID: 5911113194030628056}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -94,7 +95,7 @@ AudioSource:
   m_GameObject: {fileID: 95629029065306197}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -182,6 +183,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &5911113194030628056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 95629029065306197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &139673640714928987
 GameObject:
   m_ObjectHideFlags: 0
@@ -1152,6 +1168,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6478695323998440500}
   - component: {fileID: 2281698454190532359}
+  - component: {fileID: 4144082012441638993}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -1183,7 +1200,7 @@ AudioSource:
   m_GameObject: {fileID: 1228216879303422559}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -1271,6 +1288,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &4144082012441638993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1228216879303422559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &1247017064399918424
 GameObject:
   m_ObjectHideFlags: 0
@@ -2726,6 +2758,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2705137657224426799}
   - component: {fileID: 2621308180474196581}
+  - component: {fileID: 5993735443160867269}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -2757,7 +2790,7 @@ AudioSource:
   m_GameObject: {fileID: 3079687307694715214}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -2845,6 +2878,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &5993735443160867269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3079687307694715214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &3204547474948047026
 GameObject:
   m_ObjectHideFlags: 0
@@ -2855,6 +2903,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6165691295498282501}
   - component: {fileID: 919081099658774686}
+  - component: {fileID: 8221792866195014215}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -2886,7 +2935,7 @@ AudioSource:
   m_GameObject: {fileID: 3204547474948047026}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -2974,6 +3023,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &8221792866195014215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3204547474948047026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &3255993962316493279
 GameObject:
   m_ObjectHideFlags: 0
@@ -3122,6 +3186,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1129536692642492448}
   - component: {fileID: 9152820372608178834}
+  - component: {fileID: 1081065547429934287}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -3153,7 +3218,7 @@ AudioSource:
   m_GameObject: {fileID: 3404644592910592248}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -3241,6 +3306,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1081065547429934287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3404644592910592248}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &3536690267191327015
 GameObject:
   m_ObjectHideFlags: 0
@@ -3839,6 +3919,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7821049681364117410}
   - component: {fileID: 449853542856621724}
+  - component: {fileID: 6163858982373424646}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -3870,7 +3951,7 @@ AudioSource:
   m_GameObject: {fileID: 4828739093066113090}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -3958,6 +4039,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &6163858982373424646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4828739093066113090}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &5105011110061126022
 GameObject:
   m_ObjectHideFlags: 0
@@ -4058,6 +4154,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5478457851320381250}
   - component: {fileID: 4047259897910640357}
+  - component: {fileID: 6317598323356318000}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -4089,7 +4186,7 @@ AudioSource:
   m_GameObject: {fileID: 5109292492992110416}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -4177,6 +4274,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &6317598323356318000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5109292492992110416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &5215973247202818989
 GameObject:
   m_ObjectHideFlags: 0
@@ -4997,6 +5109,7 @@ GameObject:
   m_Component:
   - component: {fileID: 163150868463199935}
   - component: {fileID: 1948693154369749211}
+  - component: {fileID: 6535997109063373451}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -5028,7 +5141,7 @@ AudioSource:
   m_GameObject: {fileID: 6214776639390062301}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -5116,6 +5229,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &6535997109063373451
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6214776639390062301}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &6296539755934183399
 GameObject:
   m_ObjectHideFlags: 0
@@ -5216,6 +5344,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7392563178434664514}
   - component: {fileID: 7011597721223734745}
+  - component: {fileID: 1057551490253104971}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -5247,7 +5376,7 @@ AudioSource:
   m_GameObject: {fileID: 6310672092557037357}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -5335,6 +5464,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1057551490253104971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6310672092557037357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &6517258409807864482
 GameObject:
   m_ObjectHideFlags: 0
@@ -5577,6 +5721,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3511609774565080634}
   - component: {fileID: 7402393817401499847}
+  - component: {fileID: 36377621352215704}
   m_Layer: 0
   m_Name: WindAmbience
   m_TagString: Untagged
@@ -5608,7 +5753,7 @@ AudioSource:
   m_GameObject: {fileID: 6783910614396077014}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f97a7c48831abea4e97ecd0003dc826a, type: 3}
   m_PlayOnAwake: 0
@@ -5696,6 +5841,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &36377621352215704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6783910614396077014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &6885333815284983735
 GameObject:
   m_ObjectHideFlags: 0
@@ -6099,7 +6259,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b0b0cd3661b9c2b4999b6c2e548a686b, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Environment.Runtime.TrackAtmosphere
   coordinator: {fileID: 0}
   sessionInstaller: {fileID: 0}
@@ -6750,6 +6910,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6494423411413644218}
   - component: {fileID: 2593547249410537391}
+  - component: {fileID: 6546062218364173832}
   m_Layer: 0
   m_Name: CrowdAmbience
   m_TagString: Untagged
@@ -6781,7 +6942,7 @@ AudioSource:
   m_GameObject: {fileID: 8280851729161553047}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 3476609953795914440, guid: 5471e6050d057af4b8a5cdc55a4da375, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: f78f0cfe8344c91458adc47d9034c45b, type: 3}
   m_PlayOnAwake: 0
@@ -6869,6 +7030,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &6546062218364173832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8280851729161553047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e09abe2dfe1b26a498bb551f5ca992f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.AudioBusSource
+  bus: 3
+  level: 1
+  pauseWithGame: 0
 --- !u!1 &8423701636979322056
 GameObject:
   m_ObjectHideFlags: 0

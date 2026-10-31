@@ -87,12 +87,9 @@ namespace ApexRivals.Environment.Runtime
                 _clock += delta;
                 _cheer = Mathf.MoveTowards(_cheer, 0, delta * 0.28f);
             }
-            var master = _context.SettingsService != null ? _context.SettingsService.AudiblePreferences.MasterVolume
-                : GameAudio.Current != null ? GameAudio.Current.Mixer.Preferences.MasterVolume : 1f;
-            var gain = AudioBusMixer.ToGain(master);
-            foreach (var source in crowdSources)
-                if (source != null) source.volume = crowdLevel * gain * (1 + _cheer * 0.65f);
-            if (weatherSource != null) weatherSource.volume = _weatherDriven ? 0 : weatherLevel * gain;
+            // The sources are routed through the Ambience bus, which applies the master volume.
+            foreach (var source in crowdSources) AudioBusSource.SetIntensity(source, crowdLevel * (1 + _cheer * 0.65f));
+            AudioBusSource.SetIntensity(weatherSource, _weatherDriven ? 0 : weatherLevel);
             ApplyMotion();
         }
 

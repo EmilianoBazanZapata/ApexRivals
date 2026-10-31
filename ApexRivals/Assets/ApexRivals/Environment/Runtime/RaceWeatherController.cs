@@ -20,6 +20,32 @@ namespace ApexRivals.Environment.Runtime
         [SerializeField] private Material stormSky;
         [SerializeField] private AudioSource rainAudio;
         [SerializeField] private AudioSource windAudio;
+
+        [Header("Lighting ownership")]
+        [SerializeField, Tooltip("Disable to leave the scene's fog settings untouched.")] private bool controlFog = true;
+        [SerializeField] private FogMode weatherFogMode = FogMode.Linear;
+        [SerializeField, Min(0f)] private float clearFogDensity;
+        [SerializeField, Min(0f)] private float stormFogDensity = 0.01f;
+        [SerializeField, Tooltip("Disable to leave the scene's ambient lighting untouched.")] private bool controlAmbient = true;
+        [SerializeField] private AmbientMode weatherAmbientMode = AmbientMode.Trilight;
+        private bool _fogWasControlled, _ambientWasControlled;
+
+        [Header("Clear → storm (blended by cloudiness)")]
+        [SerializeField] private Vector2 clearFogRange = new Vector2(1400f, 2400f);
+        [SerializeField] private Vector2 stormFogRange = new Vector2(45f, 300f);
+        [SerializeField] private Color clearAmbientSky = new Color(.65f, .75f, .9f);
+        [SerializeField] private Color stormAmbientSky = new Color(.38f, .43f, .5f);
+        [SerializeField] private Color clearAmbientEquator = new Color(.55f, .62f, .7f);
+        [SerializeField] private Color stormAmbientEquator = new Color(.32f, .37f, .42f);
+        [SerializeField] private Color clearAmbientGround = new Color(.32f, .34f, .31f);
+        [SerializeField] private Color stormAmbientGround = new Color(.23f, .26f, .28f);
+        [SerializeField, Range(0f, 1f), Tooltip("Sun intensity in a full storm, relative to the scene's.")] private float stormSunIntensity = .55f;
+        [SerializeField, Tooltip("Sun colour in a full storm.")] private Color stormSunColor = new Color(.7f, .78f, .88f);
+
+        [Header("Wind and sound")]
+        [SerializeField, Min(0f), Tooltip("Wind speed (m/s) pushing the rain at full wind.")] private float maximumWindSpeed = 7f;
+        [SerializeField, Range(0f, 1f), Tooltip("Rain loop level at full rain.")] private float rainLevel = .2f;
+        [SerializeField, Range(0f, 1f), Tooltip("Wind loop level at full wind.")] private float windLevel = .16f;
         private ApplicationContext _context;
         private RaceSessionCoordinator _session;
         private Material _runtimeSky;
@@ -61,7 +87,7 @@ namespace ApexRivals.Environment.Runtime
             _runtimeSky = new Material(sunnySky) { name = "RaceWeatherSky (Instance)" };
             RenderSettings.skybox = _runtimeSky;
             atmosphere.SetWeatherDriven(true);
-            rainAudio.volume = windAudio.volume = 0;
+            AudioBusSource.SetIntensity(rainAudio, 0); AudioBusSource.SetIntensity(windAudio, 0);
             rainAudio.Play(); windAudio.Play();
             SetForecast(RaceWeatherForecast.Random(System.Guid.NewGuid().GetHashCode()));
         }
@@ -98,27 +124,37 @@ namespace ApexRivals.Environment.Runtime
                 _runtimeSky.SetFloat(property, Mathf.Lerp(sunnySky.GetFloat(property), stormSky.GetFloat(property), clouds));
             // Keep the cloud layout fixed so clouds grow and darken without popping between patterns.
             _runtimeSky.SetFloat("_Seed", sunnySky.GetFloat("_Seed"));
-            RenderSettings.fog = clouds > 0.001f;
-            RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogColor = _runtimeSky.GetColor("_HorizonColor");
-            RenderSettings.fogStartDistance = Mathf.Lerp(1400, 45, clouds);
-            RenderSettings.fogEndDistance = Mathf.Lerp(2400, 300, clouds);
-            RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = Color.Lerp(new Color(.65f,.75f,.9f), new Color(.38f,.43f,.5f), clouds);
-            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(.55f,.62f,.7f), new Color(.32f,.37f,.42f), clouds);
-            RenderSettings.ambientGroundColor = Color.Lerp(new Color(.32f,.34f,.31f), new Color(.23f,.26f,.28f), clouds);
+            if (controlFog)
+            {
+                _fogWasControlled = true;
+                RenderSettings.fog = clouds > 0.001f;
+                RenderSettings.fogMode = weatherFogMode;
+                RenderSettings.fogColor = _runtimeSky.GetColor("_HorizonColor");
+                RenderSettings.fogStartDistance = Mathf.Lerp(clearFogRange.x, stormFogRange.x, clouds);
+                RenderSettings.fogEndDistance = Mathf.Lerp(clearFogRange.y, stormFogRange.y, clouds);
+                if (weatherFogMode != FogMode.Linear)
+                    RenderSettings.fogDensity = Mathf.Lerp(clearFogDensity, stormFogDensity, clouds);
+            }
+            else RestoreFog();
+            if (controlAmbient)
+            {
+                _ambientWasControlled = true;
+                RenderSettings.ambientMode = weatherAmbientMode;
+                RenderSettings.ambientSkyColor = Color.Lerp(clearAmbientSky, stormAmbientSky, clouds);
+                RenderSettings.ambientEquatorColor = Color.Lerp(clearAmbientEquator, stormAmbientEquator, clouds);
+                RenderSettings.ambientGroundColor = Color.Lerp(clearAmbientGround, stormAmbientGround, clouds);
+            }
+            else RestoreAmbient();
             if (_sun != null)
             {
-                _sun.intensity = Mathf.Lerp(_sunIntensity, _sunIntensity * .55f, clouds);
-                _sun.color = Color.Lerp(_sunColor, new Color(.7f,.78f,.88f), clouds);
+                _sun.intensity = Mathf.Lerp(_sunIntensity, _sunIntensity * stormSunIntensity, clouds);
+                _sun.color = Color.Lerp(_sunColor, stormSunColor, clouds);
             }
-            vfx.SetWeather(Current.Rain, _windDirection * (Current.Wind * 7));
+            vfx.SetWeather(Current.Rain, _windDirection * (Current.Wind * maximumWindSpeed));
             atmosphere.SetWeatherWind(Current.Wind);
-            var master = _context.SettingsService != null ? _context.SettingsService.AudiblePreferences.MasterVolume
-                : GameAudio.Current != null ? GameAudio.Current.Mixer.Preferences.MasterVolume : 1;
-            var gain = AudioBusMixer.ToGain(master);
-            rainAudio.volume = .2f * Current.Rain * gain;
-            windAudio.volume = .16f * Current.Wind * gain;
+            // Routed through the Ambience bus, which applies the master volume.
+            AudioBusSource.SetIntensity(rainAudio, rainLevel * Current.Rain);
+            AudioBusSource.SetIntensity(windAudio, windLevel * Current.Wind);
         }
 
         public void Uninstall()
@@ -133,15 +169,29 @@ namespace ApexRivals.Environment.Runtime
             if (SceneManager.GetActiveScene() == gameObject.scene && RenderSettings.skybox == _runtimeSky)
             {
                 RenderSettings.skybox = _originalSky;
-                RenderSettings.fog = _fogEnabled; RenderSettings.fogMode = _fogMode; RenderSettings.fogColor = _fogColor;
-                RenderSettings.fogStartDistance = _fogStart; RenderSettings.fogEndDistance = _fogEnd; RenderSettings.fogDensity = _fogDensity;
-                RenderSettings.ambientMode = _ambientMode; RenderSettings.ambientIntensity = _ambientIntensity;
-                RenderSettings.ambientSkyColor = _ambientSky; RenderSettings.ambientEquatorColor = _ambientEquator;
-                RenderSettings.ambientGroundColor = _ambientGround;
+                RestoreFog();
+                RestoreAmbient();
             }
             if (_runtimeSky != null) Destroy(_runtimeSky);
             _runtimeSky = null; _originalSky = null; _sun = null; _context = null; _session = null;
         }
+        private void RestoreFog()
+        {
+            if (!_fogWasControlled) return;
+            RenderSettings.fog = _fogEnabled; RenderSettings.fogMode = _fogMode; RenderSettings.fogColor = _fogColor;
+            RenderSettings.fogStartDistance = _fogStart; RenderSettings.fogEndDistance = _fogEnd; RenderSettings.fogDensity = _fogDensity;
+            _fogWasControlled = false;
+        }
+
+        private void RestoreAmbient()
+        {
+            if (!_ambientWasControlled) return;
+            RenderSettings.ambientMode = _ambientMode; RenderSettings.ambientIntensity = _ambientIntensity;
+            RenderSettings.ambientSkyColor = _ambientSky; RenderSettings.ambientEquatorColor = _ambientEquator;
+            RenderSettings.ambientGroundColor = _ambientGround;
+            _ambientWasControlled = false;
+        }
+
         private void OnDisable() => Uninstall();
         private void OnDestroy() => Uninstall();
     }

@@ -279,6 +279,24 @@ namespace ApexRivals.UI.Runtime
             Present();
         }
 
+        private static UnityEngine.Sprite FindPreview(IReadOnlyList<VehicleDefinitionData> definitions, string vehicleId)
+        {
+            if (definitions == null)
+            {
+                return null;
+            }
+
+            for (var index = 0; index < definitions.Count; index++)
+            {
+                if (definitions[index] != null && definitions[index].StableId == vehicleId)
+                {
+                    return definitions[index].PreviewSprite;
+                }
+            }
+
+            return null;
+        }
+
         private GarageViewModel CreateModel()
         {
             var state = _garageService.GetState();
@@ -287,6 +305,7 @@ namespace ApexRivals.UI.Runtime
             var equippedIndex = -1;
             var candidateIndex = -1;
             var candidateId = _vehicleSelectionService.CurrentCandidateVehicleId;
+            var definitions = _vehicleSelectionService.AvailableVehicles;
             for (var index = 0; index < selectionState.Vehicles.Count; index++)
             {
                 var vehicle = selectionState.Vehicles[index];
@@ -297,7 +316,8 @@ namespace ApexRivals.UI.Runtime
                     vehicle.BaseStats,
                     vehicle.EffectivePlayerStats,
                     vehicle.Selected,
-                    vehicle.Selectable));
+                    vehicle.Selectable,
+                    FindPreview(definitions, vehicle.VehicleId)));
 
                 if (vehicle.Selected)
                 {

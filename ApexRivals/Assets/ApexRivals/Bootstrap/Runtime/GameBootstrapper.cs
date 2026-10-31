@@ -19,6 +19,8 @@ using UnityEngine.SceneManagement;
 
 namespace ApexRivals.Bootstrap.Runtime
 {
+    // The scene loader and the loading screen live next to the bootstrapper in the Bootstrap scene.
+    [RequireComponent(typeof(UnityContentSceneLoader), typeof(SceneLoadingOverlay))]
     public sealed class GameBootstrapper : MonoBehaviour
     {
         [SerializeField] private SceneFlowConfiguration sceneFlowConfiguration;
@@ -80,12 +82,6 @@ namespace ApexRivals.Bootstrap.Runtime
             {
                 sceneLoader = GetComponent<UnityContentSceneLoader>();
             }
-
-            if (sceneLoader == null)
-            {
-                sceneLoader = gameObject.AddComponent<UnityContentSceneLoader>();
-            }
-
             var progressionState = new PlayerProgressionState();
             var selectedVehicleState = new SelectedVehicleState();
             var careerState = careerDefinition != null ? new CareerState() : null;
@@ -130,7 +126,6 @@ namespace ApexRivals.Bootstrap.Runtime
             }
 
             var loadingOverlay = GetComponent<SceneLoadingOverlay>();
-            if (loadingOverlay == null) loadingOverlay = gameObject.AddComponent<SceneLoadingOverlay>();
             loadingOverlay.Bind(GetComponent<BootstrapUiInputSystem>());
             var presentedLoader = new LoadingContentSceneLoader(sceneLoader, loadingOverlay, Debug.LogException);
             var sceneFlowService = new SceneFlowService(

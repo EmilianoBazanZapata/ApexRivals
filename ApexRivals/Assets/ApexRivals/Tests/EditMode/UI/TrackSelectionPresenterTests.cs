@@ -58,7 +58,7 @@ namespace ApexRivals.Tests.EditMode.UI
         }
 
         [Test]
-        public async Task OpenAndBack_SwitchBetweenTrackSelectionAndGarage()
+        public async Task OpenAndBack_ReturnsToTheMainMenu()
         {
             var context = await CreateContext();
 
@@ -66,9 +66,8 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(context.Navigator.CurrentScreen, Is.EqualTo(PresentationScreenState.TrackSelection));
             Assert.That(context.View.RenderCount, Is.GreaterThan(0));
 
-            context.Presenter.Back();
-            Assert.That(context.Navigator.CurrentScreen, Is.EqualTo(PresentationScreenState.Garage));
-            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Garage));
+            await context.Presenter.Back();
+            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.MainMenu));
         }
 
         [Test]

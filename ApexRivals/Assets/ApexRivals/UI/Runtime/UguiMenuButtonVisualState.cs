@@ -8,14 +8,20 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class UguiMenuButtonVisualState : MonoBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler, ISubmitHandler
     {
+        [SerializeField, Tooltip("Colors (and border widths) this control switches between with its state.")] private ApexUiPalette palette;
+        private ApexUiPalette Palette => ApexUiPalette.Resolve(palette);
+
         [SerializeField] private Button button;
         [SerializeField] private Graphic background;
         [SerializeField] private Text[] labels;
         [SerializeField, Tooltip("Non-text graphics (icons) tinted like the primary label.")] private Graphic[] icons;
         [SerializeField, Tooltip("Accents the label only. The red fill is reserved for the focused control.")] private bool primaryAction;
+        [SerializeField, Tooltip("Hero call-to-action (e.g. START RACE): rests in a dim red fill and brightens to the full red on focus.")] private bool filledPrimary;
+        [SerializeField, Tooltip("The current entry (e.g. the selected track card) rests in the dim red fill instead of the elevated panel.")] private bool currentUsesAccentFill;
 
         private bool _pressed;
         private bool _isCurrent;
+        private bool _deselecting;
         private bool[] _secondaryLabels;
 
         public bool PrimaryAction
@@ -94,8 +100,11 @@ namespace ApexRivals.UI.Runtime
 
         public void OnDeselect(BaseEventData eventData)
         {
+            // The EventSystem still reports this button as selected while it raises OnDeselect.
             _pressed = false;
+            _deselecting = true;
             Apply();
+            _deselecting = false;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -135,23 +144,29 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            var selected = EventSystem.current != null && EventSystem.current.currentSelectedGameObject == button.gameObject;
+            var selected = !_deselecting && EventSystem.current != null && EventSystem.current.currentSelectedGameObject == button.gameObject;
             var interactable = button.IsInteractable();
             var focused = interactable && selected;
+            // Dim-red resting fills stay clearly darker than the bright focus fill, so focus is never ambiguous.
+            var restingAccentFill = filledPrimary || (_isCurrent && currentUsesAccentFill);
             var backgroundColor = !interactable
-                ? ApexUiVisualStyle.Disabled
+                ? Palette.Disabled
                 : focused
-                    ? _pressed ? ApexUiVisualStyle.PrimaryRedPressed : ApexUiVisualStyle.PrimaryRed
-                    : _isCurrent
-                        ? ApexUiVisualStyle.PanelElevated
-                        : ApexUiVisualStyle.Panel;
+                    ? _pressed ? Palette.PrimaryRedPressed : Palette.PrimaryRed
+                    : restingAccentFill
+                        ? Palette.PrimaryRedIdle
+                        : _isCurrent
+                            ? Palette.PanelElevated
+                            : Palette.Panel;
             var textColor = !interactable
-                ? ApexUiVisualStyle.DisabledText
+                ? Palette.DisabledText
                 : focused
-                    ? ApexUiVisualStyle.FocusedText
-                    : primaryAction || _isCurrent
-                        ? ApexUiVisualStyle.AccentText
-                        : ApexUiVisualStyle.PrimaryText;
+                    ? Palette.FocusedText
+                    : restingAccentFill
+                        ? Palette.PrimaryText
+                        : primaryAction || _isCurrent
+                            ? Palette.AccentText
+                            : Palette.PrimaryText;
 
             if (background.color != backgroundColor)
             {
@@ -161,7 +176,7 @@ namespace ApexRivals.UI.Runtime
             if (background is AngledPanelGraphic angledBackground && angledBackground.BorderThickness > 0f)
             {
                 // The focus fill already separates the control; the border only outlines resting panels.
-                angledBackground.BorderColor = interactable && !focused ? ApexUiVisualStyle.PanelOutline : Color.clear;
+                angledBackground.BorderColor = interactable && !focused ? Palette.PanelOutline : Color.clear;
             }
 
             var restingSecondary = interactable && !focused;
@@ -170,7 +185,7 @@ namespace ApexRivals.UI.Runtime
                 EnsureSecondaryLabelCache();
                 for (var index = 0; index < labels.Length; index++)
                 {
-                    var color = restingSecondary && _secondaryLabels[index] ? ApexUiVisualStyle.SecondaryText : textColor;
+                    var color = restingSecondary && _secondaryLabels[index] ? Palette.SecondaryText : textColor;
                     SetColor(labels[index], color);
                 }
             }

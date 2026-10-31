@@ -1,4 +1,5 @@
 using ApexRivals.Vehicle.Runtime;
+using UnityEngine;
 
 namespace ApexRivals.UI.Runtime
 {
@@ -10,7 +11,8 @@ namespace ApexRivals.UI.Runtime
             VehiclePerformanceStats baseStats,
             VehiclePerformanceStats effectiveStats,
             bool isSelected,
-            bool canSelect)
+            bool canSelect,
+            Sprite preview = null)
         {
             VehicleId = vehicleId;
             DisplayName = displayName;
@@ -18,6 +20,7 @@ namespace ApexRivals.UI.Runtime
             EffectiveStats = effectiveStats;
             IsSelected = isSelected;
             CanSelect = canSelect;
+            Preview = preview;
         }
 
         public string VehicleId { get; }
@@ -26,5 +29,8 @@ namespace ApexRivals.UI.Runtime
         public VehiclePerformanceStats EffectiveStats { get; }
         public bool IsSelected { get; }
         public bool CanSelect { get; }
+
+        /// <summary>Optional thumbnail (the vehicle definition's preview sprite); screens fall back to the name.</summary>
+        public Sprite Preview { get; }
     }
 }

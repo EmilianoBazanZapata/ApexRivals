@@ -42,6 +42,10 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(tracks[3].IsLocked, Is.True);
             Assert.That(tracks[3].LockText, Does.Contain("(0/8)"));
             Assert.That(context.TrackSelection.Current.ObjectiveText, Is.EqualTo("CAREER 0% - NEXT: FINISH A RACE AT APEX CIRCUIT"));
+            // The header career box shows the percent and the next objective separately.
+            Assert.That(context.TrackSelection.Current.HasCareer, Is.True);
+            Assert.That(context.TrackSelection.Current.CareerPercent, Is.EqualTo(0));
+            Assert.That(context.TrackSelection.Current.CareerNextText, Is.EqualTo("NEXT: FINISH A RACE AT APEX CIRCUIT"));
         }
 
         [Test]

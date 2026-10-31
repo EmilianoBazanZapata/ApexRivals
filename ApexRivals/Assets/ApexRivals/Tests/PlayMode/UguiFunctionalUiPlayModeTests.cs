@@ -296,6 +296,7 @@ namespace ApexRivals.Tests.PlayMode
             owner.AddComponent<EventSystem>();
             var inputModule = owner.AddComponent<InputSystemUIInputModule>();
             var input = owner.AddComponent<BootstrapUiInputSystem>();
+            Set(input, "configureModuleFromBootstrap", true);
             Set(input, "inputActions", actions);
             Set(input, "inputModule", inputModule);
             Set(input, "allowPointerInput", false);
@@ -506,7 +507,8 @@ namespace ApexRivals.Tests.PlayMode
             root.SetActive(true);
             yield return null;
 
-            Assert.That(displayTab.navigation.selectOnDown, Is.EqualTo(resolution));
+            Assert.That(displayTab.navigation.selectOnRight, Is.EqualTo(resolution));
+            Assert.That(displayTab.navigation.selectOnDown, Is.EqualTo(cancel));
             Assert.That(resolution.navigation.selectOnUp, Is.EqualTo(displayTab));
             Assert.That(resolution.navigation.selectOnDown, Is.EqualTo(fullScreen));
             Assert.That(resolution.navigation.wrapAround, Is.True);
@@ -547,6 +549,7 @@ namespace ApexRivals.Tests.PlayMode
             owner.AddComponent<EventSystem>();
             var inputModule = owner.AddComponent<InputSystemUIInputModule>();
             var input = owner.AddComponent<BootstrapUiInputSystem>();
+            Set(input, "configureModuleFromBootstrap", true);
             Set(input, "inputActions", actions);
             Set(input, "inputModule", inputModule);
             Set(input, "allowPointerInput", true);

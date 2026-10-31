@@ -11,7 +11,6 @@ namespace ApexRivals.Tests.EditMode.UI
     {
         [TestCase(ContentSceneId.Race, false, "Garage", true)]
         [TestCase(ContentSceneId.MainMenu, false, "Race", true)]
-        [TestCase(ContentSceneId.MainMenu, false, "Garage", true)]
         [TestCase(ContentSceneId.MainMenu, false, "", false)]
         [TestCase(ContentSceneId.Race, true, "Race", false)]
         [TestCase(ContentSceneId.Garage, false, "MainMenu", false)]
@@ -64,6 +63,23 @@ namespace ApexRivals.Tests.EditMode.UI
             var result = await new LoadingContentSceneLoader(loader, view, _ => throw new Exception()).LoadContentSceneAsync(ContentSceneId.Race, "Race", false);
             Assert.That(result.Succeeded, Is.True);
             Assert.That(view.Visible, Is.False);
+        }
+
+        [Test]
+        public async Task GarageToMainMenuSkipsTheOverlayButRaceToMainMenuKeepsIt()
+        {
+            var view = new Presentation();
+            var loader = new Loader { CurrentContentSceneName = "" };
+            var decorated = new LoadingContentSceneLoader(loader, view);
+            await decorated.LoadContentSceneAsync(ContentSceneId.MainMenu, "MainMenu", false);
+            await decorated.LoadContentSceneAsync(ContentSceneId.Garage, "Garage", false);
+            await decorated.LoadContentSceneAsync(ContentSceneId.MainMenu, "MainMenu", false);
+            Assert.That(view.Shown, Is.Zero);
+
+            await decorated.LoadContentSceneAsync(ContentSceneId.Garage, "Garage", false);
+            await decorated.LoadContentSceneAsync(ContentSceneId.Race, "Race", false);
+            await decorated.LoadContentSceneAsync(ContentSceneId.MainMenu, "MainMenu", false);
+            Assert.That(view.Shown, Is.EqualTo(2));
         }
 
         [Test]

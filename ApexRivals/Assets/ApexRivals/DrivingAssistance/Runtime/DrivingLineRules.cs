@@ -13,12 +13,5 @@ namespace ApexRivals.DrivingAssistance.Runtime
             var ratio = Mathf.Max(0, speed) / recommendedSpeed;
             return ratio < 0.85f ? DrivingLineZone.Green : ratio <= 1.05f ? DrivingLineZone.Yellow : DrivingLineZone.Red;
         }
-
-        public static Color32 Color(DrivingLineZone zone, byte alpha) => zone switch
-        {
-            DrivingLineZone.Green => new Color32(45, 245, 90, alpha),
-            DrivingLineZone.Yellow => new Color32(255, 205, 30, alpha),
-            _ => new Color32(255, 45, 30, alpha)
-        };
     }
 }

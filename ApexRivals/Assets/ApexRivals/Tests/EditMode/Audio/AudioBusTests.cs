@@ -58,24 +58,6 @@ namespace ApexRivals.Tests.EditMode.Audio
         }
 
         [Test]
-        public void EngineLoop_IsOneSecondSeamlessAndWithinRange()
-        {
-            const int rate = 44100;
-            var samples = ProceduralAudio.CreateEngineLoop(rate);
-
-            Assert.That(samples.Length, Is.EqualTo(rate));
-            AssertPeak(samples, 0.8f);
-            // Whole cycles fit the loop: the wrap-around step is no bigger than an ordinary step.
-            var largestStep = 0f;
-            for (var i = 1; i < samples.Length; i++)
-            {
-                largestStep = Math.Max(largestStep, Math.Abs(samples[i] - samples[i - 1]));
-            }
-
-            Assert.That(Math.Abs(samples[0] - samples[samples.Length - 1]), Is.LessThanOrEqualTo(largestStep));
-        }
-
-        [Test]
         public void MusicLoop_IsEightBarsAtTheTempoAndEndsQuietlyForTheLoop()
         {
             const int rate = 22050;
@@ -101,17 +83,6 @@ namespace ApexRivals.Tests.EditMode.Audio
         public void ProceduralAudio_IsDeterministic()
         {
             Assert.That(ProceduralAudio.CreateMusicLoop(8000), Is.EqualTo(ProceduralAudio.CreateMusicLoop(8000)));
-        }
-
-        [Test]
-        public void EnginePitch_FollowsRpmWithinPlayableRange()
-        {
-            Assert.That(VehicleEngineAudio.EnginePitch(ProceduralAudio.EngineLoopRpm), Is.EqualTo(1f).Within(0.0001f));
-            Assert.That(VehicleEngineAudio.EnginePitch(4500f), Is.EqualTo(2f).Within(0.0001f));
-            Assert.That(VehicleEngineAudio.EnginePitch(0f), Is.EqualTo(0.3f));
-            Assert.That(VehicleEngineAudio.EnginePitch(20000f), Is.EqualTo(3f));
-            Assert.That(VehicleEngineAudio.EngineLoudness(0f), Is.EqualTo(0.55f).Within(0.0001f));
-            Assert.That(VehicleEngineAudio.EngineLoudness(6500f), Is.EqualTo(1f).Within(0.0001f));
         }
 
         [TestCase(0.8f, "80%")]

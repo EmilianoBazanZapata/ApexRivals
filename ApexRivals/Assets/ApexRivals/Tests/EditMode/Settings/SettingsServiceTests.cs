@@ -458,6 +458,63 @@ namespace ApexRivals.Tests.EditMode.Settings
             Assert.That(navigation.State, Is.EqualTo(ApplicationState.MainMenu));
         }
 
+        [Test]
+        public void AmbiencePreviewApplyCancelAndDefaultsFollowTheExistingSettingsFlow()
+        {
+            var storage = new MemorySettingsStorage();
+            var service = CreateService(storage);
+            using var mixer = new ApexRivals.Audio.Runtime.AudioBusMixer(service);
+            var view = new FakeSettingsView();
+            var presenter = new SettingsPresenter(view, service);
+            presenter.SetAmbienceVolume(.25f);
+            Assert.That(view.Last.AmbienceVolume, Is.EqualTo(.25f));
+            Assert.That(view.Last.CanApply, Is.True);
+            Assert.That(mixer.GetVolume(ApexRivals.Audio.Runtime.AudioBus.Ambience), Is.EqualTo(.0625f));
+            Assert.That(service.Current.AmbienceVolume, Is.EqualTo(1f));
+            service.Cancel();
+            Assert.That(mixer.GetVolume(ApexRivals.Audio.Runtime.AudioBus.Ambience), Is.EqualTo(1f));
+            service.EditAmbienceVolume(.4f);
+            Assert.That(service.Apply().Succeeded, Is.True);
+            Assert.That(storage.Saved.AmbienceVolume, Is.EqualTo(.4f));
+            service.RestoreDefaults();
+            Assert.That(service.Draft.AmbienceVolume, Is.EqualTo(1f));
+            Assert.That(service.Current.AmbienceVolume, Is.EqualTo(.4f));
+            service.Cancel();
+            Assert.That(service.Draft.AmbienceVolume, Is.EqualTo(.4f));
+            Assert.That(service.CommitDefaults().Succeeded, Is.True);
+            Assert.That(storage.Saved.AmbienceVolume, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void OtherSettingsEditsPreserveAmbienceAndItsBusIsIndependent()
+        {
+            var original = SettingsState.Default.WithAmbienceVolume(.37f);
+            var edited = original.WithMasterVolume(.5f).WithMusicVolume(.7f).WithUiVolume(.6f)
+                .WithVehicleVolume(.4f).WithResolution(new SettingsResolution(1280, 720, 60)).WithFullScreenMode(FullScreenMode.Windowed);
+            Assert.That(edited.AmbienceVolume, Is.EqualTo(.37f));
+            Assert.That(original.AudioEquals(SettingsState.Default), Is.False);
+            Assert.That(original, Is.Not.EqualTo(SettingsState.Default));
+            var service = CreateService();
+            using var mixer = new ApexRivals.Audio.Runtime.AudioBusMixer(service);
+            service.EditMasterVolume(.5f);
+            var music = mixer.GetVolume(ApexRivals.Audio.Runtime.AudioBus.Music);
+            service.EditAmbienceVolume(.25f);
+            Assert.That(mixer.GetVolume(ApexRivals.Audio.Runtime.AudioBus.Ambience), Is.EqualTo(.015625f));
+            Assert.That(mixer.GetVolume(ApexRivals.Audio.Runtime.AudioBus.Music), Is.EqualTo(music));
+            service.EditAmbienceVolume(0);
+            Assert.That(mixer.GetVolume(ApexRivals.Audio.Runtime.AudioBus.Ambience), Is.Zero);
+        }
+
+        [TestCase(-1f, 0f)]
+        [TestCase(.35f, .35f)]
+        [TestCase(2f, 1f)]
+        [TestCase(float.NaN, 1f)]
+        public void AmbienceVolumeUsesTheSameValidationAsOtherVolumes(float value, float expected)
+        {
+            Assert.That(SettingsState.Default.WithAmbienceVolume(value).AmbienceVolume, Is.EqualTo(expected));
+        }
+
+
         private static SettingsService CreateService(MemorySettingsStorage storage = null, FakeDisplaySettingsAdapter display = null)
         {
             return new SettingsService(storage ?? new MemorySettingsStorage(), display ?? new FakeDisplaySettingsAdapter());

@@ -102,6 +102,11 @@ namespace ApexRivals.Settings.Runtime
             Draft = Draft.WithVehicleVolume(value);
         }
 
+        public void EditAmbienceVolume(float value)
+        {
+            Draft = Draft.WithAmbienceVolume(value);
+        }
+
         public SettingsOperationResult Apply()
         {
             var resolutions = _display.SupportedResolutions;
@@ -191,7 +196,7 @@ namespace ApexRivals.Settings.Runtime
 
         private static AudioPreferences CreateAudioPreferences(SettingsState settings)
         {
-            return new AudioPreferences(settings.MasterVolume, settings.MusicVolume, settings.UiVolume, settings.VehicleVolume);
+            return new AudioPreferences(settings.MasterVolume, settings.MusicVolume, settings.UiVolume, settings.VehicleVolume, settings.AmbienceVolume);
         }
     }
 }

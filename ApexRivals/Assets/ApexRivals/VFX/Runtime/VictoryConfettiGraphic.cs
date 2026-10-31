@@ -12,6 +12,13 @@ namespace ApexRivals.VFX.Runtime
             public float Side, Horizontal, Vertical, Size, Spin, Phase, Birth;
             public Color Color;
         }
+        [SerializeField, Tooltip("Paper colours, used in turn.")]
+        private Color[] paperColors =
+        {
+            new Color(0.95f, 0.12f, 0.12f), new Color(1f, 0.8f, 0.18f), new Color(0.15f, 0.65f, 1f), Color.white,
+            new Color(0.35f, 0.9f, 0.6f)
+        };
+
         private readonly Paper[] _papers = new Paper[100];
         private float _elapsed = 10f;
         private const float Duration = 4f;
@@ -20,8 +27,7 @@ namespace ApexRivals.VFX.Runtime
         public void Burst()
         {
             var random = new System.Random(731);
-            var colors = new[] { new Color(0.95f, 0.12f, 0.12f), new Color(1f, 0.8f, 0.18f),
-                new Color(0.15f, 0.65f, 1f), Color.white, new Color(0.35f, 0.9f, 0.6f) };
+            var colors = paperColors != null && paperColors.Length > 0 ? paperColors : new[] { Color.white };
             for (var i = 0; i < _papers.Length; i++)
                 _papers[i] = new Paper
                 {

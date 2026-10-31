@@ -7,6 +7,9 @@ namespace ApexRivals.Input.Runtime
     [DisallowMultipleComponent]
     public sealed class PlayerDrivingInput : MonoBehaviour, IDrivingInputProvider
     {
+        [SerializeField, Tooltip("Authored controls. Each player clones the selected map; the shared asset and its bindings are never rewritten. Unassigned components keep the legacy defaults for standalone prototypes.")] private InputActionAsset inputActions;
+        [SerializeField] private string drivingActionMap = "Driving";
+
         [SerializeField, Range(0f, 0.5f)]
         private float steeringDeadZone = 0.08f;
 
@@ -40,11 +43,12 @@ namespace ApexRivals.Input.Runtime
         private void OnEnable()
         {
             Subscribe();
-            _drivingActions.Enable();
+            if (_drivingActions != null) _drivingActions.Enable();
         }
 
         private void Update()
         {
+            if (_drivingActions == null) return;
             var steering = _steeringAction.ReadValue<float>();
             if (Mathf.Abs(steering) < steeringDeadZone)
             {
@@ -63,7 +67,7 @@ namespace ApexRivals.Input.Runtime
 
         private void OnDisable()
         {
-            _drivingActions.Disable();
+            if (_drivingActions != null) _drivingActions.Disable();
             Unsubscribe();
             _currentInput = DrivingInput.Neutral;
             _resetRequested = false;
@@ -72,7 +76,7 @@ namespace ApexRivals.Input.Runtime
 
         private void OnDestroy()
         {
-            _drivingActions.Dispose();
+            _drivingActions?.Dispose();
         }
 
         public void ConsumeResetRequest()
@@ -89,6 +93,34 @@ namespace ApexRivals.Input.Runtime
 
         private void CreateDrivingActions()
         {
+            if (inputActions != null)
+            {
+                var authoredMap = inputActions.FindActionMap(drivingActionMap, false);
+                if (authoredMap == null)
+                {
+                    Debug.LogError("Driving action map missing: " + drivingActionMap, this);
+                    return;
+                }
+                _drivingActions = authoredMap.Clone();
+                _drivingActions.bindingMask = authoredMap.bindingMask ?? inputActions.bindingMask;
+                _drivingActions.devices = authoredMap.devices ?? inputActions.devices;
+                _throttleAction = _drivingActions.FindAction("Throttle", false);
+                _brakeAction = _drivingActions.FindAction("Brake", false);
+                _steeringAction = _drivingActions.FindAction("Steering", false);
+                _driftAction = _drivingActions.FindAction("Drift", false);
+                _nitroAction = _drivingActions.FindAction("Nitro", false);
+                _resetAction = _drivingActions.FindAction("Reset", false);
+                _recoverVehicleAction = _drivingActions.FindAction("RecoverVehicle", false);
+                if (_throttleAction == null || _brakeAction == null || _steeringAction == null ||
+                    _driftAction == null || _nitroAction == null || _resetAction == null || _recoverVehicleAction == null)
+                {
+                    Debug.LogError("Driving map requires Throttle, Brake, Steering, Drift, Nitro, Reset and RecoverVehicle actions.", this);
+                    _drivingActions.Dispose();
+                    _drivingActions = null;
+                }
+                return;
+            }
+
             _drivingActions = new InputActionMap("Driving");
 
             _throttleAction = _drivingActions.AddAction("Throttle", InputActionType.Value, expectedControlLayout: "Axis");
@@ -131,7 +163,7 @@ namespace ApexRivals.Input.Runtime
 
         private void Subscribe()
         {
-            if (_isSubscribed)
+            if (_isSubscribed || _drivingActions == null)
             {
                 return;
             }

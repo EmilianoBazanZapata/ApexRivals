@@ -20,11 +20,12 @@ namespace ApexRivals.Tests.PlayMode
         [UnityTest]
         public IEnumerator LoadingOverlaySurvivesRealSceneSwapThroughInstallationAndRollback()
         {
-            var overlay = _loader.gameObject.AddComponent<SceneLoadingOverlay>();
+            var overlay = SceneLoadingOverlayPlayModeTests.AddOverlay(_loader.gameObject);
             overlay.PreLoadDelaySeconds = 0f; // The dedicated overlay test verifies the real five-second delay.
             var input = _loader.gameObject.AddComponent<BootstrapUiInputSystem>();
             using (var serialized = new SerializedObject(input))
             {
+                serialized.FindProperty("configureModuleFromBootstrap").boolValue = true;
                 serialized.FindProperty("inputActions").objectReferenceValue = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
             }

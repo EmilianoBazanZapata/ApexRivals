@@ -7,6 +7,11 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class VehicleSelectionUguiView : MonoBehaviour, IVehicleSelectionView, ICancelHandler
     {
+        [Header("Display text")]
+        [SerializeField] private string noVehicleLabel = "No Vehicle";
+        [SerializeField] private string continueLabel = "Continue";
+        [SerializeField] private string confirmLabel = "Confirm";
+
         [SerializeField] private Text vehicleNameText;
         [SerializeField] private Text statsText;
         [SerializeField] private Button previousButton;
@@ -36,14 +41,14 @@ namespace ApexRivals.UI.Runtime
             }
             else
             {
-                UguiViewText.Set(vehicleNameText, "No Vehicle");
+                UguiViewText.Set(vehicleNameText, noVehicleLabel);
                 UguiViewText.Set(statsText, string.Empty);
             }
 
             SetButton(previousButton, viewModel.CanSelectPrevious);
             SetButton(nextButton, viewModel.CanSelectNext);
             SetButton(confirmButton, viewModel.CanConfirm || viewModel.CanContinue);
-            UguiViewText.Set(confirmButton != null ? confirmButton.GetComponentInChildren<Text>() : null, viewModel.CanContinue ? "Continue" : "Confirm");
+            UguiViewText.Set(confirmButton != null ? confirmButton.GetComponentInChildren<Text>() : null, viewModel.CanContinue ? continueLabel : confirmLabel);
             UguiViewText.Set(statusText, viewModel.MessageKey);
         }
 

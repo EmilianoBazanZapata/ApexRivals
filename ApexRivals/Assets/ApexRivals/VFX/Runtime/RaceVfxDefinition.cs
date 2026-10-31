@@ -9,6 +9,8 @@ namespace ApexRivals.VFX.Runtime
         public ParticleSystem impactSparksPrefab;
         public ParticleSystem rainPrefab;
         public Material confettiMaterial;
+        [Tooltip("Victory confetti overlay: a screen-space canvas holding a VictoryConfettiGraphic.")]
+        public GameObject confettiPrefab;
         public Material skidmarkMaterial;
         [Header("Tire marks")]
         [Min(0f)] public float skidMinimumSpeed = 4f;
@@ -28,5 +30,7 @@ namespace ApexRivals.VFX.Runtime
         [Min(0f)] public float minimumImpactSpeed = 2f;
         [Min(0.02f)] public float impactCooldown = 0.15f;
         [Range(6, 80)] public int maximumSparkCount = 40;
+        [Tooltip("Sparks from hitting another car.")] public Color vehicleImpactSparkColor = new Color(1f, 0.48f, 0.08f);
+        [Tooltip("Sparks from hitting a wall or barrier.")] public Color wallImpactSparkColor = new Color(1f, 0.78f, 0.3f);
     }
 }

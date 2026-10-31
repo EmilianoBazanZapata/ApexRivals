@@ -6,7 +6,6 @@ using ApexRivals.RaceSetup.Runtime;
 using ApexRivals.SceneFlow.Runtime;
 using ApexRivals.Vehicle.Runtime;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace ApexRivals.DrivingAssistance.Runtime
 {
@@ -23,6 +22,10 @@ namespace ApexRivals.DrivingAssistance.Runtime
         [SerializeField, Range(60, 250)] private float visibleDistance = 180;
         [SerializeField, Min(1)] private float brakingDeceleration = 5;
         [SerializeField, Min(1)] private float corneringGrip = 6;
+        [Header("Zone colours (alpha is driven by distance)")]
+        [SerializeField, Tooltip("Comfortably below the safe speed.")] private Color safeColor = new Color32(45, 245, 90, 255);
+        [SerializeField, Tooltip("Close to the safe speed: brake soon.")] private Color cautionColor = new Color32(255, 205, 30, 255);
+        [SerializeField, Tooltip("Over the safe speed: braking is overdue.")] private Color overColor = new Color32(255, 45, 30, 255);
         private ApplicationContext _context;
         private RaceSessionCoordinator _session;
         private Rigidbody _body;
@@ -75,10 +78,6 @@ namespace ApexRivals.DrivingAssistance.Runtime
             BuildGeometry();
             _renderer = GetComponent<MeshRenderer>();
             _renderer.sharedMaterial = lineMaterial;
-            _renderer.shadowCastingMode = ShadowCastingMode.Off;
-            _renderer.receiveShadows = false;
-            _renderer.lightProbeUsage = LightProbeUsage.Off;
-            _renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
             _renderer.enabled = false;
             LateUpdate();
         }
@@ -157,12 +156,19 @@ namespace ApexRivals.DrivingAssistance.Runtime
                 var distance = Mathf.Repeat(_path.GetSample(i).DistanceAlongLap - DistanceAlongLap, _path.LapLength);
                 var alpha = _onRoad[i] && distance >= 3 && distance <= visibleDistance
                     ? Mathf.InverseLerp(3, 9, distance) * Mathf.InverseLerp(visibleDistance, visibleDistance - 25, distance) * 0.9f : 0;
-                var color = DrivingLineRules.Color(DrivingLineRules.Evaluate(speed, _safeSpeeds[i]), (byte)(alpha * 255));
+                var color = ZoneColor(DrivingLineRules.Evaluate(speed, _safeSpeeds[i]), alpha);
                 if (color.a > 0) VisibleMarkerCount++;
                 for (var vertex = 0; vertex < 6; vertex++) _colors[i * 6 + vertex] = color;
             }
             _mesh.SetColors(_colors);
             _renderer.enabled = VisibleMarkerCount > 0;
+        }
+
+        private Color32 ZoneColor(DrivingLineZone zone, float alpha)
+        {
+            var color = zone == DrivingLineZone.Green ? safeColor : zone == DrivingLineZone.Yellow ? cautionColor : overColor;
+            color.a *= alpha;
+            return color;
         }
 
         public void Uninstall()

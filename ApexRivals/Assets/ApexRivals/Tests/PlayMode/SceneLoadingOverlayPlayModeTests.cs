@@ -20,7 +20,7 @@ namespace ApexRivals.Tests.PlayMode
         {
             var root = new GameObject("OverlayTestBootstrap");
             var input = root.AddComponent<BootstrapUiInputSystem>();
-            var overlay = root.AddComponent<SceneLoadingOverlay>();
+            var overlay = AddOverlay(root);
             overlay.PreLoadDelaySeconds = 0f;
             overlay.Bind(input);
             var button = new GameObject("PreviousScreen", typeof(RectTransform), typeof(Button)).GetComponent<Button>();
@@ -54,7 +54,7 @@ namespace ApexRivals.Tests.PlayMode
         {
             var root = new GameObject("OverlayTestBootstrap");
             var input = root.AddComponent<BootstrapUiInputSystem>();
-            var overlay = root.AddComponent<SceneLoadingOverlay>();
+            var overlay = AddOverlay(root);
             overlay.PreLoadDelaySeconds = 0f;
             overlay.Bind(input);
             var showing = overlay.ShowAsync();
@@ -80,7 +80,7 @@ namespace ApexRivals.Tests.PlayMode
         {
             var root = new GameObject("DelayedOverlayTestBootstrap");
             var input = root.AddComponent<BootstrapUiInputSystem>();
-            var overlay = root.AddComponent<SceneLoadingOverlay>();
+            var overlay = AddOverlay(root);
             overlay.Bind(input);
             Assert.That(overlay.PreLoadDelaySeconds, Is.EqualTo(5f));
             Time.timeScale = 0f;
@@ -97,6 +97,25 @@ namespace ApexRivals.Tests.PlayMode
             Assert.That(Time.timeScale, Is.Zero);
             overlay.Hide(true);
             Assert.That(input.IsLoadingInputBlocked, Is.False);
+        }
+
+        /// <summary>
+        /// The overlay as the Bootstrap scene sets it up: the component plus its loading screen (a top-most canvas,
+        /// hidden, with a spinner), which the scene authors from the SceneLoadingOverlay prefab.
+        /// </summary>
+        internal static SceneLoadingOverlay AddOverlay(GameObject root)
+        {
+            var overlay = root.AddComponent<SceneLoadingOverlay>();
+            var screen = new GameObject("SceneLoadingOverlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            screen.transform.SetParent(root.transform, false);
+            var canvas = screen.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = short.MaxValue;
+            var spinner = new GameObject("LoadingSpinner", typeof(RectTransform)).GetComponent<RectTransform>();
+            spinner.SetParent(screen.transform, false);
+            overlay.UseSurface(screen, spinner);
+            return overlay;
         }
     }
 }

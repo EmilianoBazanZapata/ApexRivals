@@ -6,6 +6,12 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class MainMenuUguiView : MonoBehaviour, IMainMenuView
     {
+        [Header("Display text")]
+        [SerializeField] private string selectTrackLabel = "Select Track";
+        [SerializeField] private string selectVehicleLabel = "Select Vehicle";
+        [SerializeField] private string openGarageError = "COULD NOT OPEN THE GARAGE";
+        [SerializeField] private string openTrackSelectionError = "COULD NOT OPEN TRACK SELECTION";
+
         [SerializeField] private Text titleText;
         [SerializeField] private Text startButtonPrimaryText;
         [SerializeField] private Text startButtonDescriptionText;
@@ -68,18 +74,10 @@ namespace ApexRivals.UI.Runtime
 
         private void RenderMenuText(MainMenuViewModel viewModel)
         {
-            UguiViewText.Set(startButtonPrimaryText, "PLAY");
-            UguiViewText.Set(startButtonDescriptionText, "Select Track");
-            UguiViewText.Set(garageButtonPrimaryText, "GARAGE");
-            UguiViewText.Set(garageButtonDescriptionText, "Vehicle Upgrades");
-            UguiViewText.Set(settingsButtonPrimaryText, "SETTINGS");
-            UguiViewText.Set(settingsButtonDescriptionText, "Game Settings");
-            UguiViewText.Set(quitButtonPrimaryText, "EXIT");
-            UguiViewText.Set(quitButtonDescriptionText, "Exit Game");
-
+            // Static labels are authored directly on the scene Text components.
             if (startButtonPrimaryText == null && startButtonDescriptionText == null)
             {
-                UguiViewText.Set(startButton != null ? startButton.GetComponentInChildren<Text>() : null, viewModel.StartTarget == MainMenuStartTarget.Race ? "Select Track" : "Select Vehicle");
+                UguiViewText.Set(startButton != null ? startButton.GetComponentInChildren<Text>() : null, viewModel.StartTarget == MainMenuStartTarget.Race ? selectTrackLabel : selectVehicleLabel);
             }
         }
 
@@ -198,9 +196,15 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
-        private static string StatusText(string messageKey)
+        /// <summary>Player-facing error line; raw message keys never reach the screen.</summary>
+        private string StatusText(string messageKey)
         {
-            return string.IsNullOrWhiteSpace(messageKey) ? string.Empty : messageKey;
+            return messageKey switch
+            {
+                "ui.main.openGarageFailed" => openGarageError,
+                "ui.main.startRaceFailed" => openTrackSelectionError,
+                _ => string.Empty
+            };
         }
     }
 }

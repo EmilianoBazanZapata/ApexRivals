@@ -9,6 +9,16 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class PauseUguiView : MonoBehaviour, IPauseView, ICancelHandler
     {
+        [SerializeField, Tooltip("Disable to preserve Navigation mode, links and wrapping authored on the Selectable components. Enable to rebuild links as controls appear/disappear.")] private bool useDynamicNavigation = true;
+
+        [Header("Display text")]
+        [SerializeField] private string retryConfirmation = "Restart the current race?";
+        [SerializeField] private string exitConfirmation = "Exit to the main menu? Race progress will be lost.";
+        [SerializeField] private string pauseError = "COULD NOT PAUSE THE RACE";
+        [SerializeField] private string resumeError = "COULD NOT RESUME THE RACE";
+        [SerializeField] private string retryError = "COULD NOT RESTART THE RACE";
+        [SerializeField] private string returnMainMenuError = "COULD NOT RETURN TO THE MAIN MENU";
+
         [SerializeField] private Button resumeButton;
         [SerializeField, Tooltip("Opens the Settings screen over the paused race.")] private Button settingsButton;
         [SerializeField] private Button retryButton;
@@ -24,6 +34,9 @@ namespace ApexRivals.UI.Runtime
         private Action _pendingConfirmedAction;
         private bool _wasPaused;
         private bool _confirmationSubmitting;
+        private int _suppressCancelFrame = -1;
+
+        public void SuppressCancelForCurrentFrame() => _suppressCancelFrame = Time.frameCount;
 
         public event Action ResumeRequested;
         public event Action SettingsRequested;
@@ -48,7 +61,7 @@ namespace ApexRivals.UI.Runtime
             SetButton(retryButton, viewModel.CanRetry);
             SetButton(returnToMainMenuButton, viewModel.IsPaused && !viewModel.IsTransitioning);
             ConfigurePauseNavigation();
-            UguiViewText.Set(statusText, viewModel.MessageKey);
+            UguiViewText.Set(statusText, StatusText(viewModel.MessageKey));
 
             if (viewModel.IsPaused && !_wasPaused)
             {
@@ -171,12 +184,12 @@ namespace ApexRivals.UI.Runtime
 
         private void OnRetryClicked()
         {
-            RequestConfirmation("Restart the current race?", RunRetry);
+            RequestConfirmation(retryConfirmation, RunRetry);
         }
 
         private void OnReturnToMainMenuClicked()
         {
-            RequestConfirmation("Exit to the main menu? Race progress will be lost.", RunReturnToMainMenu);
+            RequestConfirmation(exitConfirmation, RunReturnToMainMenu);
         }
 
         private async void RunRetry()
@@ -210,7 +223,6 @@ namespace ApexRivals.UI.Runtime
 
             _pendingConfirmedAction = onConfirmed;
             UguiViewText.Set(confirmationText, message);
-            UiModalPointerBlocker.Ensure(confirmationDialogRoot);
             confirmationDialogRoot.SetActive(true);
             ConfigureConfirmationNavigation();
 
@@ -246,6 +258,8 @@ namespace ApexRivals.UI.Runtime
         public void OnCancel(BaseEventData eventData)
         {
             eventData?.Use();
+            // A shared Pause/Cancel press must not close the panel it just opened.
+            if (_suppressCancelFrame == Time.frameCount) return;
             if (confirmationDialogRoot != null && confirmationDialogRoot.activeInHierarchy)
             {
                 OnConfirmationCanceled();
@@ -267,6 +281,19 @@ namespace ApexRivals.UI.Runtime
 
             SetConfirmationButtons(true);
             _confirmationSubmitting = false;
+        }
+
+        /// <summary>Player-facing error line; raw message keys never reach the screen.</summary>
+        private string StatusText(string messageKey)
+        {
+            return messageKey switch
+            {
+                "ui.pause.pauseFailed" => pauseError,
+                "ui.pause.resumeFailed" => resumeError,
+                "ui.pause.retryFailed" => retryError,
+                "ui.pause.returnMainMenuFailed" => returnMainMenuError,
+                _ => string.Empty
+            };
         }
 
         private static void SetButton(Button button, bool interactable)
@@ -299,6 +326,7 @@ namespace ApexRivals.UI.Runtime
 
         private void ConfigureConfirmationNavigation()
         {
+            if (!useDynamicNavigation) return;
             if (confirmationConfirmButton == null || confirmationCancelButton == null)
             {
                 return;
@@ -315,6 +343,7 @@ namespace ApexRivals.UI.Runtime
 
         private void ConfigurePauseNavigation()
         {
+            if (!useDynamicNavigation) return;
             var buttons = new List<Button>(4);
             AddNavigableButton(buttons, resumeButton);
             AddNavigableButton(buttons, settingsButton);

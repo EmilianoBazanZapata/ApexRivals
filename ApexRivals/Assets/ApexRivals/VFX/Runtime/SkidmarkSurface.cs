@@ -36,6 +36,12 @@ namespace ApexRivals.VFX.Runtime
             _definition = definition;
             _capacity = Mathf.Clamp(definition.skidMaximumSegments, 128, 8192);
             _vertices = new MarkVertex[_capacity * 4];
+            // A restarted race starts from a clean mesh.
+            if (_mesh != null) Destroy(_mesh);
+            TotalSegmentsWritten = 0;
+            _nextSlot = 0;
+            _dirtyFrom = int.MaxValue;
+            _dirtyTo = 0;
             _mesh = new Mesh { name = "RaceTireMarks" };
             _mesh.MarkDynamic();
             _mesh.SetVertexBufferParams(_vertices.Length,
@@ -58,12 +64,8 @@ namespace ApexRivals.VFX.Runtime
             }
             _mesh.SetIndices(indices, MeshTopology.Triangles, 0, false);
             GetComponent<MeshFilter>().sharedMesh = _mesh;
+            // Material, shadows and probes are set on the renderer in the scene.
             _renderer = GetComponent<MeshRenderer>();
-            _renderer.sharedMaterial = definition.skidmarkMaterial;
-            _renderer.shadowCastingMode = ShadowCastingMode.Off;
-            _renderer.receiveShadows = false;
-            _renderer.lightProbeUsage = LightProbeUsage.Off;
-            _renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
             _properties = new MaterialPropertyBlock();
         }
 

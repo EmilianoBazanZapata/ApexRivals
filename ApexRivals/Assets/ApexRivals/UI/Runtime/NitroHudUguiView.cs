@@ -7,6 +7,15 @@ namespace ApexRivals.UI.Runtime
     [DisallowMultipleComponent]
     public sealed class NitroHudUguiView : MonoBehaviour
     {
+        [Header("Display text")]
+        [SerializeField] private string activeLabel = "NITRO ACTIVE";
+        [SerializeField] private string chargingLabel = "DRIFT + NITRO";
+        [SerializeField] private string fullLabel = "NITRO FULL";
+        [SerializeField] private string idleLabel = "NITRO";
+
+        [SerializeField, Tooltip("Colors (and border widths) this control switches between with its state.")] private ApexUiPalette palette;
+        private ApexUiPalette Palette => ApexUiPalette.Resolve(palette);
+
         [SerializeField] private Image chargeFill;
         [SerializeField] private Text statusText;
         [SerializeField] private Text chargeText;
@@ -42,8 +51,8 @@ namespace ApexRivals.UI.Runtime
             }
             var state = _source.IsBoosting ? 2 : _source.IsCharging ? 1 : percent >= 100 ? 3 : 0;
             if (_lastState == state) return;
-            UguiViewText.Set(statusText, state == 2 ? "NITRO ACTIVE" : state == 1 ? "DRIFT + NITRO" : state == 3 ? "NITRO FULL" : "NITRO");
-            if (chargeFill != null) chargeFill.color = state == 2 ? ApexUiVisualStyle.FocusedText : ApexUiVisualStyle.PrimaryRed;
+            UguiViewText.Set(statusText, state == 2 ? activeLabel : state == 1 ? chargingLabel : state == 3 ? fullLabel : idleLabel);
+            if (chargeFill != null) chargeFill.color = state == 2 ? Palette.FocusedText : Palette.PrimaryRed;
             _lastState = state;
         }
     }

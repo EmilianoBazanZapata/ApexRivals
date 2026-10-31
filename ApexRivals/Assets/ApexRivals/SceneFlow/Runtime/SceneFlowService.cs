@@ -72,6 +72,12 @@ namespace ApexRivals.SceneFlow.Runtime
             return result;
         }
 
+        /// <summary>Asks the next garage load to open on the track select screen (results CONTINUE).</summary>
+        public void RequestTrackSelection()
+        {
+            TrackSelectionRequested = true;
+        }
+
         /// <summary>Returns whether the track select screen was requested and clears the request.</summary>
         public bool ConsumeTrackSelectionRequest()
         {
