@@ -33,6 +33,8 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private Button audioTabButton;
         [SerializeField] private GameObject displayPanel;
         [SerializeField] private GameObject audioPanel;
+        [SerializeField, Tooltip("Optional CONTROLS tab: read-only keyboard and gamepad bindings.")] private Button controlsTabButton;
+        [SerializeField] private GameObject controlsPanel;
         [SerializeField] private SettingsOptionSelector resolutionSelector;
         [SerializeField] private SettingsOptionSelector refreshRateSelector;
         [SerializeField] private SettingsOptionSelector fullScreenModeSelector;
@@ -56,8 +58,16 @@ namespace ApexRivals.UI.Runtime
             FullScreenMode.ExclusiveFullScreen
         };
 
+        private enum SettingsTab
+        {
+            Display,
+            Audio,
+            Controls
+        }
+
         private SettingsPresenter _presenter;
         private IPresentationScreenNavigator _navigator;
+        private SettingsTab _currentTab;
         private PresentationScreenState _cancelTarget = PresentationScreenState.Main;
         private SettingsResolution _selectedResolution;
         private bool _subscribed;
@@ -167,6 +177,11 @@ namespace ApexRivals.UI.Runtime
                 audioTabButton.onClick.AddListener(OnAudioTabClicked);
             }
 
+            if (controlsTabButton != null)
+            {
+                controlsTabButton.onClick.AddListener(OnControlsTabClicked);
+            }
+
             if (resolutionSelector != null)
             {
                 resolutionSelector.ValueChanged += OnResolutionChanged;
@@ -240,6 +255,11 @@ namespace ApexRivals.UI.Runtime
             if (audioTabButton != null)
             {
                 audioTabButton.onClick.RemoveListener(OnAudioTabClicked);
+            }
+
+            if (controlsTabButton != null)
+            {
+                controlsTabButton.onClick.RemoveListener(OnControlsTabClicked);
             }
 
             if (resolutionSelector != null)
@@ -407,57 +427,72 @@ namespace ApexRivals.UI.Runtime
 
         private void OnAudioTabClicked()
         {
-            ShowAudioTab(true);
+            ShowTab(SettingsTab.Audio, true);
         }
 
-        // Q/E and LB/RB: with two tabs, previous and next both switch to the other one.
-        public void ShowPreviousTab() => SwitchTab();
-
-        public void ShowNextTab() => SwitchTab();
-
-        private void SwitchTab()
+        private void OnControlsTabClicked()
         {
-            if (!isActiveAndEnabled || audioTabButton == null || audioPanel == null)
+            ShowTab(SettingsTab.Controls, true);
+        }
+
+        // Q/E and LB/RB cycle through the tabs this screen has.
+        public void ShowPreviousTab() => SwitchTab(-1);
+
+        public void ShowNextTab() => SwitchTab(1);
+
+        private void SwitchTab(int direction)
+        {
+            var tabs = AvailableTabs();
+            if (!isActiveAndEnabled || tabs.Count < 2)
             {
                 return;
             }
 
-            if (audioPanel.activeSelf)
+            var next = tabs[(tabs.IndexOf(_currentTab) + direction + tabs.Count) % tabs.Count];
+            if (next == SettingsTab.Display)
             {
                 OnDisplayTabClicked();
             }
             else
             {
-                OnAudioTabClicked();
+                ShowTab(next, true);
             }
 
             UiAudioEvents.Raise(UiSound.Move);
         }
 
-        private void ShowDisplayTab(bool selectFirstControl)
+        private List<SettingsTab> AvailableTabs()
         {
-            SetActive(displayPanel, true);
-            SetActive(audioPanel, false);
-            SetTabVisuals(true);
-            ConfigureNavigation();
-
-            if (selectFirstControl)
-            {
-                SelectIfUsable(resolutionSelector);
-            }
+            var tabs = new List<SettingsTab>(3) { SettingsTab.Display };
+            if (audioTabButton != null && audioPanel != null) tabs.Add(SettingsTab.Audio);
+            if (controlsTabButton != null && controlsPanel != null) tabs.Add(SettingsTab.Controls);
+            return tabs;
         }
 
-        private void ShowAudioTab(bool selectFirstControl)
+        private void ShowDisplayTab(bool selectFirstControl)
         {
-            SetActive(displayPanel, false);
-            SetActive(audioPanel, true);
-            SetTabVisuals(false);
+            ShowTab(SettingsTab.Display, selectFirstControl);
+        }
+
+        private void ShowTab(SettingsTab tab, bool selectFirstControl)
+        {
+            _currentTab = tab;
+            SetActive(displayPanel, tab == SettingsTab.Display);
+            SetActive(audioPanel, tab == SettingsTab.Audio);
+            SetActive(controlsPanel, tab == SettingsTab.Controls);
+            // The controls list is read-only, so there is nothing to restore on that tab.
+            if (restoreDefaultsButton != null) SetActive(restoreDefaultsButton.gameObject, tab != SettingsTab.Controls);
+            SetTabVisuals(tab);
             ConfigureNavigation();
 
-            if (selectFirstControl)
+            if (!selectFirstControl)
             {
-                SelectIfUsable(masterVolumeSlider);
+                return;
             }
+
+            if (tab == SettingsTab.Display) SelectIfUsable(resolutionSelector);
+            else if (tab == SettingsTab.Audio) SelectIfUsable(masterVolumeSlider);
+            else SelectIfUsable(controlsTabButton);
         }
 
         private void RenderResolutionSelector(SettingsResolution selectedResolution)
@@ -590,7 +625,7 @@ namespace ApexRivals.UI.Runtime
         {
             if (!useDynamicNavigation) return;
             var rows = new List<Selectable>(5);
-            if (displayPanel != null && displayPanel.activeSelf)
+            if (_currentTab == SettingsTab.Display)
             {
                 AddRowIfPresent(rows, resolutionSelector);
                 if (refreshRateSelector != null && refreshRateSelector.IsInteractable())
@@ -600,7 +635,7 @@ namespace ApexRivals.UI.Runtime
 
                 AddRowIfPresent(rows, fullScreenModeSelector);
             }
-            else
+            else if (_currentTab == SettingsTab.Audio)
             {
                 AddRowIfPresent(rows, masterVolumeSlider);
                 AddRowIfPresent(rows, musicVolumeSlider);
@@ -614,24 +649,36 @@ namespace ApexRivals.UI.Runtime
 
             // Tabs stack in a column on the left with the open tab's rows to their right; Restore Defaults closes
             // the rows and the footer holds Back and Apply. Left/right inside a row change its value, so a row's
-            // way back to the tabs is up from the first row. The audio tab is optional: never link to a missing one.
-            var currentTab = audioTabButton != null && audioPanel != null && audioPanel.activeSelf ? (Selectable)audioTabButton : displayTabButton;
-            var lastTab = audioTabButton != null ? (Selectable)audioTabButton : displayTabButton;
-            var rightOfTabs = firstRow != null ? firstRow : restoreDefaultsButton;
+            // way back to the tabs is up from the first row. The audio and controls tabs are optional: never link
+            // to a missing one. The controls tab has no rows and hides Restore Defaults.
+            var tabs = new List<Selectable>(3);
+            AddRowIfPresent(tabs, displayTabButton);
+            AddRowIfPresent(tabs, audioTabButton);
+            if (controlsPanel != null) AddRowIfPresent(tabs, controlsTabButton);
+            var currentTab = _currentTab == SettingsTab.Audio && audioTabButton != null ? audioTabButton
+                : _currentTab == SettingsTab.Controls && controlsTabButton != null ? controlsTabButton
+                : (Selectable)displayTabButton;
+            var lastTab = tabs.Count > 0 ? tabs[tabs.Count - 1] : null;
+            var restoreVisible = restoreDefaultsButton != null && restoreDefaultsButton.gameObject.activeSelf;
+            var afterRows = restoreVisible ? (Selectable)restoreDefaultsButton : applyButton;
+            var rightOfTabs = firstRow != null ? firstRow : afterRows;
 
-            SetNavigation(displayTabButton, null, audioTabButton != null ? audioTabButton : cancelButton, null, rightOfTabs);
-            SetNavigation(audioTabButton, displayTabButton, cancelButton, null, rightOfTabs);
+            for (var index = 0; index < tabs.Count; index++)
+            {
+                var down = index == tabs.Count - 1 ? (Selectable)cancelButton : tabs[index + 1];
+                SetNavigation(tabs[index], index == 0 ? null : tabs[index - 1], down, null, rightOfTabs);
+            }
 
             for (var index = 0; index < rows.Count; index++)
             {
                 var up = index == 0 ? currentTab : rows[index - 1];
-                var down = index == rows.Count - 1 ? (Selectable)restoreDefaultsButton : rows[index + 1];
+                var down = index == rows.Count - 1 ? afterRows : rows[index + 1];
                 SetNavigation(rows[index], up, down, null, null);
             }
 
-            SetNavigation(restoreDefaultsButton, lastRow != null ? lastRow : currentTab, applyButton, null, null);
+            if (restoreVisible) SetNavigation(restoreDefaultsButton, lastRow != null ? lastRow : currentTab, applyButton, null, null);
             SetNavigation(cancelButton, lastTab, null, null, applyButton);
-            SetNavigation(applyButton, restoreDefaultsButton, null, cancelButton, null);
+            SetNavigation(applyButton, restoreVisible ? restoreDefaultsButton : lastRow != null ? lastRow : currentTab, null, cancelButton, null);
         }
 
         /// <summary>
@@ -729,18 +776,19 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
-        private void SetTabVisuals(bool displaySelected)
+        private void SetTabVisuals(SettingsTab tab)
         {
-            var displayState = displayTabButton != null ? displayTabButton.GetComponent<UguiMenuButtonVisualState>() : null;
-            var audioState = audioTabButton != null ? audioTabButton.GetComponent<UguiMenuButtonVisualState>() : null;
-            if (displayState != null)
-            {
-                displayState.IsCurrent = displaySelected;
-            }
+            SetTabCurrent(displayTabButton, tab == SettingsTab.Display);
+            SetTabCurrent(audioTabButton, tab == SettingsTab.Audio);
+            SetTabCurrent(controlsTabButton, tab == SettingsTab.Controls);
+        }
 
-            if (audioState != null)
+        private static void SetTabCurrent(Button tabButton, bool current)
+        {
+            var state = tabButton != null ? tabButton.GetComponent<UguiMenuButtonVisualState>() : null;
+            if (state != null)
             {
-                audioState.IsCurrent = !displaySelected;
+                state.IsCurrent = current;
             }
         }
 
