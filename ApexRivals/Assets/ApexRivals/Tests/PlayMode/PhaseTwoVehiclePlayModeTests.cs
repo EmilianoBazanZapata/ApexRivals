@@ -477,7 +477,9 @@ namespace ApexRivals.Tests.PlayMode
             var baseline = CreateCar(-20f);
             var boosted = CreateCar(20f);
             Settle(baseline, boosted);
-            var nitro = boosted.Root.AddComponent<PlayerVehicleNitro>();
+            var nitro = boosted.Root.GetComponent<PlayerVehicleNitro>();
+            Assert.That(nitro, Is.Not.Null);
+            nitro.enabled = true;
             nitro.Configure(boosted.Controller, boosted.Input, boosted.Input, boosted.Resetter);
             var stats = boosted.Controller.CurrentPerformanceStats;
             Assert.That(nitro.NormalizedCharge, Is.Zero);
@@ -562,6 +564,9 @@ namespace ApexRivals.Tests.PlayMode
             owner.SetActive(true);
             coordinator.enabled = false;
             var composition = car.Root.GetComponent<RaceVehicleComposition>();
+            // CreateCar disables behaviours for deterministic manual simulation. Recovery must
+            // still subscribe to checkpoint events before this test drives the race.
+            car.Root.GetComponent<PlayerCheckpointRecovery>().enabled = true;
             composition.ConfigurePlayer(coordinator, "Player", car.Controller.CurrentPerformanceStats);
             coordinator.ConfigureSession(new[] { composition.RaceParticipant }, new[] { composition.DrivingInputGate }, composition.RaceParticipant);
             composition.DrivingInputGate.Configure(car.Input, false);
@@ -585,6 +590,8 @@ namespace ApexRivals.Tests.PlayMode
             {
                 car.Controller.SendMessage("FixedUpdate");
                 if (car.Stability != null) car.Stability.SendMessage("FixedUpdate");
+                var nitro = car.Root.GetComponent<PlayerVehicleNitro>();
+                if (nitro != null && nitro.enabled) nitro.SendMessage("FixedUpdate");
             }
             _physics.Simulate(Step);
             foreach (var car in cars)

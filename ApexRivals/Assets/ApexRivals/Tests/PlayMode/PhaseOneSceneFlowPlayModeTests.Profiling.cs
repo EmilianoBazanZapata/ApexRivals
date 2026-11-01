@@ -85,7 +85,8 @@ namespace ApexRivals.Tests.PlayMode
                 yield return WaitForTask(start);
                 Assert.That(start.Result.Succeeded, Is.True);
                 yield return WaitForStabilityCountdown();
-                yield return MeasureStabilityFrames("Authored Race; neutral player", 1, 30, report);
+                yield return MeasureStabilityFrames("Authored Race; neutral player",
+                    ReadReference<RaceSetupDefinition>(Installer, "raceSetupDefinition").AiOpponents.Count, 30, report);
                 var installer = Installer;
                 var ui = FindInRace<RaceUiSceneInstaller>();
                 var grid = FindInRace<StartingGrid>();
@@ -120,6 +121,9 @@ namespace ApexRivals.Tests.PlayMode
                         var template = authored.AiOpponents[0];
                         using (var serialized = new SerializedObject(clone))
                         {
+                            // The experimental grid owns slot zero for the player; authored grids may
+                            // deliberately put the player at the back of the field.
+                            serialized.FindProperty("playerStartingGridIndex").intValue = 0;
                             var opponents = serialized.FindProperty("aiOpponents");
                             opponents.arraySize = count;
                             for (var index = 0; index < count; index++)

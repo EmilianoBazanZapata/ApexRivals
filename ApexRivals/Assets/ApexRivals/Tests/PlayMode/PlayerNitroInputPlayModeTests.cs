@@ -13,6 +13,11 @@ namespace ApexRivals.Tests.PlayMode
         [UnityTest]
         public IEnumerator NitroKeyboardAndGamepadRespectTheDrivingGate()
         {
+            var originalSettings = InputSystem.settings;
+            var settings = Object.Instantiate(originalSettings);
+            settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings = settings;
             var keyboard = InputSystem.AddDevice<Keyboard>();
             var gamepad = InputSystem.AddDevice<Gamepad>();
             var owner = new GameObject("NitroInputTest");
@@ -23,7 +28,7 @@ namespace ApexRivals.Tests.PlayMode
                 gate.Configure(input, true);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.LeftShift));
                 InputSystem.Update();
-                yield return null;
+                input.SendMessage("Update"); // Sample after the explicit input update, independent of coroutine order.
                 Assert.That(gate.CurrentInput.Nitro, Is.True);
                 gate.SetDrivingAllowed(false);
                 Assert.That(gate.CurrentInput.Nitro, Is.False);
@@ -31,11 +36,11 @@ namespace ApexRivals.Tests.PlayMode
                 InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.West));
                 InputSystem.Update();
                 gate.SetDrivingAllowed(true);
-                yield return null;
+                input.SendMessage("Update"); // Sample after the explicit input update, independent of coroutine order.
                 Assert.That(gate.CurrentInput.Nitro, Is.True);
                 InputSystem.QueueStateEvent(gamepad, new GamepadState());
                 InputSystem.Update();
-                yield return null;
+                input.SendMessage("Update"); // Sample after the explicit input update, independent of coroutine order.
                 Assert.That(gate.CurrentInput.Nitro, Is.False);
             }
             finally
@@ -43,7 +48,10 @@ namespace ApexRivals.Tests.PlayMode
                 Object.DestroyImmediate(owner);
                 InputSystem.RemoveDevice(gamepad);
                 InputSystem.RemoveDevice(keyboard);
+                InputSystem.settings = originalSettings;
+                Object.DestroyImmediate(settings);
             }
+            yield break;
         }
     }
 }

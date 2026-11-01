@@ -221,7 +221,8 @@ namespace ApexRivals.Tests.PlayMode
         {
             Assert.That(SceneManager.GetSceneByName("Race").isLoaded, Is.True);
             Assert.That(UnityEngine.Object.FindObjectsByType<RaceSessionSceneInstaller>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
-            Assert.That(UnityEngine.Object.FindObjectsByType<RaceParticipant>(FindObjectsSortMode.None).Length, Is.EqualTo(2), "Authored roster is player plus one AI.");
+            Assert.That(UnityEngine.Object.FindObjectsByType<RaceParticipant>(FindObjectsSortMode.None).Length, Is.EqualTo(1 + ReadReference<ApexRivals.RaceSetup.Configuration.RaceSetupDefinition>(
+                FindInRace<RaceSessionSceneInstaller>(), "raceSetupDefinition").AiOpponents.Count), "Exactly the authored roster must remain after every transition.");
             Assert.That(FindInRace<RaceCoordinator>().PlayerParticipant, Is.Not.Null);
             Assert.That(Time.timeScale, Is.EqualTo(1f));
         }
@@ -275,8 +276,10 @@ namespace ApexRivals.Tests.PlayMode
             // One application-owned pause coordinator survives content scenes;
             // Race adds exactly one UI listener, removed on every unload.
             Assert.That(sample.navigationListeners, Is.EqualTo(inRace ? 2 : 1));
-            Assert.That(sample.sessionStateListeners, Is.EqualTo(inRace ? 2 : 0));
-            Assert.That(sample.sessionResultListeners, Is.EqualTo(inRace ? 1 : 0));
+            // UI installer + HUD adapter + authored start lights.
+            Assert.That(sample.sessionStateListeners, Is.EqualTo(inRace ? 3 : 0));
+            // Results UI + atmosphere + race VFX; all three must leave on unload.
+            Assert.That(sample.sessionResultListeners, Is.EqualTo(inRace ? 3 : 0));
             Assert.That(sample.sessionPositionListeners, Is.EqualTo(inRace ? 1 : 0));
         }
 

@@ -325,6 +325,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             var resetterSerializedObject = new SerializedObject(resetter);
             resetterSerializedObject.FindProperty("vehicleRigidbody").objectReferenceValue = root.GetComponent<Rigidbody>();
             resetterSerializedObject.ApplyModifiedPropertiesWithoutUndo();
+            root.AddComponent<PlayerCheckpointRecovery>();
             var participant = root.AddComponent<RaceParticipant>();
             var gate = root.AddComponent<DrivingInputGate>();
             var playerInput = root.AddComponent<PlayerDrivingInput>();

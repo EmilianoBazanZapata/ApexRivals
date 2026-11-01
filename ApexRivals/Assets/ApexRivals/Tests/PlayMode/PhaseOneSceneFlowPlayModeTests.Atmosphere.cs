@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using System.Collections;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Audio.Runtime;
+using SerializedObject = UnityEditor.SerializedObject;
 using ApexRivals.Camera.Runtime;
 using ApexRivals.Environment.Runtime;
 using ApexRivals.Race.Runtime;
@@ -88,13 +90,42 @@ namespace ApexRivals.Tests.PlayMode
             yield return new WaitForSeconds(0.1f);
             Assert.That(atmosphere.AnimationClock, Is.GreaterThan(clock));
             Assert.That(atmosphere.WeatherSource.isPlaying, Is.True);
-            settings.EditMasterVolume(0);
-            yield return null;
-            Assert.That(atmosphere.WeatherSource.volume, Is.Zero);
-            foreach (var source in atmosphere.CrowdSources) Assert.That(source.volume, Is.Zero);
-            settings.EditMasterVolume(0.5f);
-            yield return null;
-            Assert.That(atmosphere.CrowdSources[0].volume, Is.EqualTo(0.14f * 0.25f).Within(0.001f));
+            // Routed sources retain their authored levels; GameAudio drives master gain
+            // on the AudioMixer. Connect the test's settings to that production path.
+            var group = atmosphere.WeatherSource.outputAudioMixerGroup;
+            Assert.That(group, Is.Not.Null);
+            var mixer = group.audioMixer;
+            var audio = GameAudio.Current;
+            GameObject audioOwner = null;
+            if (audio == null)
+            {
+                audioOwner = new GameObject("AtmosphereTestAudio");
+                audio = audioOwner.AddComponent<GameAudio>();
+                using var serialized = new SerializedObject(audio);
+                serialized.FindProperty("mixer").objectReferenceValue = mixer;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            var weatherLevel = atmosphere.WeatherSource.volume;
+            var crowdLevel = atmosphere.CrowdSources[0].volume;
+            try
+            {
+                audio.Bind(settings);
+                settings.EditMasterVolume(0);
+                yield return null;
+                Assert.That(mixer.GetFloat(GameAudio.MasterVolumeParameter, out var muted), Is.True);
+                Assert.That(muted, Is.EqualTo(-80f).Within(.001f));
+                Assert.That(atmosphere.WeatherSource.volume, Is.EqualTo(weatherLevel));
+                settings.EditMasterVolume(.5f);
+                yield return null;
+                Assert.That(mixer.GetFloat(GameAudio.MasterVolumeParameter, out var half), Is.True);
+                Assert.That(half, Is.EqualTo(GameAudio.ToDecibels(.25f)).Within(.001f));
+                Assert.That(atmosphere.CrowdSources[0].volume, Is.EqualTo(crowdLevel).Within(.001f));
+            }
+            finally
+            {
+                audio.Bind(original.SettingsService);
+                if (audioOwner != null) Object.DestroyImmediate(audioOwner);
+            }
             atmosphere.Uninstall();
             Assert.That(atmosphere.WeatherSource.isPlaying, Is.False);
             Assert.That(atmosphere.IsInstalled, Is.False);

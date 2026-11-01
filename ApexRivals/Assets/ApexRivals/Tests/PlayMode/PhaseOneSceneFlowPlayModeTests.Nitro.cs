@@ -38,7 +38,13 @@ namespace ApexRivals.Tests.PlayMode
                 foreach (var root in SceneManager.GetSceneByName(track).GetRootGameObjects())
                     foreach (var rival in root.GetComponentsInChildren<AiDrivingInputProvider>(true))
                         if (rival.gameObject != nitro.gameObject && rival.enabled)
-                            Assert.That(rival.GetComponent<PlayerVehicleNitro>(), Is.Null, "AI must retain its existing race tuning.");
+                            {
+                                var rivalNitro = rival.GetComponent<PlayerVehicleNitro>();
+                                Assert.That(rivalNitro, Is.Not.Null, "Production prefabs author the component for either role.");
+                                Assert.That(rivalNitro.enabled, Is.False, "AI must not run player nitro.");
+                                Assert.That(rivalNitro.IsBoosting, Is.False);
+                                Assert.That(rivalNitro.NormalizedCharge, Is.Zero);
+                            }
                 ScreenCapture.CaptureScreenshot("graphify-out/nitro-hud-" + track + ".png");
                 yield return null;
             }

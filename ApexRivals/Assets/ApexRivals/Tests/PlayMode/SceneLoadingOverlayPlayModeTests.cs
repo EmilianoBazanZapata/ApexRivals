@@ -105,7 +105,8 @@ namespace ApexRivals.Tests.PlayMode
         /// </summary>
         internal static SceneLoadingOverlay AddOverlay(GameObject root)
         {
-            var overlay = root.AddComponent<SceneLoadingOverlay>();
+            var overlay = root.GetComponent<SceneLoadingOverlay>();
+            if (overlay == null) overlay = root.AddComponent<SceneLoadingOverlay>();
             var screen = new GameObject("SceneLoadingOverlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             screen.transform.SetParent(root.transform, false);
             var canvas = screen.GetComponent<Canvas>();

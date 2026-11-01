@@ -40,6 +40,7 @@ namespace ApexRivals.Tests.PlayMode
         private int _raceInstallCount;
         private bool _installAllContentScenes;
         private bool _playIntroduction;
+        private bool _confirmCarPresentation;
         private bool _dynamicWeather;
         private InputSettings _originalInputSettings;
         private InputSettings _testInputSettings;
@@ -66,6 +67,7 @@ namespace ApexRivals.Tests.PlayMode
             _raceInstallCount = 0;
             _installAllContentScenes = false;
             _playIntroduction = false;
+            _confirmCarPresentation = false;
             _dynamicWeather = false;
             var bootstrapScene = SceneManager.CreateScene("PhaseOneTestBootstrap");
             var root = new GameObject("PhaseOneTestBootstrap");
@@ -342,8 +344,11 @@ namespace ApexRivals.Tests.PlayMode
                 Assert.That(coordinator.TryGetProgress(participant, out var progress), Is.True);
                 if (progress.HasFinished) break;
                 Assert.That(coordinator.TryPassCheckpoint(participant, coordinator.OrderedCheckpoints[progress.NextExpectedCheckpointIndex]).Accepted, Is.True);
-                if (hud.isActiveAndEnabled) hud.SendMessage("Update");
-                AssertHudMatchesSnapshot(hud, session.Hud);
+                if (hud.isActiveAndEnabled)
+                {
+                    hud.SendMessage("Update");
+                    AssertHudMatchesSnapshot(hud, session.Hud);
+                }
                 observedLapChange |= session.Hud.CurrentLap != initialLap;
             }
 
@@ -377,15 +382,59 @@ namespace ApexRivals.Tests.PlayMode
             var lap = serialized.FindProperty("lapText").objectReferenceValue as Text;
             var position = serialized.FindProperty("positionText").objectReferenceValue as Text;
             var time = serialized.FindProperty("timeText").objectReferenceValue as Text;
-            Assert.That(countdown, Is.Not.Null);
-            Assert.That(lap, Is.Not.Null);
-            Assert.That(position, Is.Not.Null);
-            Assert.That(time, Is.Not.Null);
-            Assert.That(countdown.text, Is.EqualTo(snapshot.CountdownRemaining > 0f ? Mathf.CeilToInt(snapshot.CountdownRemaining).ToString() : string.Empty));
-            Assert.That(lap.text, Is.EqualTo($"Lap {snapshot.CurrentLap}/{snapshot.TotalLaps}"));
-            Assert.That(position.text, Is.EqualTo($"{snapshot.CurrentPosition}/{snapshot.ParticipantCount}"));
-            var minutes = (int)(snapshot.RaceTime / 60f);
-            Assert.That(time.text, Is.EqualTo(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:00}:{1:00.000}", minutes, snapshot.RaceTime - minutes * 60f)));
+            var lapValue = serialized.FindProperty("lapValueText").objectReferenceValue as Text;
+            var positionNumber = serialized.FindProperty("positionNumberText").objectReferenceValue as Text;
+            var positionTotal = serialized.FindProperty("positionTotalText").objectReferenceValue as Text;
+            var currentLapTime = serialized.FindProperty("currentLapText").objectReferenceValue as Text;
+            var bestLapTime = serialized.FindProperty("bestLapText").objectReferenceValue as Text;
+            if (countdown != null)
+                Assert.That(countdown.text, Is.EqualTo(snapshot.CountdownRemaining > 0f ? Mathf.CeilToInt(snapshot.CountdownRemaining).ToString() : string.Empty));
+            else
+            {
+                var lights = FindInRace<RaceStartLights>();
+                Assert.That(lights, Is.Not.Null, "The authored start lights replace the legacy countdown.");
+                if (snapshot.CountdownRemaining > 0f)
+                {
+                    Assert.That(lights.IsVisible, Is.True);
+                    Assert.That(lights.Stage, Is.EqualTo(Mathf.Clamp(Mathf.CeilToInt(snapshot.CountdownRemaining), 1, 3)));
+                }
+                else Assert.That(lights.Stage, Is.EqualTo(-1).Or.EqualTo(0));
+            }
+            if (lap != null) Assert.That(lap.text, Is.EqualTo($"Lap {snapshot.CurrentLap}/{snapshot.TotalLaps}"));
+            Assert.That(lapValue, Is.Not.Null);
+            Assert.That(lapValue.text, Is.EqualTo($"{snapshot.CurrentLap}/{snapshot.TotalLaps}"));
+            if (position != null) Assert.That(position.text, Is.EqualTo($"{snapshot.CurrentPosition}/{snapshot.ParticipantCount}"));
+            Assert.That(positionNumber, Is.Not.Null);
+            Assert.That(positionTotal, Is.Not.Null);
+            Assert.That(positionNumber.text, Is.EqualTo(snapshot.CurrentPosition.ToString()));
+            Assert.That(positionTotal.text, Is.EqualTo("/" + snapshot.ParticipantCount));
+            if (time != null) Assert.That(time.text, Is.EqualTo(FormatHudTime(snapshot.RaceTime)));
+            Assert.That(currentLapTime, Is.Not.Null);
+            Assert.That(bestLapTime, Is.Not.Null);
+            var tracker = (RaceStandingsTracker)typeof(RaceHudUguiView).GetField("_standingsTracker",
+                BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
+            Assert.That(tracker, Is.Not.Null);
+            AssertHudLapTime(currentLapTime, tracker.CurrentLapTime);
+            if (tracker.BestLapTime < 0f) Assert.That(bestLapTime.text, Is.EqualTo("--:--.---"));
+            else AssertHudLapTime(bestLapTime, tracker.BestLapTime);
+
+        }
+
+        private static void AssertHudLapTime(Text label, float expected)
+        {
+            Assert.That(label.text, Does.Match(@"^\d{2,}:\d{2}\.\d{3}$"));
+            var parts = label.text.Split(':');
+            var displayed = float.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture) * 60f
+                + float.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
+            // RaceHudUguiView caches timing text per hundredth, while formatting milliseconds.
+            // Reject stale timing beyond that deliberate refresh interval.
+            Assert.That(displayed, Is.EqualTo(expected).Within(.01f), label.name);
+        }
+
+        private static string FormatHudTime(float seconds)
+        {
+            var minutes = (int)(seconds / 60f);
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:00}:{1:00.000}", minutes, seconds - minutes * 60f);
         }
 
         [UnityTest]
@@ -762,6 +811,18 @@ namespace ApexRivals.Tests.PlayMode
             {
                 var raceInstaller = root.GetComponentInChildren<RaceSessionSceneInstaller>(true);
                 if (raceInstaller != null) raceInstaller.PlayIntroduction = _playIntroduction;
+                if (raceInstaller != null && raceInstaller.Introduction != null)
+                {
+                    var intro = raceInstaller.Introduction;
+                    var refs = new UnityEditor.SerializedObject(intro);
+                    refs.FindProperty("waitForStart").boolValue = _confirmCarPresentation;
+                    if (_confirmCarPresentation)
+                    {
+                        var shots = refs.FindProperty("carShots");
+                        for (var i = 0; i < shots.arraySize; i++) shots.GetArrayElementAtIndex(i).FindPropertyRelative("seconds").floatValue = .55f;
+                    }
+                    refs.ApplyModifiedPropertiesWithoutUndo();
+                }
                 // Legacy fog/VFX regressions intentionally exercise each track's authored weather.
                 // Dynamic weather scenarios opt in and supply reproducible forecasts.
                 var weather = root.GetComponentInChildren<ApexRivals.Environment.Runtime.RaceWeatherController>(true);

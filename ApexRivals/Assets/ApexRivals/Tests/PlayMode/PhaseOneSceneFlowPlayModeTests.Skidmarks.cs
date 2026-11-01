@@ -87,6 +87,8 @@ namespace ApexRivals.Tests.PlayMode
             marks.layer = 31;
             var surface = marks.AddComponent<SkidmarkSurface>();
             surface.Initialize(configuration);
+            Assert.That(configuration.skidmarkMaterial, Is.Not.Null);
+            marks.GetComponent<MeshRenderer>().sharedMaterial = configuration.skidmarkMaterial;
             var cameraObject = new GameObject("SkidFadeCamera", typeof(UnityEngine.Camera));
             var camera = cameraObject.GetComponent<UnityEngine.Camera>();
             var target = new RenderTexture(64, 64, 16, RenderTextureFormat.ARGB32);

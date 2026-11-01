@@ -236,6 +236,22 @@ namespace ApexRivals.Tests.PlayMode
             var installer = FindInScene<RaceSessionSceneInstaller>(sceneName);
             Assert.That(installer, Is.Not.Null);
             Assert.That(installer.LastInstallResult.Succeeded, Is.True, installer.LastInstallResult.Message);
+            // Wait until the presentation has exposed its confirmation control, then
+            // use the same button as the player (Begin may still be behind loading).
+            if (installer.Session.State == RaceSessionLifecycleState.Ready)
+            {
+                var presentation = installer.Introduction;
+                Assert.That(presentation, Is.Not.Null);
+                var button = new SerializedObject(presentation).FindProperty("startRaceButton").objectReferenceValue as Button;
+                Assert.That(button, Is.Not.Null);
+                var readyDeadline = Time.realtimeSinceStartup + 5f;
+                while ((!button.gameObject.activeInHierarchy || !button.interactable || presentation.ShotIndex < 0)
+                    && Time.realtimeSinceStartup < readyDeadline) yield return null;
+                Assert.That(button.gameObject.activeInHierarchy, Is.True);
+                Assert.That(button.interactable, Is.True);
+                Assert.That(presentation.ShotIndex, Is.GreaterThanOrEqualTo(0));
+                button.onClick.Invoke();
+            }
             var deadline = Time.realtimeSinceStartup + 10f;
             while ((installer.Session.State == RaceSessionLifecycleState.Starting || installer.Session.State == RaceSessionLifecycleState.Ready)
                 && Time.realtimeSinceStartup < deadline) yield return null;

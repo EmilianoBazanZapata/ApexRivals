@@ -10,6 +10,7 @@ using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace ApexRivals.Camera.Runtime
 {
@@ -38,6 +39,36 @@ namespace ApexRivals.Camera.Runtime
         [SerializeField, Tooltip("Close shot of a rival.")] private CinemachineCamera rivalsShot;
         [SerializeField, Tooltip("Close shot of the player's car.")] private CinemachineCamera playerShot;
         [SerializeField, Tooltip("Ends on the chase camera's pose; its field of view is matched to the chase camera.")] private CinemachineCamera handoffShot;
+
+        [Serializable]
+        public sealed class CarPresentationShot
+        {
+            public CinemachineCamera camera;
+            [Tooltip("Camera positions in metres relative to the car centre, in the car's orientation.")]
+            public Vector3 startOffset;
+            public Vector3 endOffset;
+            [Min(0.1f)] public float seconds = 3.5f;
+        }
+
+        [Header("Player car presentation")]
+        [SerializeField, Tooltip("Loop the configured car shots until the player confirms. Disable for the original automatic introduction.")]
+        private bool waitForStart;
+        [SerializeField] private CarPresentationShot[] carShots = Array.Empty<CarPresentationShot>();
+        [SerializeField, Tooltip("Offset above the visible car bounds centre.")] private float carFocusHeight = 0.1f;
+        [SerializeField] private Button startRaceButton;
+        [Header("Shot fades")]
+        [SerializeField] private bool fadeBetweenShots = true;
+        [SerializeField, Tooltip("Scene-authored overlay below the presentation controls. Its Image owns the fade colour.")]
+        private CanvasGroup shotFade;
+        [SerializeField, Min(0f)] private float fadeOutSeconds = .25f;
+        [SerializeField, Min(0f)] private float fadeInSeconds = .35f;
+        private bool UseShotFades => fadeBetweenShots && shotFade != null;
+
+        private bool _confirmationArmed;
+        private int _confirmationArmFrame;
+        private bool _hasFocusScope;
+        public bool AwaitingStart => IsPresenting && waitForStart && !_skipRequested;
+        public int CompletedPresentationLoops { get; private set; }
 
         private readonly List<HeldBody> _grid = new List<HeldBody>();
         private readonly List<Canvas> _hiddenCanvases = new List<Canvas>();
@@ -70,6 +101,9 @@ namespace ApexRivals.Camera.Runtime
             _session = session;
             _finished = false;
             _skipRequested = false;
+            _confirmationArmed = false;
+            CompletedPresentationLoops = 0;
+            ShotIndex = -1;
             IsPresenting = true;
             try
             {
@@ -205,6 +239,13 @@ namespace ApexRivals.Camera.Runtime
             _brain = existingBrain;
             _brain.enabled = false;
             shotRig.SetActive(true);
+            if (startRaceButton != null) startRaceButton.gameObject.SetActive(waitForStart);
+            if (waitForStart)
+            {
+                var showcase = RunCarShowcase(finalPose);
+                while (showcase.MoveNext()) yield return showcase.Current;
+                yield break;
+            }
             var playerBody = _session.PlayerVehicleRigidbody;
             var target = _session.PlayerCameraTarget.position;
             var forward = Vector3.ProjectOnPlane(playerBody.transform.forward, Vector3.up).normalized;
@@ -236,24 +277,7 @@ namespace ApexRivals.Camera.Runtime
             handoffShot.Lens.FieldOfView = _originalFov;
             var durations = new[] { establishingSeconds, rivalSeconds, playerSeconds, Mathf.Max(handoffSeconds, blendSeconds) };
             if (introductionHint != null) introductionHint.SetActive(true);
-            if (sessionInputActions != null)
-            {
-                var authored = sessionInputActions.FindAction(skipActionPath, false);
-                if (authored == null) throw new InvalidOperationException("Skip action missing: " + skipActionPath);
-                var map = authored.actionMap.Clone();
-                map.bindingMask = authored.actionMap.bindingMask ?? sessionInputActions.bindingMask;
-                map.devices = authored.actionMap.devices ?? sessionInputActions.devices;
-                _skip = map.FindAction(authored.name, true);
-                _skip.bindingMask = authored.bindingMask;
-            }
-            else
-            {
-                _skip = new InputAction("SkipRaceIntroduction", InputActionType.Button);
-                _skip.AddBinding("<Keyboard>/enter");
-                _skip.AddBinding("<Keyboard>/space");
-                _skip.AddBinding("<Gamepad>/buttonSouth");
-            }
-            _skip.Enable();
+            EnableConfirmationInput();
             // Do not interpret a held track-selection confirmation as a request to skip.
             var armed = false;
             _brain.enabled = true;
@@ -279,6 +303,202 @@ namespace ApexRivals.Camera.Runtime
                 } while (elapsed < Mathf.Max(0.1f, durations[shot]));
                 previousFocus = focuses[shot];
             }
+        }
+
+        private void EnableConfirmationInput()
+        {
+            if (sessionInputActions != null)
+            {
+                var authored = sessionInputActions.FindAction(skipActionPath, false);
+                if (authored == null) throw new InvalidOperationException("Skip action missing: " + skipActionPath);
+                var map = authored.actionMap.Clone();
+                map.bindingMask = authored.actionMap.bindingMask ?? sessionInputActions.bindingMask;
+                map.devices = authored.actionMap.devices ?? sessionInputActions.devices;
+                _skip = map.FindAction(authored.name, true);
+                _skip.bindingMask = authored.bindingMask;
+            }
+            else
+            {
+                _skip = new InputAction("SkipRaceIntroduction", InputActionType.Button);
+                _skip.AddBinding("<Keyboard>/enter");
+                _skip.AddBinding("<Keyboard>/space");
+                _skip.AddBinding("<Gamepad>/buttonSouth");
+            }
+            if (waitForStart) _skip.wantsInitialStateCheck = true;
+            _skip.performed += OnConfirmationPerformed;
+            _skip.canceled += OnConfirmationReleased;
+            _confirmationArmFrame = Time.frameCount + 1;
+            _skip.Enable();
+        }
+
+        private void OnConfirmationPerformed(InputAction.CallbackContext context)
+        {
+            if (waitForStart && IsPresenting && _confirmationArmed && context.ReadValueAsButton()) _skipRequested = true;
+        }
+
+        private void OnConfirmationReleased(InputAction.CallbackContext context)
+        {
+            if (waitForStart && IsPresenting) _confirmationArmed = true;
+        }
+        private void OnStartRaceClicked()
+        {
+            if (_confirmationArmed) RequestSkip();
+        }
+
+        private IEnumerator RunCarShowcase(Pose finalPose)
+        {
+            if (carShots == null || carShots.Length == 0 || startRaceButton == null || introductionHint == null)
+                throw new InvalidOperationException("Player car presentation shots or Start Race button are missing.");
+            foreach (var shot in carShots)
+            {
+                if (shot == null || shot.camera == null || shot.camera == handoffShot || shot.seconds < .1f || float.IsNaN(shot.seconds) || float.IsInfinity(shot.seconds))
+                    throw new InvalidOperationException("A player car presentation shot is invalid.");
+                shot.camera.gameObject.SetActive(false);
+            }
+            gridShot.gameObject.SetActive(false);
+            rivalsShot.gameObject.SetActive(false);
+            playerShot.gameObject.SetActive(false);
+            handoffShot.gameObject.SetActive(false);
+            var body = _session.PlayerVehicleRigidbody;
+            var focus = FindCarCentre(body) + Vector3.up * carFocusHeight;
+            var forward = Vector3.ProjectOnPlane(body.transform.forward, Vector3.up).normalized;
+            var basis = Quaternion.LookRotation(forward.sqrMagnitude > .01f ? forward : Vector3.forward, Vector3.up);
+            if (shotFade != null)
+            {
+                shotFade.alpha = UseShotFades ? 1f : 0f;
+                shotFade.gameObject.SetActive(UseShotFades);
+            }
+            introductionHint.SetActive(true);
+            startRaceButton.interactable = false;
+            startRaceButton.onClick.AddListener(OnStartRaceClicked);
+            EnableConfirmationInput();
+            _brain.enabled = true;
+            CinemachineCamera previous = null;
+            // Only the presentation button can receive focus. Race commands remain fenced by SuppressCommands.
+            _input?.SetLoadingInputBlocked(this, false);
+            UiFocus.PushScope(introductionHint, startRaceButton);
+            _hasFocusScope = true;
+            while (CanContinue() && !_skipRequested)
+            {
+                for (var index = 0; index < carShots.Length && CanContinue() && !_skipRequested; index++)
+                {
+                    var shot = carShots[index];
+                    if (previous != null && UseShotFades)
+                    {
+                        var fadeOut = FadeShot(1f, fadeOutSeconds, focus, interruptOnStart: true);
+                        while (fadeOut.MoveNext()) yield return fadeOut.Current;
+                    }
+                    if (_skipRequested || !CanContinue()) break;
+                    ShotIndex = index;
+                    Aim(shot.camera, SafePosition(focus, focus + basis * shot.startOffset), focus);
+                    shot.camera.gameObject.SetActive(true);
+                    if (previous != null && previous != shot.camera) previous.gameObject.SetActive(false);
+                    previous = shot.camera;
+                    if (UseShotFades)
+                    {
+                        // The camera cut happens while the authored overlay is opaque. Brain settings stay untouched.
+                        _brain.ResetState();
+                        _brain.ManualUpdate();
+                        var fadeIn = FadeShot(0f, fadeInSeconds, focus, interruptOnStart: true);
+                        while (fadeIn.MoveNext()) yield return fadeIn.Current;
+                    }
+                    var elapsed = 0f;
+                    do
+                    {
+                        ArmConfirmation();
+                        if (_confirmationArmed && _skip.WasPressedThisFrame()) _skipRequested = true;
+                        if (_skipRequested || !CanContinue()) break;
+                        var t = Mathf.SmoothStep(0f, 1f, elapsed / shot.seconds);
+                        var offset = Vector3.Lerp(shot.startOffset, shot.endOffset, t);
+                        Aim(shot.camera, SafePosition(focus, focus + basis * offset), focus);
+                        _brain.ManualUpdate();
+                        _output.transform.position = SafePosition(focus, _output.transform.position);
+                        elapsed += Time.deltaTime;
+                        yield return null;
+                    } while (elapsed < shot.seconds);
+                }
+                if (CanContinue() && !_skipRequested) CompletedPresentationLoops++;
+            }
+            if (!CanContinue()) yield break;
+            startRaceButton.interactable = false;
+            _input?.SetLoadingInputBlocked(this, true);
+            UiFocus.PopScope(introductionHint, restoreSelection: false);
+            _hasFocusScope = false;
+            if (UseShotFades)
+            {
+                var fadeOut = FadeShot(1f, fadeOutSeconds, focus, interruptOnStart: false);
+                while (fadeOut.MoveNext()) yield return fadeOut.Current;
+            }
+            if (!CanContinue()) yield break;
+            introductionHint.SetActive(false);
+            ShotIndex = carShots.Length;
+            handoffShot.transform.SetPositionAndRotation(finalPose.position, finalPose.rotation);
+            handoffShot.Lens.FieldOfView = _originalFov;
+            handoffShot.gameObject.SetActive(true);
+            if (previous != null) previous.gameObject.SetActive(false);
+            var handoffBegan = Time.time;
+            if (UseShotFades)
+            {
+                _brain.ResetState();
+                _brain.ManualUpdate();
+                var fadeIn = FadeShot(0f, fadeInSeconds, focus, interruptOnStart: false);
+                while (fadeIn.MoveNext()) yield return fadeIn.Current;
+            }
+            var handoffElapsed = Time.time - handoffBegan;
+            while (CanContinue() && (handoffElapsed < Mathf.Max(handoffSeconds, blendSeconds) || _brain.IsBlending))
+            {
+                _brain.ManualUpdate();
+                _output.transform.position = SafePosition(focus, _output.transform.position);
+                handoffElapsed += Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        private void ArmConfirmation()
+        {
+            if (!_confirmationArmed && Time.frameCount > _confirmationArmFrame && !_skip.IsPressed())
+                _confirmationArmed = true;
+            if (_confirmationArmed && !_skipRequested && !startRaceButton.interactable)
+            {
+                startRaceButton.interactable = true;
+                UiFocus.Request(startRaceButton);
+            }
+        }
+
+        private IEnumerator FadeShot(float target, float seconds, Vector3 focus, bool interruptOnStart)
+        {
+            if (!UseShotFades) yield break;
+            var duration = float.IsNaN(seconds) || float.IsInfinity(seconds) ? 0f : Mathf.Max(0f, seconds);
+            var from = shotFade.alpha;
+            var elapsed = 0f;
+            while (CanContinue() && elapsed < duration)
+            {
+                if (interruptOnStart)
+                {
+                    ArmConfirmation();
+                    if (_skipRequested) yield break;
+                }
+                elapsed += Time.deltaTime;
+                shotFade.alpha = Mathf.Lerp(from, target, Mathf.SmoothStep(0f, 1f, elapsed / duration));
+                _brain.ManualUpdate();
+                _output.transform.position = SafePosition(focus, _output.transform.position);
+                yield return null;
+            }
+            if (CanContinue() && (!interruptOnStart || !_skipRequested)) shotFade.alpha = target;
+        }
+
+        private static Vector3 FindCarCentre(Rigidbody body)
+        {
+            var bounds = new Bounds(body.position, Vector3.zero);
+            var found = false;
+            foreach (var renderer in body.GetComponentsInChildren<Renderer>())
+            {
+                if (!(renderer is MeshRenderer) && !(renderer is SkinnedMeshRenderer)) continue;
+                if (!renderer.enabled) continue;
+                if (!found) { bounds = renderer.bounds; found = true; }
+                else bounds.Encapsulate(renderer.bounds);
+            }
+            return found ? bounds.center : body.worldCenterOfMass;
         }
 
         private static void Aim(CinemachineCamera shotCamera, Vector3 position, Vector3 lookAt)
@@ -310,10 +530,24 @@ namespace ApexRivals.Camera.Runtime
         {
             if (_finished) return;
             _finished = true;
+            if (shotFade != null)
+            {
+                shotFade.alpha = 0f;
+                shotFade.gameObject.SetActive(false);
+            }
+            if (startRaceButton != null) startRaceButton.onClick.RemoveListener(OnStartRaceClicked);
+            if (_hasFocusScope && introductionHint != null) UiFocus.PopScope(introductionHint, restoreSelection: false);
+            _hasFocusScope = false;
+            _confirmationArmed = false;
             if (_brain != null) _brain.enabled = false;
             if (shotRig != null) shotRig.SetActive(false);
             if (introductionHint != null) introductionHint.SetActive(false);
-            _skip?.Dispose();
+            if (_skip != null)
+            {
+                _skip.performed -= OnConfirmationPerformed;
+                _skip.canceled -= OnConfirmationReleased;
+                _skip.Dispose();
+            }
             _skip = null;
             if (_ownsCamera && followCamera != null)
             {
@@ -344,7 +578,8 @@ namespace ApexRivals.Camera.Runtime
         /// <summary>The SKIP INTRO hint stays visible while the rest of the scene UI is hidden.</summary>
         private bool IsIntroductionHint(Canvas canvas)
         {
-            return introductionHint != null && canvas.transform.IsChildOf(introductionHint.transform);
+            return introductionHint != null && canvas.transform.IsChildOf(introductionHint.transform)
+                || shotFade != null && canvas.transform.IsChildOf(shotFade.transform);
         }
 
         private readonly struct HeldBody

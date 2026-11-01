@@ -96,7 +96,9 @@ namespace ApexRivals.Tests.PlayMode
             var trigger = Cube("Checkpoint", new Vector3(0f, 1f, -2.5f), new Vector3(10f, 8f, 1f));
             trigger.GetComponent<Collider>().isTrigger = true;
             yield return null;
-            for (var i = 0; i < 80; i++) yield return null;
+            // Follow smoothing is time based, so frame count is not a settling duration.
+            var settleUntil = Time.time + 2f;
+            while (Time.time < settleUntil) yield return null;
             Assert.That(cameraObject.transform.position.z, Is.LessThan(-4f), "Own body and checkpoint trigger must not obstruct the camera");
             var wall = Cube("ReverseWall", new Vector3(0f, 1f, 2.5f), new Vector3(10f, 8f, 0.2f));
             Physics.SyncTransforms();

@@ -475,6 +475,8 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             {
                 var root = _objects.Own(new GameObject("RaceVehicle"));
                 root.AddComponent<Rigidbody>();
+                root.AddComponent<PlayerVehicleNitro>();
+                root.AddComponent<PlayerCheckpointRecovery>();
                 var controller = root.AddComponent<WheelArcadeVehicleController>();
                 controller.ApplyPerformanceStats(prefabBaseStats);
                 var resetter = root.AddComponent<VehicleResetter>();
