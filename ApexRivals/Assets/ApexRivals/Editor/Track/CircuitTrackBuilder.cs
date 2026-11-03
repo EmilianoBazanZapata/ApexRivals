@@ -14,7 +14,8 @@ namespace ApexRivals.Editor.Track
 {
     /// <summary>
     /// Creates a circuit only in an empty race scene; existing authored circuits are preserved. Generates from its layout JSON: a closed centreline (metres, x/z, start line first,
-    /// clockwise) traced from a reference F1 layout and scaled to ~2 km, with optional per-point heights for bridges.
+    /// clockwise) traced from a reference layout and scaled to 2-3 km, with optional per-point heights for bridges and an optional
+    /// "water" outline (x/z polygon) for a lake.
     /// Each circuit (<see cref="CircuitProfile"/>) has its own scene, layout and folder for the generated meshes. The road, kerbs and run-off are
     /// generated along that spline with Kenney Racing Kit materials; barriers, grandstands, pits, gantry and scenery
     /// are Racing Kit models. AI waypoints and the starting grid are initialized only when empty. Checkpoints remain Editor-owned.
@@ -40,6 +41,12 @@ namespace ApexRivals.Editor.Track
             "Assets/ApexRivals/Scenes/RaceSuzuka.unity",
             "Assets/ApexRivals/Editor/Track/SuzukaLayout.json",
             "Assets/ApexRivals/Art/Track/Suzuka");
+
+        /// <summary>Riverdale, the career final: a ~3 km, 20-corner lakeside circuit; the run after the bottom-left hairpin crosses an inlet on a bridge.</summary>
+        public static readonly CircuitProfile RiverdaleCircuit = new CircuitProfile(
+            "Assets/ApexRivals/Scenes/RaceRiverdale.unity",
+            "Assets/ApexRivals/Editor/Track/RiverdaleLayout.json",
+            "Assets/ApexRivals/Art/Track/Riverdale");
 
         private static string _generatedDirectory = RaceCircuit.GeneratedDirectory;
 
@@ -75,6 +82,8 @@ namespace ApexRivals.Editor.Track
         private const float GridFirstSlotDistance = 10f;
         private const float GridSlotSpacing = 8f;
         private const float GridLateralOffset = 2.8f;
+        private const float WaterHeight = 0.12f;
+        private const float ShoreClearance = 4f;
 
         [MenuItem("ApexRivals/Track/Create Missing Race Circuit")]
         public static void RebuildFromMenu() => RebuildFromMenu(RaceCircuit);
@@ -84,6 +93,9 @@ namespace ApexRivals.Editor.Track
 
         [MenuItem("ApexRivals/Track/Create Missing Suzuka Circuit")]
         public static void RebuildSuzukaFromMenu() => RebuildFromMenu(SuzukaCircuit);
+
+        [MenuItem("ApexRivals/Track/Create Missing Riverdale Circuit")]
+        public static void RebuildRiverdaleFromMenu() => RebuildFromMenu(RiverdaleCircuit);
 
         private static void RebuildFromMenu(CircuitProfile profile)
         {
@@ -126,7 +138,7 @@ namespace ApexRivals.Editor.Track
                 environment.Find("Ground") != null || line.transform.childCount > 0 || grid.transform.childCount > 0 ||
                 new SerializedObject(line).FindProperty("waypoints").arraySize > 0 ||
                 new SerializedObject(grid).FindProperty("spawnPoints").arraySize > 0 ||
-                track.GetComponentsInChildren<RaceCheckpoint>(true).Length > 0)
+                environment.Find("Lake") != null || track.GetComponentsInChildren<RaceCheckpoint>(true).Length > 0)
                 return "Circuit preserved: geometry or race layout already exists. Edit it in the Inspector; generation only initializes an empty circuit.";
 
             _generatedDirectory = profile.GeneratedDirectory;
@@ -139,6 +151,7 @@ namespace ApexRivals.Editor.Track
             var barrierCount = BuildBarriers(centreline, barriers);
             var props = CreateGroup(environment, "CircuitProps");
             BuildGround(centreline, environment);
+            BuildWater(centreline, environment);
             var propCount = BuildStartArea(centreline, props) + BuildTrackside(centreline, props) + BuildScenery(centreline, props);
             var waypoints = PlaceWaypoints(centreline, line);
             PlaceGrid(centreline, grid);
@@ -293,6 +306,93 @@ namespace ApexRivals.Editor.Track
             box.center = new Vector3(bounds.center.x, -0.5f, bounds.center.z);
             box.size = new Vector3(size.x, 1f, size.z);
             ground.transform.SetSiblingIndex(0);
+        }
+
+        /// <summary>Flat lake surface just above the ground, cut from the layout's "water" outline; visual only.</summary>
+        private static void BuildWater(Centreline c, Transform environment)
+        {
+            if (c.Water.Count < 3)
+            {
+                return;
+            }
+
+            var builder = new MeshBuilder(1);
+            foreach (var index in Triangulate(c.Water))
+            {
+                var p = c.Water[index];
+                builder.AddVertex(new Vector3(p.x, WaterHeight, p.z), new Vector2(p.x / 20f, p.z / 20f));
+            }
+
+            builder.AddTriangleList(0);
+            var lake = CreateMeshObject(environment, "Lake", builder.Build("CircuitLake"), WaterMaterial(), false);
+            lake.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        private static Material WaterMaterial()
+        {
+            var path = _generatedDirectory + "/CircuitWater.mat";
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            if (File.Exists(path)) throw new InvalidOperationException("Existing material cannot be loaded: " + path);
+            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? throw new InvalidOperationException("URP Lit shader missing.");
+            var material = new Material(shader) { name = "CircuitWater" };
+            material.SetColor("_BaseColor", new Color(0.13f, 0.36f, 0.55f));
+            material.SetFloat("_Smoothness", 0.92f);
+            material.SetFloat("_Metallic", 0.1f);
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
+        /// <summary>Ear-clipping triangulation of a simple polygon; returns indices facing up.</summary>
+        private static List<int> Triangulate(IReadOnlyList<Vector3> polygon)
+        {
+            var remaining = Enumerable.Range(0, polygon.Count).ToList();
+            var area = 0f;
+            for (var i = 0; i < polygon.Count; i++)
+            {
+                var a = polygon[i];
+                var b = polygon[(i + 1) % polygon.Count];
+                area += a.x * b.z - b.x * a.z;
+            }
+
+            // Work counter-clockwise (seen from above); emitted triangles are then flipped to face up.
+            if (area < 0f) remaining.Reverse();
+            float Cross(Vector3 o, Vector3 a, Vector3 b) => (a.x - o.x) * (b.z - o.z) - (a.z - o.z) * (b.x - o.x);
+            var result = new List<int>();
+            var guard = 0;
+            while (remaining.Count > 3 && guard++ < 10000)
+            {
+                for (var i = 0; i < remaining.Count; i++)
+                {
+                    var prev = remaining[(i - 1 + remaining.Count) % remaining.Count];
+                    var cur = remaining[i];
+                    var next = remaining[(i + 1) % remaining.Count];
+                    if (Cross(polygon[prev], polygon[cur], polygon[next]) <= 0f) continue;
+                    var ear = true;
+                    foreach (var other in remaining)
+                    {
+                        if (other == prev || other == cur || other == next) continue;
+                        var p = polygon[other];
+                        if (Cross(polygon[prev], polygon[cur], p) >= 0f && Cross(polygon[cur], polygon[next], p) >= 0f && Cross(polygon[next], polygon[prev], p) >= 0f)
+                        {
+                            ear = false;
+                            break;
+                        }
+                    }
+
+                    if (!ear) continue;
+                    result.AddRange(new[] { prev, next, cur });
+                    remaining.RemoveAt(i);
+                    break;
+                }
+            }
+
+            result.AddRange(new[] { remaining[0], remaining[2], remaining[1] });
+            return result;
         }
 
         // ---------------------------------------------------------------- bridges
@@ -566,13 +666,15 @@ namespace ApexRivals.Editor.Track
                 }
             }
 
-            for (var attempt = 0; attempt < 6000 && count < 420; attempt++)
+            // Forest density scales with the lap length so longer circuits are not sparser.
+            var treeBudget = Mathf.RoundToInt(420f * Mathf.Max(1f, c.Length / 2000f));
+            for (var attempt = 0; attempt < treeBudget * 15 && count < treeBudget; attempt++)
             {
                 var point = new Vector3(
                     Mathf.Lerp(bounds.min.x, bounds.max.x, (float)random.NextDouble()),
                     0f,
                     Mathf.Lerp(bounds.min.z, bounds.max.z, (float)random.NextDouble()));
-                if (c.DistanceToCentreline(point) < 26f || placed.Any(p => (p - point).sqrMagnitude < 81f) || IsNearProp(parent, point, 14f))
+                if (c.DistanceToCentreline(point) < 26f || c.IsInWater(point, ShoreClearance) || placed.Any(p => (p - point).sqrMagnitude < 81f) || IsNearProp(parent, point, 14f))
                 {
                     continue;
                 }
@@ -609,7 +711,7 @@ namespace ApexRivals.Editor.Track
                 return false;
             }
 
-            if (!IsClear(c, index, point, offset - radius, StraightBarrierOffset + 1f + radius) || IsNearProp(parent, point, radius * 1.6f))
+            if (!IsClear(c, index, point, offset - radius, StraightBarrierOffset + 1f + radius) || c.IsInWater(point, radius + ShoreClearance) || IsNearProp(parent, point, radius * 1.6f))
             {
                 return false;
             }
@@ -802,6 +904,7 @@ namespace ApexRivals.Editor.Track
             private readonly List<Vector3> _vertices = new List<Vector3>();
             private readonly List<Vector2> _uvs = new List<Vector2>();
             private readonly List<int>[] _triangles;
+            private int _triangleListStart;
 
             public MeshBuilder(int submeshes)
             {
@@ -809,6 +912,23 @@ namespace ApexRivals.Editor.Track
             }
 
             public int VertexCount => _vertices.Count;
+
+            /// <summary>Adds a loose vertex; <see cref="AddTriangleList"/> turns every three of them into a triangle.</summary>
+            public void AddVertex(Vector3 position, Vector2 uv)
+            {
+                _vertices.Add(position);
+                _uvs.Add(uv);
+            }
+
+            public void AddTriangleList(int submesh)
+            {
+                for (var i = _triangleListStart; i + 2 < _vertices.Count; i += 3)
+                {
+                    _triangles[submesh].AddRange(new[] { i, i + 1, i + 2 });
+                }
+
+                _triangleListStart = _vertices.Count;
+            }
 
             /// <summary>Adds a left/right vertex pair; a submesh &gt;= 0 joins it to the previous pair with a quad.</summary>
             public void AddPair(Vector3 left, Vector3 right, Vector2 leftUv, Vector2 rightUv, int submesh)
@@ -918,7 +1038,54 @@ namespace ApexRivals.Editor.Track
                     points[i] = new Vector3(points[i].x, heights[i], points[i].z);
                 }
 
-                return new Centreline(Resample(Sample(points), SampleSpacing));
+                var water = ParseArray(json, "water");
+                // The spline overshoots slightly where a ramp leaves the ground; never let the road dip below it.
+                var samples = Resample(Sample(points), SampleSpacing);
+                for (var i = 0; i < samples.Count; i++)
+                {
+                    if (samples[i].y < 0f) samples[i] = new Vector3(samples[i].x, 0f, samples[i].z);
+                }
+
+                var centreline = new Centreline(samples);
+                for (var i = 0; i + 1 < water.Length; i += 2)
+                {
+                    centreline.Water.Add(new Vector3(water[i], 0f, water[i + 1]));
+                }
+
+                return centreline;
+            }
+
+            /// <summary>Lake outline (x/z), empty when the layout has no water.</summary>
+            public List<Vector3> Water { get; } = new List<Vector3>();
+
+            /// <summary>True inside the lake or within <paramref name="margin"/> metres of its shore.</summary>
+            public bool IsInWater(Vector3 point, float margin)
+            {
+                var n = Water.Count;
+                if (n < 3)
+                {
+                    return false;
+                }
+
+                var inside = false;
+                for (int i = 0, j = n - 1; i < n; j = i++)
+                {
+                    var a = Water[i];
+                    var b = Water[j];
+                    if ((a.z > point.z) != (b.z > point.z) && point.x < (b.x - a.x) * (point.z - a.z) / (b.z - a.z) + a.x)
+                    {
+                        inside = !inside;
+                    }
+
+                    var edge = new Vector2(b.x - a.x, b.z - a.z);
+                    var t = Mathf.Clamp01(Vector2.Dot(new Vector2(point.x - a.x, point.z - a.z), edge) / Mathf.Max(edge.sqrMagnitude, 1e-6f));
+                    if (new Vector2(a.x + edge.x * t - point.x, a.z + edge.y * t - point.z).sqrMagnitude < margin * margin)
+                    {
+                        return true;
+                    }
+                }
+
+                return inside;
             }
 
             public int Wrap(int i) => ((i % Count) + Count) % Count;

@@ -13,21 +13,15 @@ namespace ApexRivals.UI.Runtime
     {
         [SerializeField, Tooltip("Disable to preserve Navigation mode, links and wrapping authored on the Selectable components. Enable to rebuild links as controls appear/disappear.")] private bool useDynamicNavigation = true;
 
-        [SerializeField] private string refreshRateFormat = "{0} HZ";
-
         [Header("Display text")]
         [SerializeField] private string displayRollbackError = "DISPLAY MODE NOT SAVED. APPLY AGAIN.";
         [SerializeField] private string unsupportedResolutionError = "THIS RESOLUTION IS NOT SUPPORTED.";
         [SerializeField] private string displayError = "COULD NOT CHANGE THE DISPLAY MODE.";
         [SerializeField] private string storageError = "COULD NOT SAVE THE SETTINGS.";
         [SerializeField] private string applyError = "COULD NOT APPLY THE SETTINGS.";
-        [SerializeField] private string defaultRefreshRateLabel = "DEFAULT";
         [SerializeField] private string windowedLabel = "WINDOWED";
         [SerializeField] private string exclusiveFullscreenLabel = "EXCLUSIVE FULLSCREEN";
         [SerializeField] private string borderlessLabel = "BORDERLESS";
-
-        [SerializeField] private string desktopRefreshRateLabel = "DESKTOP";
-
 
         [SerializeField] private Button displayTabButton;
         [SerializeField] private Button audioTabButton;
@@ -36,7 +30,6 @@ namespace ApexRivals.UI.Runtime
         [SerializeField, Tooltip("Optional CONTROLS tab: read-only keyboard and gamepad bindings.")] private Button controlsTabButton;
         [SerializeField] private GameObject controlsPanel;
         [SerializeField] private SettingsOptionSelector resolutionSelector;
-        [SerializeField] private SettingsOptionSelector refreshRateSelector;
         [SerializeField] private SettingsOptionSelector fullScreenModeSelector;
         [SerializeField] private Slider masterVolumeSlider;
         [SerializeField] private Slider musicVolumeSlider;
@@ -50,7 +43,6 @@ namespace ApexRivals.UI.Runtime
 
         private readonly List<SettingsResolution> _resolutions = new List<SettingsResolution>();
         private readonly List<SettingsResolution> _resolutionOptions = new List<SettingsResolution>();
-        private readonly List<SettingsResolution> _refreshRateOptions = new List<SettingsResolution>();
         private readonly List<FullScreenMode> _fullScreenModeOptions = new List<FullScreenMode>
         {
             FullScreenMode.Windowed,
@@ -101,7 +93,6 @@ namespace ApexRivals.UI.Runtime
                 _selectedResolution = viewModel.SelectedResolution;
                 _renderedFullScreenMode = viewModel.FullScreenMode;
                 RenderResolutionSelector(viewModel.SelectedResolution);
-                RenderRefreshRateSelector(viewModel.SelectedResolution, viewModel.FullScreenMode);
                 RenderFullScreenSelector(viewModel.FullScreenMode);
                 _displayOptionsRendered = true;
             }
@@ -187,11 +178,6 @@ namespace ApexRivals.UI.Runtime
                 resolutionSelector.ValueChanged += OnResolutionChanged;
             }
 
-            if (refreshRateSelector != null)
-            {
-                refreshRateSelector.ValueChanged += OnRefreshRateChanged;
-            }
-
             if (fullScreenModeSelector != null)
             {
                 fullScreenModeSelector.ValueChanged += OnFullScreenModeChanged;
@@ -267,11 +253,6 @@ namespace ApexRivals.UI.Runtime
                 resolutionSelector.ValueChanged -= OnResolutionChanged;
             }
 
-            if (refreshRateSelector != null)
-            {
-                refreshRateSelector.ValueChanged -= OnRefreshRateChanged;
-            }
-
             if (fullScreenModeSelector != null)
             {
                 fullScreenModeSelector.ValueChanged -= OnFullScreenModeChanged;
@@ -327,19 +308,7 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            var option = _resolutionOptions[index];
-            var selected = FindMatchingRefreshRate(option.Width, option.Height, _selectedResolution.RefreshRate);
-            _presenter?.SelectResolution(selected);
-        }
-
-        private void OnRefreshRateChanged(int index)
-        {
-            if (_rendering || index < 0 || index >= _refreshRateOptions.Count)
-            {
-                return;
-            }
-
-            _presenter?.SelectResolution(_refreshRateOptions[index]);
+            _presenter?.SelectResolution(_resolutionOptions[index]);
         }
 
         private void OnFullScreenModeChanged(int index)
@@ -527,61 +496,6 @@ namespace ApexRivals.UI.Runtime
             resolutionSelector?.SetOptions(labels, selectedIndex);
         }
 
-        private void RenderRefreshRateSelector(SettingsResolution selectedResolution, FullScreenMode fullScreenMode)
-        {
-            _refreshRateOptions.Clear();
-            var labels = new List<string>();
-            var selectedIndex = 0;
-
-            for (var index = 0; index < _resolutions.Count; index++)
-            {
-                var resolution = _resolutions[index];
-                if (resolution.Width != selectedResolution.Width
-                    || resolution.Height != selectedResolution.Height
-                    || ContainsRefreshRate(_refreshRateOptions, resolution.RefreshRate))
-                {
-                    continue;
-                }
-
-                if (resolution.RefreshRate == selectedResolution.RefreshRate)
-                {
-                    selectedIndex = _refreshRateOptions.Count;
-                }
-
-                _refreshRateOptions.Add(resolution);
-                labels.Add(CreateRefreshRateLabel(resolution.RefreshRate));
-            }
-
-            if (_refreshRateOptions.Count == 0)
-            {
-                _refreshRateOptions.Add(selectedResolution);
-                labels.Add(CreateRefreshRateLabel(selectedResolution.RefreshRate));
-            }
-
-            if (refreshRateSelector == null)
-            {
-                return;
-            }
-
-            if (DisplayRefreshRateRules.IsRefreshRateSelectable(fullScreenMode))
-            {
-                refreshRateSelector.interactable = true;
-                refreshRateSelector.SetOptions(labels, selectedIndex);
-                return;
-            }
-
-            var wasSelected = EventSystem.current != null
-                && EventSystem.current.currentSelectedGameObject == refreshRateSelector.gameObject;
-
-            refreshRateSelector.interactable = false;
-            refreshRateSelector.SetOptions(new[] { desktopRefreshRateLabel }, 0);
-
-            if (wasSelected)
-            {
-                SelectIfUsable(fullScreenModeSelector);
-            }
-        }
-
         private void RenderFullScreenSelector(FullScreenMode selectedMode)
         {
             var labels = new List<string>(_fullScreenModeOptions.Count);
@@ -600,27 +514,6 @@ namespace ApexRivals.UI.Runtime
             fullScreenModeSelector?.SetOptions(labels, selectedIndex);
         }
 
-        private SettingsResolution FindMatchingRefreshRate(int width, int height, int preferredRefreshRate)
-        {
-            var fallback = new SettingsResolution(width, height, 0);
-            for (var index = 0; index < _resolutions.Count; index++)
-            {
-                var resolution = _resolutions[index];
-                if (resolution.Width != width || resolution.Height != height)
-                {
-                    continue;
-                }
-
-                fallback = resolution;
-                if (resolution.RefreshRate == preferredRefreshRate)
-                {
-                    return resolution;
-                }
-            }
-
-            return fallback;
-        }
-
         private void ConfigureNavigation()
         {
             if (!useDynamicNavigation) return;
@@ -628,11 +521,6 @@ namespace ApexRivals.UI.Runtime
             if (_currentTab == SettingsTab.Display)
             {
                 AddRowIfPresent(rows, resolutionSelector);
-                if (refreshRateSelector != null && refreshRateSelector.IsInteractable())
-                {
-                    rows.Add(refreshRateSelector);
-                }
-
                 AddRowIfPresent(rows, fullScreenModeSelector);
             }
             else if (_currentTab == SettingsTab.Audio)
@@ -706,11 +594,6 @@ namespace ApexRivals.UI.Runtime
             }
         }
 
-        private string CreateRefreshRateLabel(int refreshRate)
-        {
-            return refreshRate > 0 ? UguiViewText.FormatTemplate(refreshRateFormat, "{0} HZ", refreshRate) : defaultRefreshRateLabel;
-        }
-
         private string CreateFullScreenModeLabel(FullScreenMode mode)
         {
             return mode switch
@@ -726,19 +609,6 @@ namespace ApexRivals.UI.Runtime
             for (var index = 0; index < resolutions.Count; index++)
             {
                 if (resolutions[index].Width == width && resolutions[index].Height == height)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool ContainsRefreshRate(List<SettingsResolution> resolutions, int refreshRate)
-        {
-            for (var index = 0; index < resolutions.Count; index++)
-            {
-                if (resolutions[index].RefreshRate == refreshRate)
                 {
                     return true;
                 }

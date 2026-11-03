@@ -17,8 +17,10 @@ namespace ApexRivals.Tracks.Runtime
             string surface,
             string sceneName,
             Sprite preview = null,
-            IReadOnlyList<Vector2> minimapPoints = null)
+            IReadOnlyList<Vector2> minimapPoints = null,
+            bool finaleOnly = false)
         {
+            FinaleOnly = finaleOnly;
             TrackId = trackId ?? string.Empty;
             DisplayName = displayName ?? string.Empty;
             Location = location ?? string.Empty;
@@ -43,5 +45,8 @@ namespace ApexRivals.Tracks.Runtime
 
         /// <summary>Closed racing line in normalized minimap space; index 0 is the start/finish line.</summary>
         public IReadOnlyList<Vector2> MinimapPoints { get; }
+
+        /// <summary>Raced only as the career final; never listed or counted as a regular circuit.</summary>
+        public bool FinaleOnly { get; }
     }
 }

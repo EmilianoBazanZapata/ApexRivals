@@ -27,7 +27,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             var events = 0;
             service.AudioPreferencesCommitted += _ => events++;
             service.EditFullScreenMode(FullScreenMode.Windowed);
-            service.EditResolution(new SettingsResolution(1280, 720, 60));
+            service.EditResolution(new SettingsResolution(1280, 720));
             service.EditMasterVolume(0.25f);
             var attempted = service.Draft;
 
@@ -124,7 +124,6 @@ namespace ApexRivals.Tests.EditMode.Settings
 
             Assert.That(settings.Width, Is.EqualTo(1920));
             Assert.That(settings.Height, Is.EqualTo(1080));
-            Assert.That(settings.RefreshRate, Is.EqualTo(60));
             Assert.That(settings.FullScreenMode, Is.EqualTo(FullScreenMode.FullScreenWindow));
             Assert.That(settings.MasterVolume, Is.EqualTo(1f));
             Assert.That(settings.MusicVolume, Is.EqualTo(0.8f));
@@ -138,7 +137,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             var storage = new MemorySettingsStorage
             {
                 Exists = true,
-                Stored = new SettingsState(1280, 720, 60, FullScreenMode.Windowed, 0.5f, 0.4f, 0.3f, 0.2f)
+                Stored = new SettingsState(1280, 720, FullScreenMode.Windowed, 0.5f, 0.4f, 0.3f, 0.2f)
             };
             var service = CreateService(storage);
 
@@ -184,13 +183,13 @@ namespace ApexRivals.Tests.EditMode.Settings
             {
                 Exists = true,
                 ReadStatus = SettingsStorageReadStatus.Invalid,
-                Stored = new SettingsState(333, 222, 60, FullScreenMode.FullScreenWindow, 1f, 1f, 1f, 1f)
+                Stored = new SettingsState(333, 222, FullScreenMode.FullScreenWindow, 1f, 1f, 1f, 1f)
             };
             var display = new FakeDisplaySettingsAdapter(new[]
             {
-                new SettingsResolution(1280, 720, 60),
+                new SettingsResolution(1280, 720),
                 SettingsState.Default.Resolution
-            }, new SettingsResolution(1280, 720, 60));
+            }, new SettingsResolution(1280, 720));
             var service = new SettingsService(storage, display);
 
             var result = service.Load();
@@ -204,10 +203,10 @@ namespace ApexRivals.Tests.EditMode.Settings
         {
             var resolutions = SettingsDisplayCatalog.RemoveDuplicates(new[]
             {
-                new SettingsResolution(1280, 720, 60),
-                new SettingsResolution(1280, 720, 60),
-                new SettingsResolution(1920, 1080, 60),
-                new SettingsResolution(0, 1080, 60)
+                new SettingsResolution(1280, 720),
+                new SettingsResolution(1280, 720),
+                new SettingsResolution(1920, 1080),
+                new SettingsResolution(0, 1080)
             });
 
             Assert.That(resolutions.Count, Is.EqualTo(2));
@@ -218,7 +217,7 @@ namespace ApexRivals.Tests.EditMode.Settings
         {
             var display = new FakeDisplaySettingsAdapter();
             var service = CreateService(new MemorySettingsStorage(), display);
-            service.EditResolution(new SettingsResolution(1280, 720, 60));
+            service.EditResolution(new SettingsResolution(1280, 720));
 
             service.Apply();
 
@@ -320,9 +319,9 @@ namespace ApexRivals.Tests.EditMode.Settings
         {
             var display = new FakeDisplaySettingsAdapter(new[]
             {
-                new SettingsResolution(1280, 720, 60),
-                new SettingsResolution(1920, 1080, 60)
-            }, new SettingsResolution(1920, 1080, 60));
+                new SettingsResolution(1280, 720),
+                new SettingsResolution(1920, 1080)
+            }, new SettingsResolution(1920, 1080));
             var service = CreateService(new MemorySettingsStorage(), display);
             var presenter = new SettingsPresenter(new FakeSettingsView(), service);
 
@@ -362,7 +361,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(display: display));
             presenter.SetMusicVolume(0.2f);
             var modes = presenter.Current.AvailableResolutions;
-            var replacement = new SettingsResolution(2560, 1440, 144);
+            var replacement = new SettingsResolution(2560, 1440);
             display.ReplaceModes(new[] { replacement });
 
             presenter.Present();
@@ -380,7 +379,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             var modes = new[] { SettingsState.Default.Resolution };
             display.ReplaceModes(modes);
             var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(display: display));
-            modes[0] = new SettingsResolution(2560, 1440, 144);
+            modes[0] = new SettingsResolution(2560, 1440);
 
             Assert.That(presenter.Current.AvailableResolutions[0], Is.EqualTo(SettingsState.Default.Resolution));
             var exposed = presenter.Current.AvailableResolutions as IList<SettingsResolution>;
@@ -393,7 +392,7 @@ namespace ApexRivals.Tests.EditMode.Settings
         {
             var display = new FakeDisplaySettingsAdapter();
             var service = CreateService(display: display);
-            service.EditResolution(new SettingsResolution(1024, 768, 60));
+            service.EditResolution(new SettingsResolution(1024, 768));
             var reads = display.SupportedResolutionReads;
 
             Assert.That(service.Apply().Status, Is.EqualTo(SettingsOperationStatus.UnsupportedResolution));
@@ -407,7 +406,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             var presenter = new SettingsPresenter(new FakeSettingsView(), CreateService(display: display));
             presenter.SetMusicVolume(0.2f);
             Assert.That(presenter.Apply().Succeeded, Is.False);
-            display.ReplaceModes(new[] { SettingsState.Default.Resolution, new SettingsResolution(2560, 1440, 144) });
+            display.ReplaceModes(new[] { SettingsState.Default.Resolution, new SettingsResolution(2560, 1440) });
 
             presenter.RefreshDisplayOptions();
 
@@ -490,7 +489,7 @@ namespace ApexRivals.Tests.EditMode.Settings
         {
             var original = SettingsState.Default.WithAmbienceVolume(.37f);
             var edited = original.WithMasterVolume(.5f).WithMusicVolume(.7f).WithUiVolume(.6f)
-                .WithVehicleVolume(.4f).WithResolution(new SettingsResolution(1280, 720, 60)).WithFullScreenMode(FullScreenMode.Windowed);
+                .WithVehicleVolume(.4f).WithResolution(new SettingsResolution(1280, 720)).WithFullScreenMode(FullScreenMode.Windowed);
             Assert.That(edited.AmbienceVolume, Is.EqualTo(.37f));
             Assert.That(original.AudioEquals(SettingsState.Default), Is.False);
             Assert.That(original, Is.Not.EqualTo(SettingsState.Default));
@@ -553,7 +552,6 @@ namespace ApexRivals.Tests.EditMode.Settings
                 WrittenKeys.Clear();
                 WrittenKeys.Add("width");
                 WrittenKeys.Add("height");
-                WrittenKeys.Add("refreshRate");
                 WrittenKeys.Add("fullScreenMode");
                 WrittenKeys.Add("masterVolume");
                 WrittenKeys.Add("musicVolume");
@@ -572,7 +570,7 @@ namespace ApexRivals.Tests.EditMode.Settings
             private IReadOnlyList<SettingsResolution> _supportedResolutions;
 
             public FakeDisplaySettingsAdapter()
-                : this(new[] { SettingsState.Default.Resolution, new SettingsResolution(1280, 720, 60) }, SettingsState.Default.Resolution)
+                : this(new[] { SettingsState.Default.Resolution, new SettingsResolution(1280, 720) }, SettingsState.Default.Resolution)
             {
             }
 

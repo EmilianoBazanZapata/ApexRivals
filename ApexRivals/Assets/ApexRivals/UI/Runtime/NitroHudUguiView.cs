@@ -18,15 +18,13 @@ namespace ApexRivals.UI.Runtime
 
         [SerializeField] private Image chargeFill;
         [SerializeField] private Text statusText;
-        [SerializeField] private Text chargeText;
         private PlayerVehicleNitro _source;
-        private int _lastPercent = -1;
         private int _lastState = -1;
 
         public void Bind(PlayerVehicleNitro source)
         {
             _source = source;
-            _lastPercent = _lastState = -1;
+            _lastState = -1;
             gameObject.SetActive(source != null);
             if (source != null) Render();
         }
@@ -41,15 +39,9 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
             var charge = Mathf.Clamp01(_source.NormalizedCharge);
-            var percent = Mathf.FloorToInt(charge * 100f);
             if (chargeFill != null)
                 chargeFill.rectTransform.anchorMax = new Vector2(charge, 1f);
-            if (_lastPercent != percent)
-            {
-                UguiViewText.Set(chargeText, percent + "%");
-                _lastPercent = percent;
-            }
-            var state = _source.IsBoosting ? 2 : _source.IsCharging ? 1 : percent >= 100 ? 3 : 0;
+            var state = _source.IsBoosting ? 2 : _source.IsCharging ? 1 : charge >= 1f ? 3 : 0;
             if (_lastState == state) return;
             UguiViewText.Set(statusText, state == 2 ? activeLabel : state == 1 ? chargingLabel : state == 3 ? fullLabel : idleLabel);
             if (chargeFill != null) chargeFill.color = state == 2 ? Palette.FocusedText : Palette.PrimaryRed;

@@ -6,7 +6,8 @@ namespace ApexRivals.Audio.Runtime
 {
     /// <summary>
     /// Lives in the Bootstrap scene for the whole session: owns the <see cref="AudioBusMixer"/> that follows the audio
-    /// settings, drives the AudioMixer's group volumes from it, starts the music once settings are bound and plays the
+    /// settings, drives the AudioMixer's group volumes from it, starts the music once settings are bound (cycling through the
+    /// soundtrack playlist when one is assigned) and plays the
     /// UI cues. The music and UI sources are child AudioSources set up in the scene (see ApexRivals/Audio/Set Up Audio
     /// Sources); every sound plays through the mixer group of its bus.
     /// </summary>
@@ -23,15 +24,30 @@ namespace ApexRivals.Audio.Runtime
 
         [SerializeField, Tooltip("Master > Music, UI, Vehicles, Ambience, with the group volumes exposed.")] private AudioMixer mixer;
         [SerializeField, Tooltip("Looping music, routed through the Music bus.")] private AudioBusSource music;
+        [SerializeField, Tooltip("Soundtrack played one after another, forever. Empty keeps the music source's own looping clip.")] private AudioClip[] playlist = new AudioClip[0];
+        [SerializeField, Tooltip("Play the soundtrack in a new random order each time round, never repeating the track that just ended.")] private bool shufflePlaylist = true;
         [SerializeField, Tooltip("Plays the UI cues, routed through the UI bus.")] private AudioBusSource uiCues;
         [SerializeField, Tooltip("One clip per UiSound: Move, Confirm, Back.")] private AudioClip[] uiClips = new AudioClip[3];
         [SerializeField, Min(0f), Tooltip("Minimum seconds between two focus-move cues, so fast scrolling does not buzz.")] private float moveCueInterval = 0.05f;
 
         private float _lastUiCueTime = float.NegativeInfinity;
+        private readonly System.Collections.Generic.List<int> _playOrder = new System.Collections.Generic.List<int>();
+        private int _playOrderIndex = -1;
+        private int _lastTrack = -1;
+        private bool _playlistRunning;
+        private bool _trackAudible;
+        private float _trackRequestedAt;
+        private const float TrackStartTimeout = 5f;
 
         public static GameAudio Current { get; private set; }
 
         public AudioBusMixer Mixer { get; private set; }
+
+        /// <summary>Raised with the track's name each time a soundtrack track starts.</summary>
+        public event System.Action<string> TrackStarted;
+
+        /// <summary>Name of the soundtrack track playing now; empty when no playlist is running.</summary>
+        public string CurrentTrackName { get; private set; } = string.Empty;
 
         private void Awake()
         {
@@ -76,9 +92,92 @@ namespace ApexRivals.Audio.Runtime
         public void Bind(IAudioPreferenceSource preferences)
         {
             UseMixer(new AudioBusMixer(preferences));
-            if (music != null && !music.Source.isPlaying)
+            if (music == null || music.Source.isPlaying)
+            {
+                return;
+            }
+
+            if (HasPlaylist())
+            {
+                _playlistRunning = true;
+                PlayNextTrack();
+            }
+            else
             {
                 music.Source.Play();
+            }
+        }
+
+        private void Update()
+        {
+            if (!_playlistRunning || music == null) return;
+            var source = music.Source;
+            if (source.isPlaying)
+            {
+                _trackAudible = true;
+                return;
+            }
+
+            // A streamed track needs a few frames before it reports playing; do not take that for its end.
+            if (!_trackAudible && Time.unscaledTime - _trackRequestedAt < TrackStartTimeout) return;
+
+            // A track that ran out stops at its end (or rewinds); a paused one stops mid-track and is left alone.
+            if (TrackEnded(source)) PlayNextTrack();
+        }
+
+        private static bool TrackEnded(AudioSource source)
+        {
+            return source.clip == null || source.timeSamples == 0 || source.time >= source.clip.length - 0.25f;
+        }
+
+        private bool HasPlaylist()
+        {
+            if (playlist == null) return false;
+            foreach (var clip in playlist)
+            {
+                if (clip != null) return true;
+            }
+
+            return false;
+        }
+
+        private void PlayNextTrack()
+        {
+            if (_playOrderIndex + 1 >= _playOrder.Count) BuildPlayOrder();
+            if (_playOrder.Count == 0) return;
+            _playOrderIndex++;
+            _lastTrack = _playOrder[_playOrderIndex];
+            var clip = playlist[_lastTrack];
+            var source = music.Source;
+            source.loop = false;
+            source.clip = clip;
+            source.Play();
+            _trackAudible = false;
+            _trackRequestedAt = Time.unscaledTime;
+            CurrentTrackName = clip.name;
+            TrackStarted?.Invoke(CurrentTrackName);
+        }
+
+        private void BuildPlayOrder()
+        {
+            _playOrder.Clear();
+            _playOrderIndex = -1;
+            for (var index = 0; index < playlist.Length; index++)
+            {
+                if (playlist[index] != null) _playOrder.Add(index);
+            }
+
+            if (!shufflePlaylist || _playOrder.Count < 2) return;
+            for (var index = _playOrder.Count - 1; index > 0; index--)
+            {
+                var swap = Random.Range(0, index + 1);
+                (_playOrder[index], _playOrder[swap]) = (_playOrder[swap], _playOrder[index]);
+            }
+
+            // A new round never opens with the track that just ended.
+            if (_playOrder[0] == _lastTrack)
+            {
+                (_playOrder[0], _playOrder[_playOrder.Count - 1]) = (_playOrder[_playOrder.Count - 1], _playOrder[0]);
             }
         }
 

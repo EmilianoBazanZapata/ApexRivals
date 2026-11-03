@@ -34,7 +34,8 @@ namespace ApexRivals.Tests.PlayMode
                 Assert.That(panel, Is.Not.Null, track);
                 yield return null;
                 Assert.That(panel.gameObject.activeInHierarchy, Is.True);
-                Assert.That(panel.transform.Find("NitroCharge").GetComponent<Text>().text, Is.EqualTo("0%"));
+                Assert.That(panel.transform.Find("NitroCharge"), Is.Null, "The HUD shows the charge bar only, no percentage.");
+                Assert.That(panel.transform.Find("NitroHint"), Is.Null);
                 foreach (var root in SceneManager.GetSceneByName(track).GetRootGameObjects())
                     foreach (var rival in root.GetComponentsInChildren<AiDrivingInputProvider>(true))
                         if (rival.gameObject != nitro.gameObject && rival.enabled)

@@ -25,7 +25,7 @@ namespace ApexRivals.Editor.VFX
     {
         private const string PrefabFolder = "Assets/ApexRivals/Vehicle/Prefabs";
         private const string VfxDefinitionPath = "Assets/ApexRivals/Content/Configuration/VFX/RaceVfxDefinition.asset";
-        private static readonly string[] RaceScenes = { "Race", "RaceDunes", "RaceSuzuka" };
+        private static readonly string[] RaceScenes = { "Race", "RaceDunes", "RaceSuzuka", "RaceRiverdale" };
 
         [MenuItem("ApexRivals/Vehicle/Install Race Components On Cars")]
         public static void InstallFromMenu()

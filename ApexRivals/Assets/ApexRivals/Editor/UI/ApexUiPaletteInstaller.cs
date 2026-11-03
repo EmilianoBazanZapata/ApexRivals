@@ -15,7 +15,7 @@ namespace ApexRivals.Editor.UI
     {
         public const string PalettePath = "Assets/ApexRivals/UI/Theme/ApexUiPalette.asset";
         private const string PaletteField = "palette";
-        private static readonly string[] Scenes = { "Bootstrap", "MainMenu", "Garage", "Race", "RaceDunes", "RaceSuzuka" };
+        private static readonly string[] Scenes = { "Bootstrap", "MainMenu", "Garage", "Race", "RaceDunes", "RaceSuzuka", "RaceRiverdale" };
 
         [MenuItem("ApexRivals/UI/Assign UI Palette")]
         public static void InstallFromMenu()

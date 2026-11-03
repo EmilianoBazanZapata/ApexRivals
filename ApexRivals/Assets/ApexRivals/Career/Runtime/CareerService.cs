@@ -590,6 +590,12 @@ namespace ApexRivals.Career.Runtime
                     : CareerRaceRequestStatus.FinaleLocked;
             }
 
+            var index = _tracks.IndexOf(trackId);
+            if (index >= 0 && _tracks.Tracks[index].FinaleOnly)
+            {
+                return CareerRaceRequestStatus.FinaleLocked;
+            }
+
             return IsTrackUnlocked(trackId) ? CareerRaceRequestStatus.Ready : CareerRaceRequestStatus.TrackLocked;
         }
 
@@ -646,7 +652,7 @@ namespace ApexRivals.Career.Runtime
             var count = 0;
             foreach (var track in _tracks.Tracks)
             {
-                if (IsTrackUnlocked(track.TrackId)) count++;
+                if (!track.FinaleOnly && IsTrackUnlocked(track.TrackId)) count++;
             }
 
             return count;
@@ -657,7 +663,7 @@ namespace ApexRivals.Career.Runtime
             var unlocked = new HashSet<string>(StringComparer.Ordinal);
             foreach (var track in _tracks.Tracks)
             {
-                if (IsTrackUnlocked(track.TrackId)) unlocked.Add(track.TrackId);
+                if (!track.FinaleOnly && IsTrackUnlocked(track.TrackId)) unlocked.Add(track.TrackId);
             }
 
             return unlocked;

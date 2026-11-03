@@ -55,7 +55,7 @@ namespace ApexRivals.Editor.Track
                     }
                     finally { Object.DestroyImmediate(root); }
                 }
-                foreach (var name in new[] { "Race", "RaceDunes", "RaceSuzuka" })
+                foreach (var name in new[] { "Race", "RaceDunes", "RaceSuzuka", "RaceRiverdale" })
                 {
                     var scene = EditorSceneManager.OpenScene("Assets/ApexRivals/Scenes/" + name + ".unity");
                     var line = Find<DynamicDrivingLine>(scene);

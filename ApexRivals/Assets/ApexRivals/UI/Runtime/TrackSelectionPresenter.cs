@@ -203,6 +203,7 @@ namespace ApexRivals.UI.Runtime
             for (var index = 0; index < _catalog.Count; index++)
             {
                 var track = _catalog.Tracks[index];
+                if (track.FinaleOnly) continue;
                 var lockText = string.Empty;
                 var statusText = string.Empty;
                 var locked = false;

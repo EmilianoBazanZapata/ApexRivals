@@ -129,7 +129,7 @@ namespace ApexRivals.Tests.PlayMode
         public IEnumerator NonInteractableSelectorIgnoresClicksAndMovesAndStaysDisabledAfterSetOptions()
         {
             var eventSystem = CreateEventSystem();
-            var selector = CreateSelector("RefreshRate");
+            var selector = CreateSelector("Resolution");
             var next = (RectTransform)Get(selector, "nextHitTarget");
             yield return null;
             selector.interactable = false;
@@ -148,7 +148,7 @@ namespace ApexRivals.Tests.PlayMode
             var view = new GameObject("Settings").AddComponent<SettingsUguiView>();
             var resolution = CreateSelector("Resolution");
             Set(view, "resolutionSelector", resolution);
-            var modes = new[] { new SettingsResolution(1280, 720, 60), new SettingsResolution(1920, 1080, 144) };
+            var modes = new[] { new SettingsResolution(1280, 720), new SettingsResolution(1920, 1080) };
             view.Render(Model(modes, modes[1], FullScreenMode.ExclusiveFullScreen, 0.5f));
             var options = (List<string>)Get(resolution, "_options");
             var firstLabel = options[0];
@@ -162,36 +162,27 @@ namespace ApexRivals.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator ChangedModesAndBorderlessStateInvalidateDisplayOptions()
+        public IEnumerator ChangedModesAndFullscreenStateInvalidateDisplayOptions()
         {
-            var events = CreateEventSystem();
+            CreateEventSystem();
             var view = new GameObject("Settings").AddComponent<SettingsUguiView>();
             var resolution = CreateSelector("Resolution");
-            var refresh = CreateSelector("Refresh");
             var fullscreen = CreateSelector("Fullscreen");
             Set(view, "resolutionSelector", resolution);
-            Set(view, "refreshRateSelector", refresh);
             Set(view, "fullScreenModeSelector", fullscreen);
-            var modes = new List<SettingsResolution> { new SettingsResolution(1920, 1080, 60), new SettingsResolution(1920, 1080, 144) };
+            var modes = new List<SettingsResolution> { new SettingsResolution(1280, 720), new SettingsResolution(1920, 1080) };
             view.Render(Model(modes, modes[1], FullScreenMode.ExclusiveFullScreen, 0.5f));
-            Assert.That(refresh.OptionCount, Is.EqualTo(2));
-            Assert.That(refresh.SelectedIndex, Is.EqualTo(1));
-            UiFocus.Request(refresh);
+            Assert.That(resolution.OptionCount, Is.EqualTo(2));
+            Assert.That(resolution.SelectedIndex, Is.EqualTo(1));
+            Assert.That(fullscreen.SelectedIndex, Is.EqualTo(2));
 
-            view.Render(Model(modes, modes[1], FullScreenMode.FullScreenWindow, 0.5f));
-            Assert.That(refresh.IsInteractable(), Is.False);
-            Assert.That(refresh.OptionCount, Is.EqualTo(1));
-            Assert.That(events.currentSelectedGameObject, Is.EqualTo(fullscreen.gameObject));
-            modes.Add(new SettingsResolution(2560, 1440, 165));
+            modes.Add(new SettingsResolution(2560, 1440));
             view.Render(Model(modes, modes[2], FullScreenMode.Windowed, 0.5f));
             yield return null;
 
-            Assert.That(resolution.OptionCount, Is.EqualTo(2));
-            Assert.That(resolution.SelectedIndex, Is.EqualTo(1));
-            Assert.That(refresh.IsInteractable(), Is.False, "Windowed mode also uses the desktop refresh rate.");
-            Assert.That(refresh.OptionCount, Is.EqualTo(1));
-            view.Render(Model(modes, modes[2], FullScreenMode.ExclusiveFullScreen, 0.5f));
-            Assert.That(refresh.IsInteractable(), Is.True);
+            Assert.That(resolution.OptionCount, Is.EqualTo(3));
+            Assert.That(resolution.SelectedIndex, Is.EqualTo(2));
+            Assert.That(fullscreen.SelectedIndex, Is.Zero);
         }
 
         private static SettingsViewModel Model(IReadOnlyList<SettingsResolution> modes, SettingsResolution selected,

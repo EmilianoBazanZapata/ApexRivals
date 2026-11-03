@@ -20,6 +20,8 @@ namespace ApexRivals.Tracks.Configuration
         [SerializeField] private Sprite preview;
         [SerializeField, Tooltip("Closed racing line in normalized (0-1) space; the first point is the start/finish line.")]
         private Vector2[] minimapPoints = Array.Empty<Vector2>();
+        [SerializeField, Tooltip("Raced only as the career final: hidden from the normal track list and not counted as a circuit.")]
+        private bool finaleOnly;
 
         public string TrackId => trackId;
         public string SceneName => sceneName;
@@ -36,7 +38,8 @@ namespace ApexRivals.Tracks.Configuration
                 surface,
                 sceneName,
                 preview,
-                minimapPoints);
+                minimapPoints,
+                finaleOnly);
         }
     }
 }

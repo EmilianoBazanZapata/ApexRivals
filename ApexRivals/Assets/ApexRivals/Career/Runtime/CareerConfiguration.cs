@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.Tracks.Runtime;
 using ApexRivals.VehicleSelection.Runtime;
@@ -254,7 +255,7 @@ namespace ApexRivals.Career.Runtime
 
                         break;
                     case CareerMilestoneKind.UnlockTracks:
-                        if (milestone.TargetCount < 1 || milestone.TargetCount > tracks.Count)
+                        if (milestone.TargetCount < 1 || milestone.TargetCount > tracks.Tracks.Count(track => !track.FinaleOnly))
                         {
                             return CareerValidationResult.Failure($"Career milestone '{milestone.MilestoneId}' asks for more circuits than exist.");
                         }
@@ -370,7 +371,7 @@ namespace ApexRivals.Career.Runtime
                     var open = 0;
                     foreach (var track in tracks.Tracks)
                     {
-                        if (IsTrackOpen(track.TrackId, achieved)) open++;
+                        if (!track.FinaleOnly && IsTrackOpen(track.TrackId, achieved)) open++;
                     }
 
                     return open >= milestone.TargetCount;

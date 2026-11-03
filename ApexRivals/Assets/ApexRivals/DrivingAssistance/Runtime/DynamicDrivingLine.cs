@@ -103,7 +103,7 @@ namespace ApexRivals.DrivingAssistance.Runtime
                 {
                     var point = sample.Position + right * shape[corner].x + sample.Forward * shape[corner].y;
                     // Cast only against the road, from the authored route's own height. Cars and the upper
-                    // deck cannot steal contacts from the lower route at Suzuka's crossing.
+                    // deck cannot steal contacts from the road below a bridge.
                     if (!road.Raycast(new Ray(point + Vector3.up * 1.5f, Vector3.down), out var hit, 4f) || hit.normal.y < 0.5f) valid = false;
                     else point = hit.point + hit.normal * 0.04f;
                     var vertex = i * 6 + corner;

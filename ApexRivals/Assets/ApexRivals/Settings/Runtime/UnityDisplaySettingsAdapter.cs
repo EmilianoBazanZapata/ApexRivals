@@ -12,42 +12,30 @@ namespace ApexRivals.Settings.Runtime
             get
             {
                 var current = Screen.currentResolution;
-                return new SettingsResolution(
-                    current.width,
-                    current.height,
-                    DisplayRefreshRateRules.RoundRefreshRate(current.refreshRateRatio));
+                return new SettingsResolution(current.width, current.height);
             }
         }
 
         public SettingsOperationResult Apply(SettingsState settings)
         {
-            var nativeResolutions = Screen.resolutions;
-            var resolutions = CreateSupportedResolutions(nativeResolutions);
+            var resolutions = CreateSupportedResolutions(Screen.resolutions);
             var supported = SettingsDisplayCatalog.ContainsResolution(resolutions, settings.Resolution);
             if (!supported && resolutions.Count > 0)
             {
                 return new SettingsOperationResult(SettingsOperationStatus.UnsupportedResolution, "Selected resolution is not supported by this display.");
             }
 
-            var refreshRate = DisplayRefreshRateRules.ResolveExactRefreshRate(
-                nativeResolutions,
-                settings.Width,
-                settings.Height,
-                settings.RefreshRate);
-            Screen.SetResolution(settings.Width, settings.Height, settings.FullScreenMode, refreshRate);
+            Screen.SetResolution(settings.Width, settings.Height, settings.FullScreenMode);
             return SettingsOperationResult.Success();
         }
 
+        /// <summary>One entry per size: the display picks its own refresh rate.</summary>
         private static IReadOnlyList<SettingsResolution> CreateSupportedResolutions(Resolution[] resolutions)
         {
             var mapped = new SettingsResolution[resolutions.Length];
             for (var index = 0; index < resolutions.Length; index++)
             {
-                var resolution = resolutions[index];
-                mapped[index] = new SettingsResolution(
-                    resolution.width,
-                    resolution.height,
-                    DisplayRefreshRateRules.RoundRefreshRate(resolution.refreshRateRatio));
+                mapped[index] = new SettingsResolution(resolutions[index].width, resolutions[index].height);
             }
 
             return SettingsDisplayCatalog.RemoveDuplicates(mapped);

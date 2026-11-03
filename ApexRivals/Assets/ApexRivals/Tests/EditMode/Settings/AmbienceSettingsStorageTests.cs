@@ -14,7 +14,7 @@ namespace ApexRivals.Tests.EditMode.Settings
         [SetUp]
         public void CaptureUserPreferences()
         {
-            foreach (var suffix in new[] { "SchemaVersion", "Resolution.Width", "Resolution.Height", "Resolution.RefreshRate", "Display.FullScreenMode" })
+            foreach (var suffix in new[] { "SchemaVersion", "Resolution.Width", "Resolution.Height", "Display.FullScreenMode" })
             {
                 var key = Prefix + suffix;
                 _ints[key] = (PlayerPrefs.HasKey(key), PlayerPrefs.GetInt(key));

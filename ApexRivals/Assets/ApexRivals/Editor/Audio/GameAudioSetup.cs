@@ -19,7 +19,7 @@ namespace ApexRivals.Editor.Audio
         private const string BootstrapScenePath = "Assets/ApexRivals/Scenes/Bootstrap.unity";
         private const string StartLightsPrefabPath = "Assets/ApexRivals/UI/StartLights/RaceStartLights.prefab";
         private const int RealVoices = 64;
-        private static readonly string[] RaceScenes = { "Race", "RaceDunes", "RaceSuzuka" };
+        private static readonly string[] RaceScenes = { "Race", "RaceDunes", "RaceSuzuka", "RaceRiverdale" };
 
         [MenuItem("ApexRivals/Audio/Set Up Audio Sources")]
         public static void RunFromMenu()

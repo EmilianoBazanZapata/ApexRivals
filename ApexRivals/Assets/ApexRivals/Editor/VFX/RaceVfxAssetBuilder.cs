@@ -51,7 +51,7 @@ namespace ApexRivals.Editor.VFX
             var previous = EditorSceneManager.GetSceneManagerSetup();
             try
             {
-                foreach (var name in new[] { "Race", "RaceDunes", "RaceSuzuka" })
+                foreach (var name in new[] { "Race", "RaceDunes", "RaceSuzuka", "RaceRiverdale" })
                 {
                     var scene = EditorSceneManager.OpenScene("Assets/ApexRivals/Scenes/" + name + ".unity", OpenSceneMode.Single);
                     RaceSessionSceneInstaller session = null;

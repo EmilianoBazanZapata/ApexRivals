@@ -7,7 +7,6 @@ namespace ApexRivals.Settings.Runtime
     {
         public const int DefaultWidth = 1920;
         public const int DefaultHeight = 1080;
-        public const int DefaultRefreshRate = 60;
         public const float DefaultMasterVolume = 1f;
         public const float DefaultMusicVolume = 0.8f;
         public const float DefaultUiVolume = 1f;
@@ -17,7 +16,6 @@ namespace ApexRivals.Settings.Runtime
         public static readonly SettingsState Default = new SettingsState(
             DefaultWidth,
             DefaultHeight,
-            DefaultRefreshRate,
             FullScreenMode.FullScreenWindow,
             DefaultMasterVolume,
             DefaultMusicVolume,
@@ -28,7 +26,6 @@ namespace ApexRivals.Settings.Runtime
         public SettingsState(
             int width,
             int height,
-            int refreshRate,
             FullScreenMode fullScreenMode,
             float masterVolume,
             float musicVolume,
@@ -38,7 +35,6 @@ namespace ApexRivals.Settings.Runtime
         {
             Width = width > 0 ? width : DefaultWidth;
             Height = height > 0 ? height : DefaultHeight;
-            RefreshRate = Math.Max(0, refreshRate);
             FullScreenMode = NormalizeFullScreenMode(fullScreenMode);
             MasterVolume = Clamp01(masterVolume);
             MusicVolume = Clamp01(musicVolume);
@@ -49,7 +45,6 @@ namespace ApexRivals.Settings.Runtime
 
         public int Width { get; }
         public int Height { get; }
-        public int RefreshRate { get; }
         public FullScreenMode FullScreenMode { get; }
         public float MasterVolume { get; }
         public float MusicVolume { get; }
@@ -59,7 +54,7 @@ namespace ApexRivals.Settings.Runtime
         /// <summary>Vehicle sounds (engines).</summary>
         public float VehicleVolume { get; }
         public float AmbienceVolume { get; }
-        public SettingsResolution Resolution => new SettingsResolution(Width, Height, RefreshRate);
+        public SettingsResolution Resolution => new SettingsResolution(Width, Height);
         public bool IsFullscreen => FullScreenMode != FullScreenMode.Windowed;
 
         public SettingsState WithResolution(SettingsResolution resolution)
@@ -67,7 +62,6 @@ namespace ApexRivals.Settings.Runtime
             return new SettingsState(
                 resolution.Width,
                 resolution.Height,
-                resolution.RefreshRate,
                 FullScreenMode,
                 MasterVolume,
                 MusicVolume,
@@ -78,32 +72,32 @@ namespace ApexRivals.Settings.Runtime
 
         public SettingsState WithFullScreenMode(FullScreenMode fullScreenMode)
         {
-            return new SettingsState(Width, Height, RefreshRate, fullScreenMode, MasterVolume, MusicVolume, UiVolume, VehicleVolume, AmbienceVolume);
+            return new SettingsState(Width, Height, fullScreenMode, MasterVolume, MusicVolume, UiVolume, VehicleVolume, AmbienceVolume);
         }
 
         public SettingsState WithMasterVolume(float value)
         {
-            return new SettingsState(Width, Height, RefreshRate, FullScreenMode, value, MusicVolume, UiVolume, VehicleVolume, AmbienceVolume);
+            return new SettingsState(Width, Height, FullScreenMode, value, MusicVolume, UiVolume, VehicleVolume, AmbienceVolume);
         }
 
         public SettingsState WithMusicVolume(float value)
         {
-            return new SettingsState(Width, Height, RefreshRate, FullScreenMode, MasterVolume, value, UiVolume, VehicleVolume, AmbienceVolume);
+            return new SettingsState(Width, Height, FullScreenMode, MasterVolume, value, UiVolume, VehicleVolume, AmbienceVolume);
         }
 
         public SettingsState WithUiVolume(float value)
         {
-            return new SettingsState(Width, Height, RefreshRate, FullScreenMode, MasterVolume, MusicVolume, value, VehicleVolume, AmbienceVolume);
+            return new SettingsState(Width, Height, FullScreenMode, MasterVolume, MusicVolume, value, VehicleVolume, AmbienceVolume);
         }
 
         public SettingsState WithVehicleVolume(float value)
         {
-            return new SettingsState(Width, Height, RefreshRate, FullScreenMode, MasterVolume, MusicVolume, UiVolume, value, AmbienceVolume);
+            return new SettingsState(Width, Height, FullScreenMode, MasterVolume, MusicVolume, UiVolume, value, AmbienceVolume);
         }
 
         public SettingsState WithAmbienceVolume(float value)
         {
-            return new SettingsState(Width, Height, RefreshRate, FullScreenMode, MasterVolume, MusicVolume, UiVolume, VehicleVolume, value);
+            return new SettingsState(Width, Height, FullScreenMode, MasterVolume, MusicVolume, UiVolume, VehicleVolume, value);
         }
 
         /// <summary>True when every volume matches <paramref name="other"/>.</summary>
@@ -120,7 +114,6 @@ namespace ApexRivals.Settings.Runtime
         {
             return Width == other.Width
                 && Height == other.Height
-                && RefreshRate == other.RefreshRate
                 && FullScreenMode == other.FullScreenMode
                 && MasterVolume.Equals(other.MasterVolume)
                 && MusicVolume.Equals(other.MusicVolume)
@@ -140,7 +133,6 @@ namespace ApexRivals.Settings.Runtime
             {
                 var hash = Width;
                 hash = (hash * 397) ^ Height;
-                hash = (hash * 397) ^ RefreshRate;
                 hash = (hash * 397) ^ (int)FullScreenMode;
                 hash = (hash * 397) ^ MasterVolume.GetHashCode();
                 hash = (hash * 397) ^ MusicVolume.GetHashCode();

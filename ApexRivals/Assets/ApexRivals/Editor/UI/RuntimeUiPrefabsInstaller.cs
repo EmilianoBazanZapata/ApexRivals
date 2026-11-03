@@ -32,7 +32,7 @@ namespace ApexRivals.Editor.UI
         public const string ConfettiPath = VfxPrefabFolder + "/VictoryConfetti.prefab";
         private const string VfxDefinitionPath = "Assets/ApexRivals/Content/Configuration/VFX/RaceVfxDefinition.asset";
         private const string ScenesPath = "Assets/ApexRivals/Scenes/";
-        private static readonly string[] RaceScenes = { "Race", "RaceDunes", "RaceSuzuka" };
+        private static readonly string[] RaceScenes = { "Race", "RaceDunes", "RaceSuzuka", "RaceRiverdale" };
         private static readonly Vector2 ReferenceResolution = new Vector2(1920f, 1080f);
 
         [MenuItem("ApexRivals/UI/Install Authored Runtime UI")]

@@ -21,7 +21,6 @@ namespace ApexRivals.Settings.Runtime
 
             var rawWidth = PlayerPrefs.GetInt(SettingsPreferenceKeys.Width, SettingsState.DefaultWidth);
             var rawHeight = PlayerPrefs.GetInt(SettingsPreferenceKeys.Height, SettingsState.DefaultHeight);
-            var rawRefreshRate = PlayerPrefs.GetInt(SettingsPreferenceKeys.RefreshRate, SettingsState.DefaultRefreshRate);
             var rawFullScreenMode = PlayerPrefs.GetInt(SettingsPreferenceKeys.FullScreenMode, (int)SettingsState.Default.FullScreenMode);
             var rawMaster = PlayerPrefs.GetFloat(SettingsPreferenceKeys.MasterVolume, SettingsState.DefaultMasterVolume);
             var rawMusic = PlayerPrefs.GetFloat(SettingsPreferenceKeys.MusicVolume, SettingsState.DefaultMusicVolume);
@@ -35,7 +34,6 @@ namespace ApexRivals.Settings.Runtime
             var settings = new SettingsState(
                 rawWidth,
                 rawHeight,
-                rawRefreshRate,
                 (FullScreenMode)rawFullScreenMode,
                 rawMaster,
                 rawMusic,
@@ -46,7 +44,6 @@ namespace ApexRivals.Settings.Runtime
             var invalid = PlayerPrefs.GetInt(SettingsPreferenceKeys.SchemaVersion, CurrentVersion) != CurrentVersion
                 || rawWidth <= 0
                 || rawHeight <= 0
-                || rawRefreshRate < 0
                 || !Enum.IsDefined(typeof(FullScreenMode), rawFullScreenMode)
                 || float.IsNaN(rawMaster)
                 || rawMaster < 0f
@@ -68,7 +65,6 @@ namespace ApexRivals.Settings.Runtime
             PlayerPrefs.SetInt(SettingsPreferenceKeys.SchemaVersion, CurrentVersion);
             PlayerPrefs.SetInt(SettingsPreferenceKeys.Width, settings.Width);
             PlayerPrefs.SetInt(SettingsPreferenceKeys.Height, settings.Height);
-            PlayerPrefs.SetInt(SettingsPreferenceKeys.RefreshRate, settings.RefreshRate);
             PlayerPrefs.SetInt(SettingsPreferenceKeys.FullScreenMode, (int)settings.FullScreenMode);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.MasterVolume, settings.MasterVolume);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.MusicVolume, settings.MusicVolume);
@@ -94,7 +90,6 @@ namespace ApexRivals.Settings.Runtime
             public const string SchemaVersion = "ApexRivals.Settings.SchemaVersion";
             public const string Width = "ApexRivals.Settings.Resolution.Width";
             public const string Height = "ApexRivals.Settings.Resolution.Height";
-            public const string RefreshRate = "ApexRivals.Settings.Resolution.RefreshRate";
             public const string FullScreenMode = "ApexRivals.Settings.Display.FullScreenMode";
             public const string MasterVolume = "ApexRivals.Settings.Audio.Master";
             public const string MusicVolume = "ApexRivals.Settings.Audio.Music";

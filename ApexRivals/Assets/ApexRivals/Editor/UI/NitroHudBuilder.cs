@@ -25,8 +25,6 @@ namespace ApexRivals.Editor.UI
             background.RightTopInset = 12f;
             background.raycastTarget = false;
             var title = Label(panel, sample.font, "NitroStatus", "NITRO", new Vector2(16f, 64f), new Vector2(240f, 28f), TextAnchor.MiddleLeft, 20);
-            var value = Label(panel, sample.font, "NitroCharge", "0%", new Vector2(278f, 64f), new Vector2(66f, 28f), TextAnchor.MiddleRight, 20);
-            Label(panel, sample.font, "NitroHint", "DRIFT TO CHARGE  |  HOLD SHIFT / X", new Vector2(16f, 8f), new Vector2(328f, 22f), TextAnchor.MiddleCenter, 13);
             var track = Rect(panel, "NitroTrack", Vector2.zero, Vector2.zero, new Vector2(328f, 18f), new Vector2(16f, 37f));
             var trackImage = track.gameObject.AddComponent<Image>();
             trackImage.color = ApexUiVisualStyle.Disabled;
@@ -40,7 +38,6 @@ namespace ApexRivals.Editor.UI
             var refs = new SerializedObject(view);
             refs.FindProperty("chargeFill").objectReferenceValue = fillImage;
             refs.FindProperty("statusText").objectReferenceValue = title;
-            refs.FindProperty("chargeText").objectReferenceValue = value;
             refs.ApplyModifiedProperties();
             var hudRefs = new SerializedObject(hud);
             hudRefs.FindProperty("nitroView").objectReferenceValue = view;
