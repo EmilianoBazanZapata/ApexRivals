@@ -60,3 +60,7 @@ graphify-out/
 # Markdown and its Unity metadata stay local
 *.[mM][dD]
 *.[mM][dD].meta
+
+# ...except the repository READMEs
+!/README.md
+!/README.es.md
