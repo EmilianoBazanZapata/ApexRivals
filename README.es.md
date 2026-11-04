@@ -164,7 +164,7 @@ Contenido de terceros:
 
 - [Kenney Racing Kit](https://www.kenney.nl) — CC0.
 - Modelos de autos (`Assets/ThirdParty/CircuitCars`). <!-- TODO: agregar autor y licencia -->
-- Música: Brimstone Carnage, Hammer of the Wasteland, Juggernaut Uprising, Relentless Damnation, Ritual Velocity, Vantablack Momentum. <!-- TODO: agregar autor y licencia -->
+- **Música de [NVMTL](https://www.youtube.com/@NVMTL)**: Brimstone Carnage, Hammer of the Wasteland, Juggernaut Uprising, Relentless Damnation, Ritual Velocity y Vantablack Momentum. Usada con el permiso del artista. Un enorme agradecimiento a NVMTL por dejar que su música acompañe cada carrera de Apex Rivals; podés escuchar más de su trabajo en su canal.
 
 ## Licencia
 
