@@ -11,10 +11,6 @@
 
 **Arcade 3D racing game with a career mode, four circuits, three AI rivals per race and a final championship race.**
 
-<!-- TODO: add a gameplay GIF at docs/media/gameplay.gif and uncomment
-![Apex Rivals gameplay](docs/media/gameplay.gif)
--->
-
 ---
 
 ## About the game

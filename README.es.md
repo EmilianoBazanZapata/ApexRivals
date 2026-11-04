@@ -11,10 +11,6 @@
 
 **Juego de carreras arcade en 3D con carrera profesional, cuatro circuitos, tres rivales con IA por carrera y una gran final.**
 
-<!-- TODO: agregar un GIF de gameplay en docs/media/gameplay.gif y descomentar
-![Apex Rivals gameplay](docs/media/gameplay.gif)
--->
-
 ---
 
 ## Sobre el juego
