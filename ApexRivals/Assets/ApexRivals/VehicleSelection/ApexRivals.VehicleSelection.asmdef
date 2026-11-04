@@ -1,0 +1,18 @@
+{
+    "name": "ApexRivals.VehicleSelection",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Garage",
+        "ApexRivals.Progression",
+        "ApexRivals.Vehicle"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

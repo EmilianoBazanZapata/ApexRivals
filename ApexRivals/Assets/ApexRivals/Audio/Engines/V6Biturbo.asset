@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a4908c97fcaabb409f674595bac25b0, type: 3}
+  m_Name: V6Biturbo
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.EngineSoundProfile
+  displayName: 3.0 V6 Biturbo
+  description: "V6, 3.0 L twin-turbo. Even 120\xB0 firing, raspy and hollow, turbo
+    whoosh."
+  firingOrder: 010000000400000002000000050000000300000006000000
+  firingAngles:
+  - 0
+  - 120
+  - 240
+  - 360
+  - 480
+  - 600
+  firingBanks: 000000000100000000000000010000000000000001000000
+  idleRpm: 900
+  redlineRpm: 7500
+  displacement: 3
+  pipeLengths:
+  - 0.6
+  - 0.6
+  pipeFeedback: 0.58
+  mufflerCutoff: 1250
+  collectorResonance: 200
+  roughness: 0.1
+  intakeLevel: 0.3
+  mechanicalLevel: 0.09
+  turboLevel: 0.55
+  afterfire: 0.04

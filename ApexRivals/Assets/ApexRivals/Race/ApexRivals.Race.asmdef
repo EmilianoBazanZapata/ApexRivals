@@ -1,0 +1,17 @@
+{
+    "name": "ApexRivals.Race",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Input",
+        "ApexRivals.Vehicle"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

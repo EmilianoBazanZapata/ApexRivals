@@ -1,0 +1,19 @@
+{
+    "name": "ApexRivals.SceneFlow",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Core",
+        "ApexRivals.Career",
+        "ApexRivals.Progression",
+        "ApexRivals.Race"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

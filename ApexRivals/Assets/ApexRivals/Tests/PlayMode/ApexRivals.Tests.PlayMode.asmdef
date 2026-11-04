@@ -1,0 +1,46 @@
+{
+    "name": "ApexRivals.Tests.PlayMode",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.AI",
+        "ApexRivals.Audio",
+        "ApexRivals.Audio.Bench",
+        "ApexRivals.Bootstrap",
+        "ApexRivals.Camera",
+        "ApexRivals.Career",
+        "ApexRivals.Composition",
+        "ApexRivals.Core",
+        "ApexRivals.DrivingAssistance",
+        "ApexRivals.Environment",
+        "ApexRivals.Garage",
+        "ApexRivals.Input",
+        "ApexRivals.Progression",
+        "ApexRivals.Race",
+        "ApexRivals.RaceSession",
+        "ApexRivals.RaceSetup",
+        "ApexRivals.SaveSystem",
+        "ApexRivals.SceneFlow",
+        "ApexRivals.Settings",
+        "ApexRivals.Tracks",
+        "ApexRivals.UI",
+        "ApexRivals.VFX",
+        "ApexRivals.Vehicle",
+        "ApexRivals.VehicleSelection",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "noEngineReferences": false
+}

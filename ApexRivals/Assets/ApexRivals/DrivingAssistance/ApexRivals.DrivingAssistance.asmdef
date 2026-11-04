@@ -1,0 +1,29 @@
+{
+    "name": "ApexRivals.DrivingAssistance",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.VehicleSelection",
+        "ApexRivals.Settings",
+        "ApexRivals.SaveSystem",
+        "ApexRivals.Progression",
+        "ApexRivals.Garage",
+        "ApexRivals.Career",
+        "ApexRivals.Core",
+        "ApexRivals.AI",
+        "ApexRivals.Composition",
+        "ApexRivals.Race",
+        "ApexRivals.RaceSession",
+        "ApexRivals.RaceSetup",
+        "ApexRivals.SceneFlow",
+        "ApexRivals.Vehicle"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

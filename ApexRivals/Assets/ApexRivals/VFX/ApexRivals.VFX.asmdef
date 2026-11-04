@@ -1,0 +1,33 @@
+{
+    "name": "ApexRivals.VFX",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.VehicleSelection",
+        "ApexRivals.Settings",
+        "ApexRivals.SaveSystem",
+        "ApexRivals.Progression",
+        "ApexRivals.Garage",
+        "ApexRivals.Career",
+        "ApexRivals.AI",
+        "ApexRivals.Composition",
+        "ApexRivals.Core",
+        "ApexRivals.Input",
+        "ApexRivals.Race",
+        "ApexRivals.RaceSession",
+        "ApexRivals.RaceSetup",
+        "ApexRivals.SceneFlow",
+        "ApexRivals.Vehicle",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

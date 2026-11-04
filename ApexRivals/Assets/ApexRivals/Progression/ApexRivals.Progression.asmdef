@@ -1,0 +1,17 @@
+{
+    "name": "ApexRivals.Progression",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.AI",
+        "ApexRivals.Race"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

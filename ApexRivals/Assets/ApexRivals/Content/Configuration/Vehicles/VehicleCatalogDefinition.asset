@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e30e5be0dacf78a40b78255d55401ea3, type: 3}
+  m_Name: VehicleCatalogDefinition
+  m_EditorClassIdentifier:
+  defaultVehicleId: vanguard
+  vehicles:
+  - {fileID: 11400000, guid: 1c5e11e0524187843975f7aee0945a1f, type: 2}
+  - {fileID: 11400000, guid: 05cb6fd2f768d044a9ddd20a0eb5e04b, type: 2}
+  - {fileID: 11400000, guid: aff43d5f6077bbe40a9e382c6ff9ffd4, type: 2}
+  - {fileID: 11400000, guid: a4ecb5b7a13f5c540ba39cadf21b3054, type: 2}
+  - {fileID: 11400000, guid: 9049170396d49134db61db1810df618d, type: 2}
+  - {fileID: 11400000, guid: 4186d364f518930418c6b15d00b4ac53, type: 2}
+  - {fileID: 11400000, guid: bd7cba1978c472347b7920cd3d35df93, type: 2}
+  - {fileID: 11400000, guid: 960a16e5e1ad5ea438b847be066156a8, type: 2}

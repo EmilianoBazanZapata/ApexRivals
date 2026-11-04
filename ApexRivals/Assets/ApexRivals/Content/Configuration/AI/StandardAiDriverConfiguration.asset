@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24af6431ea222444eabfb3bdafaa2ba4, type: 3}
+  m_Name: StandardAiDriverConfiguration
+  m_EditorClassIdentifier: 
+  difficultyName: Standard
+  difficultyMultiplier: 1
+  targetSpeed: 68
+  minimumCornerSpeed: 11
+  stuckSpeedThreshold: 1.5
+  stuckDetectionDuration: 2.5
+  steeringSmoothing: 8
+  throttleSmoothing: 6
+  brakeSmoothing: 10
+  enableCircuitPlan: 1
+  enablePredictivePlanning: 1
+  cornerSpeedFactor: 0.88
+  curvatureSpeedScale: 4
+  corneringGrip: 8.2
+  brakingPreviewDistance: 80
+  brakingConfidence: 1
+  throttleGain: 7
+  brakeGain: 1.2
+  headingGain: 1
+  crossTrackGain: 1.6
+  minimumLookahead: 10
+  maximumLookahead: 18
+  lineWanderAmplitude: 0.3
+  reactionTime: 0.22
+  mistakeInterval: 45
+  mistakeDuration: 1.2
+  driftAffinity: 0
+  driftSkill: 0.9
+  driftEntrySpeedBonus: 0.1
+  driftTargetSlipAngle: 18
+  driftMaximumSlipAngle: 45
+  aggression: 0.5
+  followTimeGap: 0.6
+  overtakeLateralOffset: 3
+  maximumLateralOffset: 4
+  offTrackDistance: 10
+  offTrackResetDuration: 3
+  reverseDuration: 1.2
+  postResetGraceDuration: 2

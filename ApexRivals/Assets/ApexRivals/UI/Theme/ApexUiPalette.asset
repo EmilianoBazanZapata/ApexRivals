@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54a307e51a6e83e4481aeae54b34bf6d, type: 3}
+  m_Name: ApexUiPalette
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.UI.Runtime.ApexUiPalette
+  panel: {r: 0.09019608, g: 0.105882354, b: 0.1254902, a: 0.9490196}
+  panelElevated: {r: 0.11764706, g: 0.14117648, b: 0.16862746, a: 0.96862745}
+  panelDeep: {r: 0.047058824, g: 0.05490196, b: 0.07058824, a: 0.93333334}
+  panelOutline: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
+  disabled: {r: 0.2784314, g: 0.29803923, b: 0.32941177, a: 0.7529412}
+  primaryRed: {r: 0.8980392, g: 0.08627451, b: 0.07058824, a: 1}
+  primaryRedPressed: {r: 0.6039216, g: 0.050980393, b: 0.043137256, a: 1}
+  primaryRedIdle: {r: 0.65882355, g: 0.0627451, b: 0.050980393, a: 1}
+  focusOutline: {r: 1, g: 0.23137255, b: 0.20784314, a: 1}
+  successGreen: {r: 0.18039216, g: 0.72156864, b: 0.27058825, a: 1}
+  primaryText: {r: 0.9490196, g: 0.9490196, b: 0.9254902, a: 1}
+  secondaryText: {r: 0.6039216, g: 0.627451, b: 0.65882355, a: 1}
+  focusedText: {r: 1, g: 1, b: 1, a: 1}
+  accentText: {r: 1, g: 0.23137255, b: 0.20784314, a: 1}
+  disabledText: {r: 0.54509807, g: 0.5647059, b: 0.59607846, a: 1}
+  availableThumbnailTint: {r: 1, g: 1, b: 1, a: 1}
+  lockedThumbnailTint: {r: 0.35, g: 0.35, b: 0.38, a: 1}
+  unavailableThumbnailTint: {r: 0.45, g: 0.45, b: 0.48, a: 1}
+  cardBorderResting: 2
+  cardBorderSelected: 4
+  vehicleFrameBorderResting: 1.5
+  vehicleFrameBorderSelected: 3

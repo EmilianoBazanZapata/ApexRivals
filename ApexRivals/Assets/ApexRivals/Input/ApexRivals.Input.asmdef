@@ -1,0 +1,17 @@
+{
+    "name": "ApexRivals.Input",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Vehicle",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

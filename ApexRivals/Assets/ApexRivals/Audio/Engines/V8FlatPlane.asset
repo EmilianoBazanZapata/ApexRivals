@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a4908c97fcaabb409f674595bac25b0, type: 3}
+  m_Name: V8FlatPlane
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.Audio.Runtime.EngineSoundProfile
+  displayName: 4.5 V8
+  description: 'Flat-plane V8, 4.5 L. Banks fire alternately: a smooth, high-revving
+    howl.'
+  firingOrder: 0100000005000000030000000700000004000000080000000200000006000000
+  firingAngles:
+  - 0
+  - 90
+  - 180
+  - 270
+  - 360
+  - 450
+  - 540
+  - 630
+  firingBanks: 0000000001000000000000000100000000000000010000000000000001000000
+  idleRpm: 1000
+  redlineRpm: 9000
+  displacement: 4.5
+  pipeLengths:
+  - 0.7
+  - 0.7
+  pipeFeedback: 0.5
+  mufflerCutoff: 1700
+  collectorResonance: 260
+  roughness: 0.06
+  intakeLevel: 0.3
+  mechanicalLevel: 0.07
+  turboLevel: 0
+  afterfire: 0.04

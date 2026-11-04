@@ -1,0 +1,19 @@
+{
+    "name": "ApexRivals.Audio",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Settings",
+        "ApexRivals.Vehicle",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

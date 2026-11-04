@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51b40ea17bbbd534fafb66a4b44bf81c, type: 3}
+  m_Name: RaceVfxDefinition
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.VFX.Runtime.RaceVfxDefinition
+  driftSmokePrefab: {fileID: 6169299976318724754, guid: 44cc74863ce0c764a8f543b8c9d3bd7f, type: 3}
+  impactSparksPrefab: {fileID: 6830621487573991654, guid: 03a93ff57d84c354292e684318bd3729, type: 3}
+  rainPrefab: {fileID: 474558296886963612, guid: 3c31fdcb54a6db540858fff78b50eaa0, type: 3}
+  confettiMaterial: {fileID: 2100000, guid: 1136f39b0bbe8384c9d787f7a64c716d, type: 2}
+  confettiPrefab: {fileID: 1610767615836141987, guid: dc6f911d5e2ff4747b94e47425bc7854, type: 3}
+  skidmarkMaterial: {fileID: 2100000, guid: e4036c4f510dc3e40b11687c9076cf0c, type: 2}
+  skidMinimumSpeed: 4
+  skidHardBrakeThreshold: 0.65
+  skidWidth: 0.22
+  skidOpacity: 0.8
+  skidMinimumSpacing: 0.25
+  skidMaximumConnection: 2.5
+  skidLifetime: 25
+  skidMaximumSegments: 4096
+  minimumSmokeSpeed: 6
+  minimumSlipAngle: 9
+  minimumWheelSlip: 0.25
+  smokeRatePerWheel: 24
+  minimumImpactSpeed: 2
+  impactCooldown: 0.15
+  maximumSparkCount: 40

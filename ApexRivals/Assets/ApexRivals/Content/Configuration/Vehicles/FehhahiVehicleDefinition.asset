@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9033c24b29e723341a1e6294204c16b7, type: 3}
+  m_Name: FehhahiVehicleDefinition
+  m_EditorClassIdentifier: ApexRivals.Runtime::ApexRivals.VehicleSelection.Configuration.VehicleDefinition
+  stableId: fehhahi
+  displayName: Fehhahi
+  description: Circuit car with its own power, grip and top-speed configuration.
+  baseConfiguration: {fileID: 11400000, guid: c095852c40683cb41a88f4cd20b90d17, type: 2}
+  vehiclePrefab: {fileID: 5125654590113072179, guid: 9a6954b9184b1ac438e4a2ce2018ded6, type: 3}
+  previewSprite: {fileID: 0}
+  availableInDemo: 1
