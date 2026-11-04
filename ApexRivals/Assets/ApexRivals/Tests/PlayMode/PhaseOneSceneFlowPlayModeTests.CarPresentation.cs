@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Reflection;
+using ApexRivals.UI.Runtime;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Camera.Runtime;
 using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSession.Runtime;
@@ -27,7 +29,7 @@ namespace ApexRivals.Tests.PlayMode
                 _flow.SelectRaceScene(track);
                 yield return WaitForTask(_flow.RetryRace());
                 var installer = FindInScene<RaceSessionSceneInstaller>(track);
-                var intro = installer.Introduction;
+                var intro = (PreRacePresentation)installer.Introduction;
                 var session = installer.Session;
                 var body = session.PlayerVehicleRigidbody;
                 var start = body.position;
@@ -79,7 +81,7 @@ namespace ApexRivals.Tests.PlayMode
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter));
                 InputSystem.Update();
                 yield return WaitForTask(_flow.RetryRace());
-                var intro = Installer.Introduction;
+                var intro = (PreRacePresentation)Installer.Introduction;
                 var deadline = Time.realtimeSinceStartup + 3f;
                 while (intro.ShotIndex < 0 && Time.realtimeSinceStartup < deadline) yield return null;
                 yield return new WaitForSeconds(.3f);
@@ -108,7 +110,7 @@ namespace ApexRivals.Tests.PlayMode
             try
             {
                 yield return WaitForTask(_flow.RetryRace());
-                var intro = Installer.Introduction;
+                var intro = (PreRacePresentation)Installer.Introduction;
                 var deadline = Time.realtimeSinceStartup + 3f;
                 while (intro.ShotIndex < 0 && Time.realtimeSinceStartup < deadline) yield return null;
                 yield return null;
@@ -130,7 +132,7 @@ namespace ApexRivals.Tests.PlayMode
                 Assert.That(intro.IsPresenting, Is.False);
                 Assert.That(Installer.Session.State, Is.EqualTo(RaceSessionLifecycleState.Starting));
                 yield return WaitForTask(_flow.RetryRace());
-                intro = Installer.Introduction;
+                intro = (PreRacePresentation)Installer.Introduction;
                 deadline = Time.realtimeSinceStartup + 3f;
                 while (intro.ShotIndex < 0 && Time.realtimeSinceStartup < deadline) yield return null;
                 var body = Installer.Session.PlayerVehicleRigidbody;

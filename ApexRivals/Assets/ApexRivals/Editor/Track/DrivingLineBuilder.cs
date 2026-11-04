@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using ApexRivals.AI.Runtime;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.DrivingAssistance.Runtime;
 using ApexRivals.Race.Runtime;
 using UnityEditor;

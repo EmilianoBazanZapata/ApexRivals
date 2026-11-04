@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Reflection;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Garage.Configuration;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;

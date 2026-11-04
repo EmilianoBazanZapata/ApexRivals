@@ -2,6 +2,7 @@
 using System.Collections;
 using ApexRivals.AI.Runtime;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.UI.Runtime;
 using ApexRivals.Vehicle.Runtime;
 using NUnit.Framework;

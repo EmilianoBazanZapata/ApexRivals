@@ -217,7 +217,7 @@ namespace ApexRivals.Vehicle.Runtime
             _outsideTrackTime = 0;
         }
 
-        internal void ConfigureRecoveryInputIfMissing(IDrivingInputProvider inputProvider)
+        public void ConfigureRecoveryInputIfMissing(IDrivingInputProvider inputProvider)
         {
             if (drivingInputGate == null && _recoveryInput == null)
                 ConfigureRecoveryInput(inputProvider);

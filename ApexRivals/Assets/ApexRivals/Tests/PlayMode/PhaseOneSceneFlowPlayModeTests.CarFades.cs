@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections;
+using ApexRivals.UI.Runtime;
 using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSession.Runtime;
 using NUnit.Framework;
@@ -17,7 +18,7 @@ namespace ApexRivals.Tests.PlayMode
         {
             _playIntroduction = _confirmCarPresentation = true;
             yield return WaitForTask(_flow.RetryRace());
-            var intro = Installer.Introduction;
+            var intro = (PreRacePresentation)Installer.Introduction;
             var refs = new SerializedObject(intro);
             var fade = refs.FindProperty("shotFade").objectReferenceValue as CanvasGroup;
             var button = refs.FindProperty("startRaceButton").objectReferenceValue as Button;
@@ -65,7 +66,7 @@ namespace ApexRivals.Tests.PlayMode
         {
             _playIntroduction = _confirmCarPresentation = true;
             yield return WaitForTask(_flow.RetryRace());
-            var intro = Installer.Introduction;
+            var intro = (PreRacePresentation)Installer.Introduction;
             var refs = new SerializedObject(intro);
             var fade = refs.FindProperty("shotFade").objectReferenceValue as CanvasGroup;
             var deadline = Time.realtimeSinceStartup + 3f;

@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System.Collections;
+using ApexRivals.UI.Runtime;
 using ApexRivals.AI.Runtime;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Camera.Runtime;
 using ApexRivals.DrivingAssistance.Runtime;
 using ApexRivals.RaceSession.Runtime;
@@ -132,8 +134,8 @@ namespace ApexRivals.Tests.PlayMode
             Assert.That(replacement.IsVisible, Is.False);
             Assert.That(Installer.Session.State, Is.EqualTo(RaceSessionLifecycleState.Ready));
             var deadline = Time.realtimeSinceStartup + 4;
-            while (Installer.Introduction.ShotIndex < 0 && Time.realtimeSinceStartup < deadline) yield return null;
-            Installer.Introduction.RequestSkip();
+            while (((PreRacePresentation)Installer.Introduction).ShotIndex < 0 && Time.realtimeSinceStartup < deadline) yield return null;
+            ((PreRacePresentation)Installer.Introduction).RequestSkip();
             deadline = Time.realtimeSinceStartup + 3;
             while (Installer.Session.State == RaceSessionLifecycleState.Ready && Time.realtimeSinceStartup < deadline) yield return null;
             yield return new WaitForSeconds(0.15f);

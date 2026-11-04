@@ -30,6 +30,9 @@ namespace ApexRivals.Settings.Runtime
             var rawVehicle = PlayerPrefs.GetFloat(SettingsPreferenceKeys.VehicleVolume, rawLegacySfx);
 
             var rawAmbience = PlayerPrefs.GetFloat(SettingsPreferenceKeys.AmbienceVolume, SettingsState.DefaultAmbienceVolume);
+            var rawQuality = PlayerPrefs.GetInt(SettingsPreferenceKeys.GraphicsQuality, (int)GraphicsPreferences.Default.Quality);
+            var rawPostProcessing = PlayerPrefs.GetInt(SettingsPreferenceKeys.PostProcessing, GraphicsPreferences.Default.PostProcessing ? 1 : 0);
+            var rawAntiAliasing = PlayerPrefs.GetInt(SettingsPreferenceKeys.AntiAliasing, (int)GraphicsPreferences.Default.AntiAliasing);
 
             var settings = new SettingsState(
                 rawWidth,
@@ -39,7 +42,8 @@ namespace ApexRivals.Settings.Runtime
                 rawMusic,
                 rawUi,
                 rawVehicle,
-                rawAmbience);
+                rawAmbience,
+                new GraphicsPreferences((GraphicsQuality)rawQuality, rawPostProcessing != 0, (AntiAliasingMode)rawAntiAliasing));
 
             var invalid = PlayerPrefs.GetInt(SettingsPreferenceKeys.SchemaVersion, CurrentVersion) != CurrentVersion
                 || rawWidth <= 0
@@ -53,7 +57,10 @@ namespace ApexRivals.Settings.Runtime
                 || rawMusic > 1f
                 || IsInvalidVolume(rawUi)
                 || IsInvalidVolume(rawVehicle)
-                || IsInvalidVolume(rawAmbience);
+                || IsInvalidVolume(rawAmbience)
+                || !Enum.IsDefined(typeof(GraphicsQuality), rawQuality)
+                || rawPostProcessing < 0 || rawPostProcessing > 1
+                || !Enum.IsDefined(typeof(AntiAliasingMode), rawAntiAliasing);
 
             return invalid
                 ? new SettingsStorageReadResult(SettingsStorageReadStatus.Invalid, settings, "Stored preferences contained unsupported values.")
@@ -71,6 +78,9 @@ namespace ApexRivals.Settings.Runtime
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.UiVolume, settings.UiVolume);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.VehicleVolume, settings.VehicleVolume);
             PlayerPrefs.SetFloat(SettingsPreferenceKeys.AmbienceVolume, settings.AmbienceVolume);
+            PlayerPrefs.SetInt(SettingsPreferenceKeys.GraphicsQuality, (int)settings.Graphics.Quality);
+            PlayerPrefs.SetInt(SettingsPreferenceKeys.PostProcessing, settings.Graphics.PostProcessing ? 1 : 0);
+            PlayerPrefs.SetInt(SettingsPreferenceKeys.AntiAliasing, (int)settings.Graphics.AntiAliasing);
             PlayerPrefs.Save();
             return new SettingsStorageWriteResult(true, string.Empty);
         }
@@ -97,6 +107,9 @@ namespace ApexRivals.Settings.Runtime
             public const string UiVolume = "ApexRivals.Settings.Audio.Ui";
             public const string VehicleVolume = "ApexRivals.Settings.Audio.Vehicles";
             public const string AmbienceVolume = "ApexRivals.Settings.Audio.Ambience";
+            public const string GraphicsQuality = "ApexRivals.Settings.Graphics.Quality";
+            public const string PostProcessing = "ApexRivals.Settings.Graphics.PostProcessing";
+            public const string AntiAliasing = "ApexRivals.Settings.Graphics.AntiAliasing";
         }
     }
 }

@@ -26,6 +26,7 @@ namespace ApexRivals.Settings.Runtime
             }
 
             Screen.SetResolution(settings.Width, settings.Height, settings.FullScreenMode);
+            RuntimeGraphics.Apply(settings.Graphics);
             return SettingsOperationResult.Success();
         }
 

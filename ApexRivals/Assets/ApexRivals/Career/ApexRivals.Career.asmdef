@@ -1,0 +1,23 @@
+{
+    "name": "ApexRivals.Career",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Core",
+        "ApexRivals.Garage",
+        "ApexRivals.Progression",
+        "ApexRivals.Race",
+        "ApexRivals.RaceSetup",
+        "ApexRivals.Tracks",
+        "ApexRivals.Vehicle",
+        "ApexRivals.VehicleSelection"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

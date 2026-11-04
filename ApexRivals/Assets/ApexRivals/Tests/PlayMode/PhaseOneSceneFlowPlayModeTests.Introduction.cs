@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Reflection;
+using ApexRivals.SceneFlow.Runtime;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Camera.Runtime;
 using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSession.Runtime;
@@ -31,7 +33,7 @@ namespace ApexRivals.Tests.PlayMode
                 yield return WaitForTask(retry);
                 Assert.That(retry.Result.Succeeded, Is.True, retry.Result.Message);
                 var installer = FindInScene<RaceSessionSceneInstaller>(track);
-                var intro = installer.Introduction;
+                var intro = (PreRacePresentation)installer.Introduction;
                 var coordinator = FindInScene<RaceCoordinator>(track);
                 var follow = FindInScene<WheelVehicleFollowCamera>(track);
                 var session = installer.Session;
@@ -82,7 +84,7 @@ namespace ApexRivals.Tests.PlayMode
         {
             _playIntroduction = true;
             yield return WaitForTask(_flow.RetryRace());
-            var intro = Installer.Introduction;
+            var intro = (PreRacePresentation)Installer.Introduction;
             var session = Installer.Session;
             var deadline = Time.realtimeSinceStartup + 3f;
             while (intro.ShotIndex < 0 && Time.realtimeSinceStartup < deadline) yield return null;
@@ -126,7 +128,7 @@ namespace ApexRivals.Tests.PlayMode
                 .SetValue(_bootstrapper, context);
             _playIntroduction = true;
             yield return WaitForTask(_flow.RetryRace());
-            var intro = Installer.Introduction;
+            var intro = (PreRacePresentation)Installer.Introduction;
             yield return new WaitForSecondsRealtime(0.25f);
             Assert.That(intro.IsPresenting, Is.True);
             Assert.That(intro.ShotIndex, Is.EqualTo(-1), "No shots run behind the loading screen.");
@@ -176,7 +178,7 @@ namespace ApexRivals.Tests.PlayMode
         {
             _playIntroduction = true;
             yield return WaitForTask(_flow.RetryRace());
-            var intro = Installer.Introduction;
+            var intro = (PreRacePresentation)Installer.Introduction;
             typeof(PreRacePresentation).GetField("followCamera", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(intro, null);
             LogAssert.Expect(LogType.Warning, "Race introduction has no camera or player target; starting the normal countdown.");
             yield return null;

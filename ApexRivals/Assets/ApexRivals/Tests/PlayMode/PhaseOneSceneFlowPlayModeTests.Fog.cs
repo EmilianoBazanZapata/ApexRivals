@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using System.Collections;
+using ApexRivals.UI.Runtime;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Camera.Runtime;
 using ApexRivals.RaceSession.Runtime;
 using NUnit.Framework;
@@ -24,7 +26,7 @@ namespace ApexRivals.Tests.PlayMode
             yield return new WaitForSeconds(0.7f);
             ScreenCapture.CaptureScreenshot("graphify-out/fog-suzuka-intro.png");
             yield return null;
-            installer.Introduction.RequestSkip();
+            ((PreRacePresentation)installer.Introduction).RequestSkip();
             var deadline = Time.realtimeSinceStartup + 6;
             while ((installer.Session.State == RaceSessionLifecycleState.Ready || installer.Session.State == RaceSessionLifecycleState.Starting)
                 && Time.realtimeSinceStartup < deadline) yield return null;

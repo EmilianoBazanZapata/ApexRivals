@@ -29,6 +29,8 @@ namespace ApexRivals.Bootstrap.Runtime
         public async Task<BootstrapStartupResult> StartAsync()
         {
             SettingsLoadResult = _settingsService?.Load() ?? SettingsOperationResult.Success();
+            // Resolution and display mode persist with the player window; the graphics options are re-applied here.
+            if (_settingsService != null) RuntimeGraphics.Apply(_settingsService.Current.Graphics);
 
             var loadResult = _saveService.LoadOrCreateDefault();
             if (!loadResult.Succeeded)

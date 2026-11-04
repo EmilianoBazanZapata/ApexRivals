@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Threading.Tasks;
+using ApexRivals.Audio.Runtime;
+using ApexRivals.SceneFlow.Runtime;
 using UnityEngine;
 
 namespace ApexRivals.UI.Runtime
@@ -51,6 +53,7 @@ namespace ApexRivals.UI.Runtime
             _previousSelection = UiFocus.CurrentSelection;
             var readyAt = Time.realtimeSinceStartupAsDouble + Mathf.Max(0f, preLoadDelaySeconds);
             surface.SetActive(true);
+            SilenceMusic(true);
             _input?.SetLoadingInputBlocked(this, true);
             UiFocus.Clear();
             Canvas.ForceUpdateCanvases();
@@ -68,6 +71,7 @@ namespace ApexRivals.UI.Runtime
         {
             var wasVisible = IsVisible;
             if (surface != null) surface.SetActive(false);
+            if (wasVisible) SilenceMusic(false);
             if (wasVisible && !succeeded && _input != null) _input.RestoreSceneFocusAfterLoading();
             if (_input != null) _input.SetLoadingInputBlocked(this, false);
             var previous = _previousSelection;
@@ -79,6 +83,13 @@ namespace ApexRivals.UI.Runtime
                 if (isActiveAndEnabled) _focusRecovery = StartCoroutine(RestoreFocus(previous));
                 else UiFocus.Request(previous);
             }
+        }
+
+        /// <summary>No music under the loading screen; a new track starts when it goes away.</summary>
+        private void SilenceMusic(bool silenced)
+        {
+            var audio = GameAudio.Current;
+            if (audio != null) audio.SetMusicSilenced(this, silenced);
         }
 
         private IEnumerator RestoreFocus(GameObject previous)

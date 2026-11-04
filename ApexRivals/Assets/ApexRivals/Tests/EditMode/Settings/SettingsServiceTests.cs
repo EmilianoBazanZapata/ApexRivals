@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Progression.Runtime;
 using ApexRivals.SaveSystem.Runtime;

@@ -1,0 +1,28 @@
+{
+    "name": "ApexRivals.Composition",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Core",
+        "ApexRivals.AI",
+        "ApexRivals.Career",
+        "ApexRivals.Garage",
+        "ApexRivals.Progression",
+        "ApexRivals.Race",
+        "ApexRivals.RaceSession",
+        "ApexRivals.RaceSetup",
+        "ApexRivals.SaveSystem",
+        "ApexRivals.SceneFlow",
+        "ApexRivals.Settings",
+        "ApexRivals.Vehicle",
+        "ApexRivals.VehicleSelection"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

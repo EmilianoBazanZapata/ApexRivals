@@ -14,7 +14,7 @@ namespace ApexRivals.Editor.Environment
     /// <summary>
     /// Builds the garage hall shared by the main menu and the Garage screen with ProBuilder shapes: a workshop around
     /// the display car's turntable with a mezzanine office and stairs on the left, shelving and an Apex Rivals banner
-    /// on the back wall, an open roll-up door onto a sunset city on the right, a skylight and hanging fluorescent
+    /// on the back wall, a closed roll-up door on the right, a skylight and hanging fluorescent
     /// lights. Each scene lays it out in a frame centred on its display car and turned to face its camera. Creates
     /// only a missing "GarageInterior"; existing content is preserved.
     /// </summary>
@@ -98,7 +98,7 @@ namespace ApexRivals.Editor.Environment
             BuildTurntable(Group(root, "Turntable"));
             BuildMezzanine(Group(root, "Mezzanine"));
             BuildBackWall(Group(root, "BackWallDressing"), font);
-            BuildDoorAndExterior(Group(root, "RollUpDoor"), root.InverseTransformPoint(camera.position));
+            BuildDoorAndExterior(Group(root, "RollUpDoor"));
             BuildCeiling(Group(root, "Ceiling"));
             BuildProps(Group(root, "Props"));
             var lights = BuildLighting(Group(root, "Lighting"));
@@ -275,16 +275,25 @@ namespace ApexRivals.Editor.Environment
             }
         }
 
-        private static void BuildDoorAndExterior(Transform parent, Vector3 viewpoint)
+        private static void BuildDoorAndExterior(Transform parent)
         {
             var z = HalfDepth;
+            var centerX = (DoorLeft + DoorRight) * 0.5f;
+            var width = DoorRight - DoorLeft;
 
-            // Rolled-up shutter: the raised panel with its vision slots and the drum housing above.
-            Box(parent, "Shutter", new Vector3((DoorLeft + DoorRight) * 0.5f, DoorHeight - 0.45f, z - 0.25f), new Vector3(DoorRight - DoorLeft, 0.9f, 0.12f), _m.Shutter);
+            // Closed roll-up shutter filling the opening: ribbed slats, a row of vision slots and the drum housing above.
+            Box(parent, "Shutter", new Vector3(centerX, DoorHeight * 0.5f, z - 0.25f), new Vector3(width, DoorHeight, 0.12f), _m.Shutter);
+            for (var y = 0.45f; y < DoorHeight - 0.1f; y += 0.45f)
+            {
+                Box(parent, "ShutterSlat", new Vector3(centerX, y, z - 0.32f), new Vector3(width - 0.1f, 0.05f, 0.03f), _m.Steel);
+            }
+
             for (var i = 0; i < 3; i++)
             {
-                Box(parent, "ShutterSlot", new Vector3(DoorLeft + 1.6f + i * 1.9f, DoorHeight - 0.45f, z - 0.32f), new Vector3(1.1f, 0.25f, 0.02f), _m.WindowGlow);
+                Box(parent, "ShutterSlot", new Vector3(DoorLeft + 1.6f + i * 1.9f, DoorHeight - 1.6f, z - 0.33f), new Vector3(1.1f, 0.25f, 0.02f), _m.WindowGlow);
             }
+
+            Box(parent, "ShutterBottomRail", new Vector3(centerX, 0.08f, z - 0.33f), new Vector3(width, 0.16f, 0.06f), _m.Yellow);
 
             Cylinder(parent, "ShutterDrum", new Vector3((DoorLeft + DoorRight) * 0.5f, DoorHeight + 0.05f, z - 0.5f), 0.45f, DoorRight - DoorLeft + 0.6f, 12, _m.Steel)
                 .transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
@@ -299,28 +308,6 @@ namespace ApexRivals.Editor.Environment
                 }
             }
 
-            // Yard, a low wall and a skyline seen through the door.
-            Box(parent, "Yard", new Vector3(8f, -0.12f, z + 25f), new Vector3(60f, 0.2f, 50f), _m.Concrete);
-            Box(parent, "YardWall", new Vector3(8f, 0.6f, z + 14f), new Vector3(60f, 1.2f, 0.4f), _m.WallLower);
-            Box(parent, "Barrier_A", new Vector3(10f, 0.4f, z + 6f), new Vector3(1.6f, 0.8f, 0.5f), _m.Orange);
-            Box(parent, "Barrier_B", new Vector3(12f, 0.4f, z + 6.4f), new Vector3(1.6f, 0.8f, 0.5f), _m.Orange);
-            var random = new System.Random(7);
-            // Distant towers spread across the camera's view through the door, topping out a few degrees above the
-            // horizon so the opening frames a skyline rather than a wall of buildings.
-            var leftSlope = (DoorLeft - viewpoint.x) / (z - viewpoint.z);
-            var rightSlope = (DoorRight - viewpoint.x) / (z - viewpoint.z);
-            const int towers = 16;
-            for (var i = 0; i < towers; i++)
-            {
-                // Stay inside the menu camera's 100 m far plane.
-                var depth = z + 45f + (float)random.NextDouble() * 28f;
-                var distance = depth - viewpoint.z;
-                var t = (i + 0.5f) / towers;
-                var x = viewpoint.x + Mathf.Lerp(leftSlope - 0.1f, rightSlope + 0.1f, t) * distance;
-                var height = viewpoint.y + distance * Mathf.Tan((0.4f + (float)random.NextDouble() * 2.6f) * Mathf.Deg2Rad);
-                var width = 6f + (float)random.NextDouble() * 8f;
-                Box(parent, "Skyline", new Vector3(x, height * 0.5f, depth), new Vector3(width, height, width), _m.Skyline);
-            }
         }
 
         private static void BuildCeiling(Transform parent)
@@ -618,7 +605,6 @@ namespace ApexRivals.Editor.Environment
             public readonly Material Shutter = Lit("Garage_Shutter", new Color(0.36f, 0.34f, 0.34f), 0.3f, 0.3f);
             public readonly Material Banner = Lit("Garage_Banner", new Color(0.07f, 0.07f, 0.09f), 0.2f);
             public readonly Material Plant = Lit("Garage_Plant", new Color(0.2f, 0.45f, 0.2f), 0.2f);
-            public readonly Material Skyline = Lit("Garage_Skyline", new Color(0.14f, 0.14f, 0.23f), 0.1f, 0f, new Color(0.05f, 0.05f, 0.1f));
             public readonly Material WindowGlow = Lit("Garage_WindowGlow", new Color(0.32f, 0.24f, 0.16f), 0.6f, 0f, new Color(0.85f, 0.55f, 0.28f) * 0.55f);
             public readonly Material LightTube = Lit("Garage_LightTube", Color.white, 0.5f, 0f, new Color(1f, 0.96f, 0.88f) * 3f);
             public readonly Material Sky = SunsetSky();

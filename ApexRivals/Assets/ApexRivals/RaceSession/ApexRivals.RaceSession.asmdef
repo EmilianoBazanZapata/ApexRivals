@@ -1,0 +1,26 @@
+{
+    "name": "ApexRivals.RaceSession",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.Core",
+        "ApexRivals.AI",
+        "ApexRivals.Career",
+        "ApexRivals.Garage",
+        "ApexRivals.Input",
+        "ApexRivals.Progression",
+        "ApexRivals.Race",
+        "ApexRivals.RaceSetup",
+        "ApexRivals.SceneFlow",
+        "ApexRivals.Vehicle",
+        "ApexRivals.VehicleSelection"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

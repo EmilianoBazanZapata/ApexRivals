@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Audio.Runtime;
 using SerializedObject = UnityEditor.SerializedObject;
 using ApexRivals.Camera.Runtime;

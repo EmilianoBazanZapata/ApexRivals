@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using ApexRivals.Audio.Runtime;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Camera.Runtime;
 using ApexRivals.UI.Runtime;
 using ApexRivals.Vehicle.Runtime;

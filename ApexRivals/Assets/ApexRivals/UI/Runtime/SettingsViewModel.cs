@@ -18,7 +18,8 @@ namespace ApexRivals.UI.Runtime
             bool canApply,
             PresentationFailure failure,
             string messageKey,
-            float ambienceVolume = SettingsState.DefaultAmbienceVolume)
+            float ambienceVolume = SettingsState.DefaultAmbienceVolume,
+            GraphicsPreferences? graphics = null)
         {
             AvailableResolutions = availableResolutions;
             SelectedResolution = selectedResolution;
@@ -28,6 +29,7 @@ namespace ApexRivals.UI.Runtime
             UiVolume = uiVolume;
             VehicleVolume = vehicleVolume;
             AmbienceVolume = ambienceVolume;
+            Graphics = graphics ?? GraphicsPreferences.Default;
             HasUnsavedChanges = hasUnsavedChanges;
             CanApply = canApply;
             Failure = failure;
@@ -42,6 +44,7 @@ namespace ApexRivals.UI.Runtime
         public float UiVolume { get; }
         public float VehicleVolume { get; }
         public float AmbienceVolume { get; }
+        public GraphicsPreferences Graphics { get; }
         public bool HasUnsavedChanges { get; }
         public bool CanApply { get; }
         public PresentationFailure Failure { get; }

@@ -26,7 +26,7 @@ namespace ApexRivals.Tests.PlayMode
                 Assert.That(weather, Is.Not.Null);
                 Assert.That(weather.IsInstalled, Is.True);
                 var deadline = Time.realtimeSinceStartup + 8;
-                var session = FindInScene<ApexRivals.Bootstrap.Runtime.RaceSessionSceneInstaller>(track).Session;
+                var session = FindInScene<ApexRivals.Composition.Runtime.RaceSessionSceneInstaller>(track).Session;
                 while (session.State == RaceSessionLifecycleState.Starting && Time.realtimeSinceStartup < deadline) yield return null;
                 Assert.That(session.State, Is.EqualTo(RaceSessionLifecycleState.Racing));
                 weather.SetForecast(new RaceWeatherForecast(RaceWeatherPattern.SunnyToRain, 0, .4f, 42));

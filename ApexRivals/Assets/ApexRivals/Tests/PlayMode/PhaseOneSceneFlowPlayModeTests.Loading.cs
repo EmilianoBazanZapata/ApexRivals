@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Reflection;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.SaveSystem.Runtime;
 using ApexRivals.SceneFlow.Runtime;
 using ApexRivals.UI.Runtime;

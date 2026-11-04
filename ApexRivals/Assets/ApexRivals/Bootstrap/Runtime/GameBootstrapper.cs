@@ -3,6 +3,7 @@ using ApexRivals.UI.Runtime;
 using ApexRivals.Audio.Runtime;
 using ApexRivals.Career.Configuration;
 using ApexRivals.Career.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Tracks.Configuration;
 using ApexRivals.Progression.Configuration;
 using ApexRivals.Garage.Configuration;

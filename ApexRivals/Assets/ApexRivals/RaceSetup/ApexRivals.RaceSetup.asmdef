@@ -1,0 +1,22 @@
+{
+    "name": "ApexRivals.RaceSetup",
+    "rootNamespace": "",
+    "references": [
+        "ApexRivals.AI",
+        "ApexRivals.Garage",
+        "ApexRivals.Input",
+        "ApexRivals.Progression",
+        "ApexRivals.Race",
+        "ApexRivals.Vehicle",
+        "ApexRivals.VehicleSelection"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

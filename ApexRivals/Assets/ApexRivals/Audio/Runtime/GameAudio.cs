@@ -35,9 +35,14 @@ namespace ApexRivals.Audio.Runtime
         private int _playOrderIndex = -1;
         private int _lastTrack = -1;
         private bool _playlistRunning;
+        private bool _musicBound;
         private bool _trackAudible;
         private float _trackRequestedAt;
         private const float TrackStartTimeout = 5f;
+        private readonly System.Collections.Generic.HashSet<object> _musicSilencers = new System.Collections.Generic.HashSet<object>();
+
+        /// <summary>True while any owner (for example the loading screen) keeps the music silent.</summary>
+        public bool MusicSilenced => _musicSilencers.Count > 0;
 
         public static GameAudio Current { get; private set; }
 
@@ -92,6 +97,7 @@ namespace ApexRivals.Audio.Runtime
         public void Bind(IAudioPreferenceSource preferences)
         {
             UseMixer(new AudioBusMixer(preferences));
+            _musicBound = true;
             if (music == null || music.Source.isPlaying)
             {
                 return;
@@ -100,9 +106,36 @@ namespace ApexRivals.Audio.Runtime
             if (HasPlaylist())
             {
                 _playlistRunning = true;
+                if (!MusicSilenced) PlayNextTrack();
+            }
+            else if (!MusicSilenced)
+            {
+                music.Source.Play();
+            }
+        }
+
+        /// <summary>
+        /// Stops the music while <paramref name="owner"/> asks for silence (loading screens). Once every owner has
+        /// released it the soundtrack resumes with a new track, announced like any other.
+        /// </summary>
+        public void SetMusicSilenced(object owner, bool silenced)
+        {
+            if (owner == null) return;
+            var wasSilenced = MusicSilenced;
+            if (silenced) _musicSilencers.Add(owner);
+            else _musicSilencers.Remove(owner);
+            if (music == null || wasSilenced == MusicSilenced) return;
+
+            if (MusicSilenced)
+            {
+                music.Source.Stop();
+                CurrentTrackName = string.Empty;
+            }
+            else if (_playlistRunning)
+            {
                 PlayNextTrack();
             }
-            else
+            else if (_musicBound && music.Source.clip != null)
             {
                 music.Source.Play();
             }
@@ -110,7 +143,8 @@ namespace ApexRivals.Audio.Runtime
 
         private void Update()
         {
-            if (!_playlistRunning || music == null) return;
+            // Silence is not the end of a track: never advance the playlist while the music is held.
+            if (!_playlistRunning || music == null || MusicSilenced) return;
             var source = music.Source;
             if (source.isPlaying)
             {

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Garage.Configuration;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Race.Runtime;

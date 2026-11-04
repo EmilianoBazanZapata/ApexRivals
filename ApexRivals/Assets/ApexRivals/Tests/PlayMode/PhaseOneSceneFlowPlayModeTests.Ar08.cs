@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.RaceSession.Runtime;
 using ApexRivals.SaveSystem.Runtime;
 using ApexRivals.SceneFlow.Runtime;

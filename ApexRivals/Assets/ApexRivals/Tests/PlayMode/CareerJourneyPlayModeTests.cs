@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Career.Configuration;
 using ApexRivals.Career.Runtime;
 using ApexRivals.Garage.Configuration;
@@ -183,31 +184,31 @@ namespace ApexRivals.Tests.PlayMode
             trackSelect.SelectTrack(3);
             Assert.That(trackSelect.Current.CanStartRace, Is.True);
             _playFinaleIntroduction = true;
-            yield return StartFromTrackSelect(trackSelect, "RaceSuzuka");
-            var installer = FindInScene<RaceSessionSceneInstaller>("RaceSuzuka");
+            yield return StartFromTrackSelect(trackSelect, "RaceRiverdale");
+            var installer = FindInScene<RaceSessionSceneInstaller>("RaceRiverdale");
             Assert.That(installer.CareerAttempt.IsFinale, Is.True);
-            Assert.That(installer.CareerAttempt.TrackId, Is.EqualTo("crossover"));
-            Assert.That(FindInScene<RaceCoordinator>("RaceSuzuka").Participants.Count, Is.EqualTo(4), "Fixed final line-up: player and three rivals.");
-            yield return FinishPlayer("RaceSuzuka", playerPosition: 2);
+            Assert.That(installer.CareerAttempt.TrackId, Is.EqualTo("riverdale"));
+            Assert.That(FindInScene<RaceCoordinator>("RaceRiverdale").Participants.Count, Is.EqualTo(4), "Fixed final line-up: player and three rivals.");
+            yield return FinishPlayer("RaceRiverdale", playerPosition: 2);
             Assert.That(_flow.RaceSession.Result.CareerOutcome.IsFinale, Is.True);
             Assert.That(_careerState.FinaleWon, Is.False);
-            Assert.That(TextField(FindInScene<ResultsUguiView>("RaceSuzuka"), "careerTitleText"), Does.Contain("FINAL LOST"));
+            Assert.That(TextField(FindInScene<ResultsUguiView>("RaceRiverdale"), "careerTitleText"), Does.Contain("FINAL LOST"));
 
             // Retry the final from results and win it.
-            retry = Session("RaceSuzuka").Retry();
+            retry = Session("RaceRiverdale").Retry();
             yield return WaitForTask(retry);
             Assert.That(retry.Result.Succeeded, Is.True, retry.Result.Message);
-            Assert.That(FindInScene<RaceSessionSceneInstaller>("RaceSuzuka").CareerAttempt.IsFinale, Is.True, "A retry keeps the final identity.");
-            yield return WaitForRacing("RaceSuzuka");
+            Assert.That(FindInScene<RaceSessionSceneInstaller>("RaceRiverdale").CareerAttempt.IsFinale, Is.True, "A retry keeps the final identity.");
+            yield return WaitForRacing("RaceRiverdale");
             var beforeWin = _progression.Currency;
-            yield return FinishPlayer("RaceSuzuka", playerPosition: 1);
+            yield return FinishPlayer("RaceRiverdale", playerPosition: 1);
             var win = _flow.RaceSession.Result;
             Assert.That(win.CareerOutcome.CareerCompleted, Is.True);
             Assert.That(win.UpdatedCurrency, Is.EqualTo(beforeWin + win.EarnedReward + 2000));
-            Assert.That(TextField(FindInScene<ResultsUguiView>("RaceSuzuka"), "careerTitleText"), Is.EqualTo("CHAMPION! CAREER COMPLETE - 100%"));
+            Assert.That(TextField(FindInScene<ResultsUguiView>("RaceRiverdale"), "careerTitleText"), Is.EqualTo("CHAMPION! CAREER COMPLETE - 100%"));
 
             // Back to the menu: it refreshes; then a restart loads the same career from the saved profile.
-            var toMenu = Session("RaceSuzuka").ReturnToMainMenu();
+            var toMenu = Session("RaceRiverdale").ReturnToMainMenu();
             yield return WaitForTask(toMenu);
             Assert.That(toMenu.Result.Succeeded, Is.True, toMenu.Result.Message);
             yield return null;
@@ -240,7 +241,7 @@ namespace ApexRivals.Tests.PlayMode
             // use the same button as the player (Begin may still be behind loading).
             if (installer.Session.State == RaceSessionLifecycleState.Ready)
             {
-                var presentation = installer.Introduction;
+                var presentation = (PreRacePresentation)installer.Introduction;
                 Assert.That(presentation, Is.Not.Null);
                 var button = new SerializedObject(presentation).FindProperty("startRaceButton").objectReferenceValue as Button;
                 Assert.That(button, Is.Not.Null);

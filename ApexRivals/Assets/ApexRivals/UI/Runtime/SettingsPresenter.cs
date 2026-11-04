@@ -72,6 +72,17 @@ namespace ApexRivals.UI.Runtime
             Render(PresentationFailure.None, string.Empty);
         }
 
+        public void SetGraphics(GraphicsPreferences graphics)
+        {
+            if (_operationActive)
+            {
+                return;
+            }
+
+            _settings.EditGraphics(graphics);
+            Render(PresentationFailure.None, string.Empty);
+        }
+
         public void SetMasterVolume(float value)
         {
             if (_operationActive)
@@ -195,7 +206,8 @@ namespace ApexRivals.UI.Runtime
                 !_operationActive && _settings.HasUnsavedChanges,
                 failure,
                 messageKey ?? string.Empty,
-                _settings.Draft.AmbienceVolume);
+                _settings.Draft.AmbienceVolume,
+                _settings.Draft.Graphics);
         }
 
         private static string ToMessageKey(SettingsOperationStatus status)

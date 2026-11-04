@@ -110,7 +110,7 @@ namespace ApexRivals.Tests.PlayMode
             _playIntroduction = true;
             yield return WaitForTask(_flow.RetryRace());
             var lights = FindInRace<RaceStartLights>();
-            var intro = Installer.Introduction;
+            var intro = (PreRacePresentation)Installer.Introduction;
             var deadline = Time.realtimeSinceStartup + 4f;
             while (intro.ShotIndex < 0 && Time.realtimeSinceStartup < deadline) yield return null;
             Assert.That(intro.IsPresenting, Is.True);

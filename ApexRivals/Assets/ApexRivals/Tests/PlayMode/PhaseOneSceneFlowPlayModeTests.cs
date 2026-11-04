@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.Composition.Runtime;
 using ApexRivals.Garage.Runtime;
 using ApexRivals.Garage.Configuration;
 using ApexRivals.Progression.Configuration;
@@ -813,7 +814,7 @@ namespace ApexRivals.Tests.PlayMode
                 if (raceInstaller != null) raceInstaller.PlayIntroduction = _playIntroduction;
                 if (raceInstaller != null && raceInstaller.Introduction != null)
                 {
-                    var intro = raceInstaller.Introduction;
+                    var intro = (PreRacePresentation)raceInstaller.Introduction;
                     var refs = new UnityEditor.SerializedObject(intro);
                     refs.FindProperty("waitForStart").boolValue = _confirmCarPresentation;
                     if (_confirmCarPresentation)

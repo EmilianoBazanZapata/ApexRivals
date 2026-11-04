@@ -22,6 +22,9 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private string windowedLabel = "WINDOWED";
         [SerializeField] private string exclusiveFullscreenLabel = "EXCLUSIVE FULLSCREEN";
         [SerializeField] private string borderlessLabel = "BORDERLESS";
+        [SerializeField] private string[] graphicsQualityLabels = { "LOW", "MEDIUM", "HIGH" };
+        [SerializeField] private string[] postProcessingLabels = { "OFF", "ON" };
+        [SerializeField] private string[] antiAliasingLabels = { "OFF", "FXAA", "SMAA" };
 
         [SerializeField] private Button displayTabButton;
         [SerializeField] private Button audioTabButton;
@@ -31,6 +34,9 @@ namespace ApexRivals.UI.Runtime
         [SerializeField] private GameObject controlsPanel;
         [SerializeField] private SettingsOptionSelector resolutionSelector;
         [SerializeField] private SettingsOptionSelector fullScreenModeSelector;
+        [SerializeField, Tooltip("Optional graphics rows: quality level, post processing and anti-aliasing.")] private SettingsOptionSelector graphicsQualitySelector;
+        [SerializeField] private SettingsOptionSelector postProcessingSelector;
+        [SerializeField] private SettingsOptionSelector antiAliasingSelector;
         [SerializeField] private Slider masterVolumeSlider;
         [SerializeField] private Slider musicVolumeSlider;
         [SerializeField, FormerlySerializedAs("sfxVolumeSlider")] private Slider uiVolumeSlider;
@@ -67,6 +73,7 @@ namespace ApexRivals.UI.Runtime
         private bool _displayOptionsRendered;
         private FullScreenMode _renderedFullScreenMode;
         private bool _renderedCanApply;
+        private GraphicsPreferences _graphics = GraphicsPreferences.Default;
 
         public void Bind(SettingsPresenter presenter, IPresentationScreenNavigator navigator, PresentationScreenState cancelTarget)
         {
@@ -96,6 +103,8 @@ namespace ApexRivals.UI.Runtime
                 RenderFullScreenSelector(viewModel.FullScreenMode);
                 _displayOptionsRendered = true;
             }
+
+            if (!_displayOptionsRendered || _graphics != viewModel.Graphics || displayChanged) RenderGraphicsSelectors(viewModel.Graphics);
             SetSlider(masterVolumeSlider, viewModel.MasterVolume);
             SetSlider(musicVolumeSlider, viewModel.MusicVolume);
             SetSlider(uiVolumeSlider, viewModel.UiVolume);
@@ -183,6 +192,10 @@ namespace ApexRivals.UI.Runtime
                 fullScreenModeSelector.ValueChanged += OnFullScreenModeChanged;
             }
 
+            if (graphicsQualitySelector != null) graphicsQualitySelector.ValueChanged += OnGraphicsQualityChanged;
+            if (postProcessingSelector != null) postProcessingSelector.ValueChanged += OnPostProcessingChanged;
+            if (antiAliasingSelector != null) antiAliasingSelector.ValueChanged += OnAntiAliasingChanged;
+
             if (masterVolumeSlider != null)
             {
                 masterVolumeSlider.onValueChanged.AddListener(OnMasterVolumeChanged);
@@ -258,6 +271,10 @@ namespace ApexRivals.UI.Runtime
                 fullScreenModeSelector.ValueChanged -= OnFullScreenModeChanged;
             }
 
+            if (graphicsQualitySelector != null) graphicsQualitySelector.ValueChanged -= OnGraphicsQualityChanged;
+            if (postProcessingSelector != null) postProcessingSelector.ValueChanged -= OnPostProcessingChanged;
+            if (antiAliasingSelector != null) antiAliasingSelector.ValueChanged -= OnAntiAliasingChanged;
+
             if (masterVolumeSlider != null)
             {
                 masterVolumeSlider.onValueChanged.RemoveListener(OnMasterVolumeChanged);
@@ -319,6 +336,24 @@ namespace ApexRivals.UI.Runtime
             }
 
             _presenter?.SetFullScreenMode(_fullScreenModeOptions[index]);
+        }
+
+        private void OnGraphicsQualityChanged(int index)
+        {
+            if (_rendering || index < 0 || index > (int)GraphicsQuality.High) return;
+            _presenter?.SetGraphics(_graphics.WithQuality((GraphicsQuality)index));
+        }
+
+        private void OnPostProcessingChanged(int index)
+        {
+            if (_rendering || index < 0 || index > 1) return;
+            _presenter?.SetGraphics(_graphics.WithPostProcessing(index == 1));
+        }
+
+        private void OnAntiAliasingChanged(int index)
+        {
+            if (_rendering || index < 0 || index > (int)AntiAliasingMode.Smaa) return;
+            _presenter?.SetGraphics(_graphics.WithAntiAliasing((AntiAliasingMode)index));
         }
 
         private void OnMasterVolumeChanged(float value)
@@ -496,6 +531,14 @@ namespace ApexRivals.UI.Runtime
             resolutionSelector?.SetOptions(labels, selectedIndex);
         }
 
+        private void RenderGraphicsSelectors(GraphicsPreferences graphics)
+        {
+            _graphics = graphics;
+            graphicsQualitySelector?.SetOptions(graphicsQualityLabels, (int)graphics.Quality);
+            postProcessingSelector?.SetOptions(postProcessingLabels, graphics.PostProcessing ? 1 : 0);
+            antiAliasingSelector?.SetOptions(antiAliasingLabels, (int)graphics.AntiAliasing);
+        }
+
         private void RenderFullScreenSelector(FullScreenMode selectedMode)
         {
             var labels = new List<string>(_fullScreenModeOptions.Count);
@@ -522,6 +565,9 @@ namespace ApexRivals.UI.Runtime
             {
                 AddRowIfPresent(rows, resolutionSelector);
                 AddRowIfPresent(rows, fullScreenModeSelector);
+                AddRowIfPresent(rows, graphicsQualitySelector);
+                AddRowIfPresent(rows, postProcessingSelector);
+                AddRowIfPresent(rows, antiAliasingSelector);
             }
             else if (_currentTab == SettingsTab.Audio)
             {

@@ -47,7 +47,7 @@ namespace ApexRivals.AI.Runtime
         [SerializeField, Min(0f)] private float rejoinTargetSpeed = 9f;
 
         [Header("Braking And Obstacles")]
-        [SerializeField, Min(0.1f), Tooltip("Deceleration the vehicle can sustain under full braking (m/s²).")] private float brakingDeceleration = 4.5f;
+        [SerializeField, Min(0.1f), Tooltip("Deceleration the vehicle can sustain under full braking (m/sÂ²).")] private float brakingDeceleration = 4.5f;
         [SerializeField, Range(0.1f, 1f), Tooltip("Strongest brake input the driver uses; full brakes destabilise the car at speed.")] private float maximumBrake = 0.75f;
         [SerializeField] private LayerMask obstacleLayers = Physics.DefaultRaycastLayers;
         [SerializeField, Min(0.05f)] private float obstacleProbeRadius = 0.8f;
@@ -629,7 +629,7 @@ namespace ApexRivals.AI.Runtime
             return true;
         }
 
-        internal bool TryValidateVehicleRuntimeReference(out string message) => TryResolveVehicleRuntime(out _, out message);
+        public bool TryValidateVehicleRuntimeReference(out string message) => TryResolveVehicleRuntime(out _, out message);
 
         private bool TryResolveVehicleRuntime(out IVehicleRuntime runtime, out string message)
         {

@@ -82,6 +82,11 @@ namespace ApexRivals.Settings.Runtime
             Draft = Draft.WithFullScreenMode(fullScreenMode);
         }
 
+        public void EditGraphics(GraphicsPreferences graphics)
+        {
+            Draft = Draft.WithGraphics(graphics);
+        }
+
         public void EditMasterVolume(float value)
         {
             Draft = Draft.WithMasterVolume(value);

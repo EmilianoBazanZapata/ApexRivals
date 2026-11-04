@@ -1,3 +1,4 @@
+using ApexRivals.Core.Runtime;
 using System;
 using System.Threading.Tasks;
 
@@ -146,7 +147,7 @@ namespace ApexRivals.SceneFlow.Runtime
         }
 
         // Session completion already owns the retained result; navigation only presents it.
-        internal bool ShowStoredRaceResults()
+        public bool ShowStoredRaceResults()
         {
             if (State != ApplicationState.Race)
             {

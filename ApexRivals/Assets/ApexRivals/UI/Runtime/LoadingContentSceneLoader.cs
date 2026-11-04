@@ -5,13 +5,6 @@ using ApexRivals.SceneFlow.Runtime;
 
 namespace ApexRivals.UI.Runtime
 {
-    public interface ISceneLoadingPresentation
-    {
-        bool IsVisible { get; }
-        Task ShowAsync();
-        void Hide(bool succeeded);
-    }
-
     /// <summary>Presentation around accepted content loads; scene-flow validation remains the owner of navigation.</summary>
     public sealed class LoadingContentSceneLoader : IContentSceneLoader
     {
