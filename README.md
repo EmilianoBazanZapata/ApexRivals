@@ -181,7 +181,6 @@ Third-party content:
 
 - [Kenney Racing Kit](https://www.kenney.nl) — CC0.
 - Car models (`Assets/ThirdParty/CircuitCars`). <!-- TODO: add author and license -->
-- Hand Painted Skybox by BD Studios (`Assets/ThirdParty/BDStudios`). <!-- TODO: add license/link -->
 - Soundtrack: Brimstone Carnage, Hammer of the Wasteland, Juggernaut Uprising, Relentless Damnation, Ritual Velocity, Vantablack Momentum. <!-- TODO: add author and license -->
 
 ## License
