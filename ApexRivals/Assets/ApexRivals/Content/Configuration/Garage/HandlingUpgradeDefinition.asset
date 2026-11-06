@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b0bfd41b3d8f0de4c9c7342599a9f1ec, type: 3}
   m_Name: HandlingUpgradeDefinition
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   upgradeType: 1
   levels:
   - price: 200

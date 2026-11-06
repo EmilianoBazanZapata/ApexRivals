@@ -2,25 +2,40 @@
 
 # 🏎️ Apex Rivals — `archive/blocking`
 
-> **Rama archivada.** Prototipo inicial (MVP) de Apex Rivals, conservado como registro de cómo empezó el proyecto.
+> **Rama archivada.** El prototipo jugable de Apex Rivals entregado en el Primer Parcial, con todo su historial de desarrollo.
 
-Esta fue la rama de trabajo mientras se armaba el primer prototipo jugable, entre el **1 y el 5 de septiembre de 2026**. Sus 19 commits se mantienen separados a propósito, para poder revisar cada paso inicial por separado. Ya no se desarrolla: el juego terminado está en [`main`](../../tree/main).
+Esta fue la rama principal de trabajo mientras se construía y se hacía el blocking de la primera versión jugable, entre el **1 y el 14 de septiembre de 2026**, mediante los **pull requests 55 a 72**. Ya no se desarrolla: el juego terminado está en [`main`](../../tree/main).
 
-## Qué se construyó en el prototipo
+## Qué contiene el prototipo
 
-| Área | Commits |
+| Área | Prototipo |
 | --- | --- |
-| Proyecto | Estructura inicial de la demo, arquitectura y assemblies de tests |
-| Conducción | Vertical slice de conducción arcade |
-| Carrera | Progresión por checkpoints y vueltas |
-| IA | Rivales que siguen waypoints y dificultad según las carreras |
-| Progresión | Ciclo de recompensas y mejoras en el garage |
-| Guardado | Persistencia mínima del perfil del jugador |
-| Selección de autos | Catálogo de autos, preparación de la carrera y elección inicial bloqueada |
-| Sesión de carrera | Ciclo de vida de la carrera y recompensas |
-| Interfaz y configuración | Presenters y preferencias solo en código, y luego las pantallas funcionales de la demo |
+| Circuito | Un circuito en greybox (blocking) con checkpoints ordenados, línea de largada y llegada, y obstáculos |
+| Carrera | Cuenta regresiva, una vuelta, posición en vivo, llegada y resultados |
+| IA | Un rival experimental que sigue una línea de carrera |
+| Autos | Vanguard y Striker |
+| Garage | Selección de auto con vista previa, mejoras de Motor y Manejo, dinero |
+| Progresión | Recompensas según la posición de llegada |
+| Guardado | Perfil del jugador en JSON versionado, con backup |
+| Interfaz | Menú principal, configuración, garage, HUD, pausa y resultados |
+| Input | Teclado y gamepad compatible con Xbox |
 
-Acá se hizo el greyboxing y blocking del primer circuito, de ahí el nombre de la rama.
+## Historial
+
+| Pull requests | Hito |
+| --- | --- |
+| 55 – 57 | Estructura del proyecto, núcleo del runtime y vehículo con ruedas |
+| 58 – 60 | Selección de autos, progresión, mejoras, guardado, flujo de escenas, menú principal y configuración |
+| 61 – 63 | Piloto de IA, progresión de carreras y arranque de la aplicación |
+| 64 – 67 | Autos de producción y experiencia de menú principal y garage |
+| 69 – 70 | Presentación de la escena de carrera e integración del arranque |
+| 71 – 72 | Cobertura de tests y correcciones del HUD |
+
+La rama también conserva el primer esqueleto del proyecto, solo con código (1 al 5 de septiembre), unido a este historial.
+
+## Cómo abrirlo
+
+Abrí la carpeta `ApexRivals` con Unity **6000.3.5f2** y dale Play a `Assets/ApexRivals/Scenes/Bootstrap.unity`, o abrí `Race.unity` para ver el circuito en greybox.
 
 ## Ramas
 
@@ -28,7 +43,7 @@ Acá se hizo el greyboxing y blocking del primer circuito, de ahí el nombre de 
 | --- | --- |
 | [`main`](../../tree/main) | Versión actual (1.0) |
 | [`release/1.0`](../../tree/release/1.0) | Versión 1.0 con todo el historial |
-| `archive/blocking` | Esta rama: prototipo inicial / MVP |
+| `archive/blocking` | Esta rama: prototipo del Primer Parcial |
 
 ---
 

@@ -11,7 +11,7 @@ namespace ApexRivals.Garage.Runtime
             int level,
             int price,
             int currency,
-            ArcadeVehicleStats effectiveStats)
+            VehiclePerformanceStats effectiveStats)
         {
             Status = status;
             UpgradeType = upgradeType;
@@ -26,7 +26,7 @@ namespace ApexRivals.Garage.Runtime
         public int Level { get; }
         public int Price { get; }
         public int Currency { get; }
-        public ArcadeVehicleStats EffectiveStats { get; }
+        public VehiclePerformanceStats EffectiveStats { get; }
         public bool Succeeded => Status == UpgradePurchaseStatus.Succeeded;
     }
 }

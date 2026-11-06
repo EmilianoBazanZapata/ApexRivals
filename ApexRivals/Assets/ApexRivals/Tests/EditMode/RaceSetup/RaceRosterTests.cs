@@ -98,6 +98,22 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             var result = roster.Validate(CreateCatalog(), 1);
 
             Assert.That(result.Status, Is.EqualTo(RaceRosterValidationStatus.InsufficientSpawnPoints));
+            Assert.That(result.Message, Is.EqualTo("Race requires 2 grid slots for 1 player + 1 AI opponents, but StartingGrid contains 1."));
+        }
+
+        [Test]
+        public void Validate_OnePlayerAndThreeAiWithThreeGridSlots_FailsWithRequiredCapacity()
+        {
+            var roster = CreateRoster(
+                Player("Player", "starter", 0),
+                AI("AI_01", "starter", 1, "standard"),
+                AI("AI_02", "starter", 2, "standard"),
+                AI("AI_03", "starter", 3, "standard"));
+
+            var result = roster.Validate(CreateCatalog(), 3);
+
+            Assert.That(result.Status, Is.EqualTo(RaceRosterValidationStatus.InsufficientSpawnPoints));
+            Assert.That(result.Message, Is.EqualTo("Race requires 4 grid slots for 1 player + 3 AI opponents, but StartingGrid contains 3."));
         }
 
         private static RaceRoster CreateRoster(params RaceRosterEntry[] entries)
@@ -117,7 +133,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
 
         private static VehicleCatalog CreateCatalog()
         {
-            var configuration = ScriptableObject.CreateInstance<ArcadeVehicleConfiguration>();
+            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
             var prefab = new GameObject("VehiclePrefab");
             return new VehicleCatalog(new[]
             {

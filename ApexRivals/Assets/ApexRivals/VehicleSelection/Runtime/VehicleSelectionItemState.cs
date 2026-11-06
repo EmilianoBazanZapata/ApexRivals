@@ -9,8 +9,8 @@ namespace ApexRivals.VehicleSelection.Runtime
             string displayName,
             bool selectable,
             bool selected,
-            ArcadeVehicleStats baseStats,
-            ArcadeVehicleStats effectivePlayerStats)
+            VehiclePerformanceStats baseStats,
+            VehiclePerformanceStats effectivePlayerStats)
         {
             VehicleId = vehicleId;
             DisplayName = displayName;
@@ -24,7 +24,7 @@ namespace ApexRivals.VehicleSelection.Runtime
         public string DisplayName { get; }
         public bool Selectable { get; }
         public bool Selected { get; }
-        public ArcadeVehicleStats BaseStats { get; }
-        public ArcadeVehicleStats EffectivePlayerStats { get; }
+        public VehiclePerformanceStats BaseStats { get; }
+        public VehiclePerformanceStats EffectivePlayerStats { get; }
     }
 }

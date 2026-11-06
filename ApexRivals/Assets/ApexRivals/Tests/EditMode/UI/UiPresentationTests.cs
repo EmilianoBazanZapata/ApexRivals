@@ -20,16 +20,17 @@ namespace ApexRivals.Tests.EditMode.UI
     public sealed class UiPresentationTests
     {
         [Test]
-        public async Task MainMenu_StartRoutesToInitialSelectionUntilVehicleIsConfirmed()
+        public async Task MainMenu_StartRoutesToGarageUntilVehicleIsConfirmed()
         {
             var context = CreateUiContext();
+            await context.SceneFlow.OpenMainMenu();
             var progress = new FakeSelectionProgress();
             var presenter = new MainMenuPresenter(new FakeMainMenuView(), context.SceneFlow, progress, context.ScreenNavigator, new FakeApplicationExit());
 
             await presenter.StartOrContinue();
 
-            Assert.That(context.ScreenNavigator.CurrentScreen, Is.EqualTo(PresentationScreenState.VehicleSelection));
-            Assert.That(context.Loader.LoadCount, Is.Zero);
+            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Garage));
+            Assert.That(context.Loader.LastSceneId, Is.EqualTo(ContentSceneId.Garage));
         }
 
         [Test]
@@ -86,8 +87,8 @@ namespace ApexRivals.Tests.EditMode.UI
             presenter.Present();
 
             Assert.That(presenter.Current.Vehicles.Count, Is.EqualTo(2));
-            Assert.That(presenter.Current.Vehicles[0].VehicleId, Is.EqualTo("starter"));
-            Assert.That(presenter.Current.Vehicles[0].EffectiveStats.ForwardAcceleration, Is.GreaterThan(0f));
+            Assert.That(presenter.Current.Vehicles[0].VehicleId, Is.EqualTo("vanguard"));
+            Assert.That(presenter.Current.Vehicles[0].EffectiveStats.Acceleration, Is.GreaterThan(0f));
         }
 
         [Test]
@@ -97,9 +98,9 @@ namespace ApexRivals.Tests.EditMode.UI
             var presenter = new VehicleSelectionPresenter(new FakeVehicleSelectionView(), context.VehicleSelection, context.SceneFlow);
             presenter.Present();
 
-            presenter.Select("sport");
+            presenter.Select("striker");
 
-            Assert.That(presenter.Current.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(presenter.Current.SelectedVehicleId, Is.EqualTo("striker"));
             Assert.That(presenter.Current.Failure, Is.EqualTo(PresentationFailure.None));
         }
 
@@ -115,7 +116,7 @@ namespace ApexRivals.Tests.EditMode.UI
         }
 
         [Test]
-        public async Task VehicleSelection_ConfirmationRequestsGarageFlow()
+        public async Task VehicleSelection_ConfirmationRequestsRaceFlow()
         {
             var context = CreateUiContext();
             await context.SceneFlow.OpenMainMenu();
@@ -124,7 +125,7 @@ namespace ApexRivals.Tests.EditMode.UI
             presenter.ConfirmSelection();
             await presenter.Continue();
 
-            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Garage));
+            Assert.That(context.SceneFlow.State, Is.EqualTo(ApplicationState.Race));
         }
 
         [Test]
@@ -153,7 +154,7 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(presenter.Current.Currency, Is.EqualTo(100));
             Assert.That(presenter.Current.Engine.CurrentLevel, Is.EqualTo(1));
             Assert.That(presenter.Current.PurchaseStatus, Is.EqualTo(PresentationStatus.Succeeded));
-            Assert.That(presenter.Current.EffectiveStats.ForwardAcceleration, Is.GreaterThan(CreateBaseStats().ForwardAcceleration));
+            Assert.That(presenter.Current.EffectiveStats.Acceleration, Is.GreaterThan(CreateBaseStats().Acceleration));
         }
 
         [Test]
@@ -196,6 +197,22 @@ namespace ApexRivals.Tests.EditMode.UI
             Assert.That(presenter.Current.CountdownValue, Is.EqualTo(2.5f));
             Assert.That(presenter.Current.ElapsedRaceTime, Is.EqualTo(12.75f));
             Assert.That(source.MutationCount, Is.Zero);
+        }
+
+        [Test]
+        public void RaceHud_PositionChangeRefreshesTheDisplayedPlayerPosition()
+        {
+            var source = new FakeRaceHudSource
+            {
+                SnapshotValue = new RaceHudSnapshot(1, 1, 2, 2, 0f, 10f)
+            };
+            var presenter = new RaceHudPresenter(new FakeRaceHudView(), source);
+
+            source.SnapshotValue = new RaceHudSnapshot(1, 1, 1, 2, 0f, 10f);
+            source.RaisePositionChanged();
+
+            Assert.That(presenter.Current.CurrentPosition, Is.EqualTo(1));
+            Assert.That(presenter.Current.ParticipantCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -344,7 +361,7 @@ namespace ApexRivals.Tests.EditMode.UI
             var activeLoader = loader ?? new FakeSceneLoader();
             var sceneFlow = new SceneFlowService(new SceneFlowSceneMap("MainMenu", "Garage", "Race"), activeLoader);
             var progression = new PlayerProgressionState(startingCurrency);
-            var selected = new SelectedVehicleState("starter", vehicleCommitted);
+            var selected = new SelectedVehicleState("vanguard", vehicleCommitted);
             var vehicleSelection = new VehicleSelectionService(CreateCatalog(), selected, new FakeSelectionSaveCheckpoint(), progression, CreateEngineDefinition(), CreateHandlingDefinition());
             var garage = new GarageService(progression, CreateEngineDefinition(), CreateHandlingDefinition(), CreateBaseStats());
             return new UiContext(sceneFlow, activeLoader, new PresentationScreenNavigator(), progression, vehicleSelection, garage);
@@ -391,19 +408,20 @@ namespace ApexRivals.Tests.EditMode.UI
         {
             return new VehicleCatalog(new[]
             {
-                CreateVehicle("starter", true),
-                CreateVehicle("sport", true),
+                CreateVehicle("starter", true, false),
+                CreateVehicle("vanguard", true),
+                CreateVehicle("striker", true),
                 CreateVehicle("locked", false)
             }, "starter");
         }
 
-        private static VehicleDefinitionData CreateVehicle(string id, bool available)
+        private static VehicleDefinitionData CreateVehicle(string id, bool available, bool hasPrefab = true)
         {
-            var configuration = ScriptableObject.CreateInstance<ArcadeVehicleConfiguration>();
-            configuration.forwardAcceleration = 10f;
-            configuration.maximumForwardSpeed = 20f;
-            configuration.steeringStrength = 30f;
-            return new VehicleDefinitionData(id, id, string.Empty, configuration, new GameObject($"{id}Prefab"), null, available);
+            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
+            configuration.performanceAcceleration = 10f;
+            configuration.performanceTopSpeed = 20f;
+            configuration.performanceSteering = 30f;
+            return new VehicleDefinitionData(id, id, string.Empty, configuration, hasPrefab ? new GameObject($"{id}Prefab") : null, null, available);
         }
 
         private static UpgradeDefinitionData CreateEngineDefinition()
@@ -424,9 +442,9 @@ namespace ApexRivals.Tests.EditMode.UI
             });
         }
 
-        private static ArcadeVehicleStats CreateBaseStats()
+        private static VehiclePerformanceStats CreateBaseStats()
         {
-            return new ArcadeVehicleStats(40f, 20f, 60f, 30f, 10f, 90f, 0.2f, 1.2f, 0.8f, 0.4f, 30f, 0.75f, -1, 0.75f, 0.5f);
+            return new VehiclePerformanceStats(40f, 30f, 90f, 0.8f, 0.4f);
         }
 
         private sealed class UiContext
@@ -572,11 +590,14 @@ namespace ApexRivals.Tests.EditMode.UI
 
         private sealed class FakeRaceHudSource : IRaceHudSource
         {
+            // The test double exposes the complete contract; individual tests raise only the events they need.
+#pragma warning disable CS0067
             public event Action<CountdownChangedEvent> CountdownChanged;
             public event Action<LapCompletedEvent> LapCompleted;
             public event Action<PositionChangedEvent> PositionChanged;
             public event Action<RaceStartedEvent> RaceStarted;
             public event Action<RacerFinishedEvent> RacerFinished;
+#pragma warning restore CS0067
 
             public RaceHudSnapshot SnapshotValue { get; set; }
             public bool RacingInputActiveValue { get; set; }
@@ -588,13 +609,20 @@ namespace ApexRivals.Tests.EditMode.UI
             {
                 LapCompleted?.Invoke(new LapCompletedEvent("Player", 1, 3));
             }
+
+            public void RaisePositionChanged()
+            {
+                PositionChanged?.Invoke(new PositionChangedEvent("Player", 1));
+            }
         }
 
         private sealed class FakeUiInputSource : IUiInputSource
         {
+#pragma warning disable CS0067
             public event Action Submitted;
             public event Action Canceled;
             public event Action PausePressed;
+#pragma warning restore CS0067
 
             public void RaiseCanceled()
             {
@@ -702,9 +730,15 @@ namespace ApexRivals.Tests.EditMode.UI
         private sealed class FakeRaceSessionRaceController : IRaceSessionRaceController
         {
             public event Action<RaceStartedEvent> RaceStarted;
+#pragma warning disable CS0067 // Required by IRaceSessionRaceController; this UI test double does not raise position events.
+            public event Action<PositionChangedEvent> PositionChanged;
+#pragma warning restore CS0067
             public event Action<RacerFinishedEvent> RacerFinished;
 
             public Transform PlayerCameraTarget => null;
+            public Rigidbody PlayerVehicleRigidbody => null;
+            public IDrivingInputProvider PlayerInputProvider => null;
+            public IVehicleTelemetry PlayerVehicleTelemetry => null;
 
             public bool ConfigureForSession(RaceSetupOutput setupOutput, string playerParticipantId, out string message)
             {
@@ -718,6 +752,10 @@ namespace ApexRivals.Tests.EditMode.UI
             }
 
             public void BlockDriving()
+            {
+            }
+
+            public void AllowDriving()
             {
             }
 

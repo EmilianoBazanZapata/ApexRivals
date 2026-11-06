@@ -9,13 +9,13 @@ namespace ApexRivals.Garage.Runtime
         private readonly PlayerProgressionState _progressionState;
         private readonly UpgradeDefinitionData _engineDefinition;
         private readonly UpgradeDefinitionData _handlingDefinition;
-        private readonly Func<ArcadeVehicleStats> _baseStatsProvider;
+        private readonly Func<VehiclePerformanceStats> _baseStatsProvider;
 
         public GarageService(
             PlayerProgressionState progressionState,
             UpgradeDefinitionData engineDefinition,
             UpgradeDefinitionData handlingDefinition,
-            ArcadeVehicleStats baseStats)
+            VehiclePerformanceStats baseStats)
             : this(progressionState, engineDefinition, handlingDefinition, () => baseStats)
         {
         }
@@ -24,7 +24,7 @@ namespace ApexRivals.Garage.Runtime
             PlayerProgressionState progressionState,
             UpgradeDefinitionData engineDefinition,
             UpgradeDefinitionData handlingDefinition,
-            Func<ArcadeVehicleStats> baseStatsProvider)
+            Func<VehiclePerformanceStats> baseStatsProvider)
         {
             _progressionState = progressionState ?? throw new ArgumentNullException(nameof(progressionState));
             _engineDefinition = engineDefinition ?? throw new ArgumentNullException(nameof(engineDefinition));
@@ -80,7 +80,7 @@ namespace ApexRivals.Garage.Runtime
             return CreateResult(UpgradePurchaseStatus.Succeeded, upgradeType, currentLevel + 1, price);
         }
 
-        public ArcadeVehicleStats CalculateEffectiveStats()
+        public VehiclePerformanceStats CalculateEffectiveStats()
         {
             return VehicleUpgradeStatCalculator.Calculate(_baseStatsProvider(), _progressionState, _engineDefinition, _handlingDefinition);
         }
@@ -89,12 +89,14 @@ namespace ApexRivals.Garage.Runtime
         {
             var level = _progressionState.GetUpgradeLevel(definition.UpgradeType);
             var nextPrice = definition.GetNextPrice(level);
+            var benefitLevel = definition.HasNextLevel(level) ? level + 1 : level;
             return new GarageUpgradeState(
                 definition.UpgradeType,
                 level,
                 definition.MaximumLevel,
                 nextPrice,
-                definition.HasNextLevel(level) && _progressionState.CanAfford(nextPrice));
+                definition.HasNextLevel(level) && _progressionState.CanAfford(nextPrice),
+                definition.GetModifierForLevel(benefitLevel));
         }
 
         private UpgradeDefinitionData GetDefinition(UpgradeType upgradeType)

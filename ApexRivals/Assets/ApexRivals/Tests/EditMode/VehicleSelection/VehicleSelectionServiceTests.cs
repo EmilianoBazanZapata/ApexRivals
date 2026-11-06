@@ -28,10 +28,10 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var eventCount = 0;
             service.SelectionChanged += _ => eventCount++;
 
-            var result = service.Select("sport");
+            var result = service.Select("striker");
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("sport"));
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("striker"));
             Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
             Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
             Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(0));
@@ -44,10 +44,10 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var selectedVehicleState = new SelectedVehicleState();
             var service = CreateService(selectedVehicleState, new FakeSelectionSaveCheckpoint());
 
-            service.Select("sport");
+            service.Select("striker");
             service.CancelPreview();
 
-            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("starter"));
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("vanguard"));
             Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
             Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
         }
@@ -89,7 +89,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var eventCount = 0;
             service.SelectionChanged += _ => eventCount++;
 
-            var result = service.Select("starter");
+            var result = service.Select("vanguard");
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(0));
@@ -105,12 +105,12 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var committedCount = 0;
             service.VehicleSelectionCommitted += _ => committedCount++;
 
-            service.Select("sport");
+            service.Select("striker");
             var result = service.ConfirmSelection();
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.True);
-            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("striker"));
             Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(1));
             Assert.That(committedCount, Is.EqualTo(1));
         }
@@ -122,7 +122,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var selectedVehicleState = new SelectedVehicleState();
             var service = CreateService(selectedVehicleState, saveCheckpoint);
 
-            service.Select("sport");
+            service.Select("striker");
             var result = service.ConfirmSelection();
 
             Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.SaveFailed));
@@ -140,27 +140,28 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var committedCount = 0;
             service.VehicleSelectionCommitted += _ => committedCount++;
 
-            service.Select("sport");
+            service.Select("striker");
             service.ConfirmSelection();
             var result = service.ConfirmSelection();
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("striker"));
             Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(1));
             Assert.That(committedCount, Is.EqualTo(1));
         }
 
         [Test]
-        public void Select_DifferentVehicleAfterCommitment_IsRejectedWithoutSaving()
+        public void Select_DifferentVehicleAfterCommitment_UpdatesCandidateWithoutSaving()
         {
             var saveCheckpoint = new FakeSelectionSaveCheckpoint();
-            var selectedVehicleState = new SelectedVehicleState("starter", true);
+            var selectedVehicleState = new SelectedVehicleState("vanguard", true);
             var service = CreateService(selectedVehicleState, saveCheckpoint);
 
-            var result = service.Select("sport");
+            var result = service.Select("striker");
 
-            Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.SelectionLocked));
-            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("starter"));
+            Assert.That(result.Status, Is.EqualTo(VehicleSelectionStatus.Succeeded));
+            Assert.That(selectedVehicleState.SelectedVehicleId, Is.EqualTo("vanguard"));
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("striker"));
             Assert.That(saveCheckpoint.SaveCount, Is.EqualTo(0));
         }
 
@@ -170,14 +171,14 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             var progression = new PlayerProgressionState();
             progression.SetUpgradeLevel(UpgradeType.Engine, 1);
             progression.SetUpgradeLevel(UpgradeType.Handling, 1);
-            var selectedVehicleState = new SelectedVehicleState("starter", true);
+            var selectedVehicleState = new SelectedVehicleState("vanguard", true);
             var service = CreateService(selectedVehicleState, new FakeSelectionSaveCheckpoint(), progression);
 
             var state = service.GetState();
 
-            Assert.That(state.SelectedVehicleId, Is.EqualTo("starter"));
-            Assert.That(state.SelectedVehicle.EffectivePlayerStats.ForwardAcceleration, Is.GreaterThan(state.SelectedVehicle.BaseStats.ForwardAcceleration));
-            Assert.That(state.SelectedVehicle.EffectivePlayerStats.SteeringStrength, Is.GreaterThan(state.SelectedVehicle.BaseStats.SteeringStrength));
+            Assert.That(state.SelectedVehicleId, Is.EqualTo("vanguard"));
+            Assert.That(state.SelectedVehicle.EffectivePlayerStats.Acceleration, Is.GreaterThan(state.SelectedVehicle.BaseStats.Acceleration));
+            Assert.That(state.SelectedVehicle.EffectivePlayerStats.Steering, Is.GreaterThan(state.SelectedVehicle.BaseStats.Steering));
         }
 
         [Test]
@@ -191,7 +192,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
             Assert.That(result.Succeeded, Is.True);
             Assert.That(selectedVehicleState.HasCommittedVehicleSelection, Is.False);
             Assert.That(selectedVehicleState.SelectedVehicleId, Is.Empty);
-            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("starter"));
+            Assert.That(service.CurrentCandidateVehicleId, Is.EqualTo("vanguard"));
         }
 
         private static VehicleSelectionService CreateService(
@@ -212,19 +213,20 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
         {
             return new VehicleCatalog(new[]
             {
-                CreateVehicle("starter", true),
-                CreateVehicle("sport", true),
+                CreateVehicle("starter", true, false),
+                CreateVehicle("vanguard", true),
+                CreateVehicle("striker", true),
                 CreateVehicle("locked", false)
             }, "starter");
         }
 
-        private static VehicleDefinitionData CreateVehicle(string id, bool available)
+        private static VehicleDefinitionData CreateVehicle(string id, bool available, bool hasPrefab = true)
         {
-            var configuration = ScriptableObject.CreateInstance<ArcadeVehicleConfiguration>();
-            configuration.forwardAcceleration = 10f;
-            configuration.maximumForwardSpeed = 20f;
-            configuration.steeringStrength = 30f;
-            return new VehicleDefinitionData(id, id, string.Empty, configuration, new GameObject($"{id}Prefab"), null, available);
+            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
+            configuration.performanceAcceleration = 10f;
+            configuration.performanceTopSpeed = 20f;
+            configuration.performanceSteering = 30f;
+            return new VehicleDefinitionData(id, id, string.Empty, configuration, hasPrefab ? new GameObject($"{id}Prefab") : null, null, available);
         }
 
         private static UpgradeDefinitionData CreateEngineDefinition()

@@ -8,10 +8,19 @@ namespace ApexRivals.UI.Runtime
     public sealed class MainMenuUguiView : MonoBehaviour, IMainMenuView
     {
         [SerializeField] private Text titleText;
+        [SerializeField] private Text startButtonPrimaryText;
+        [SerializeField] private Text startButtonDescriptionText;
+        [SerializeField] private Text garageButtonPrimaryText;
+        [SerializeField] private Text garageButtonDescriptionText;
+        [SerializeField] private Text settingsButtonPrimaryText;
+        [SerializeField] private Text settingsButtonDescriptionText;
+        [SerializeField] private Text quitButtonPrimaryText;
+        [SerializeField] private Text quitButtonDescriptionText;
         [SerializeField] private Button startButton;
         [SerializeField] private Button garageButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button quitButton;
+        [SerializeField] private UguiMainMenuNavigationController navigationController;
         [SerializeField] private GameObject loadingBlocker;
         [SerializeField] private Text errorText;
 
@@ -28,18 +37,43 @@ namespace ApexRivals.UI.Runtime
         public void Render(MainMenuViewModel viewModel)
         {
             _current = viewModel;
-            UguiViewText.Set(titleText, "Apex Rivals");
+            // titleText points at the "APEX" half of the stylized ApexRivalsLogo
+            // (ApexMark + APEXText + RIVALSText). It is static branding art, not
+            // view-model data - writing the full "Apex Rivals" string into it here
+            // used to duplicate "RIVALS" beneath the separate RIVALSText sibling.
             SetButton(startButton, viewModel.CanStartOrContinue);
             SetButton(garageButton, viewModel.CanOpenGarage);
             SetButton(settingsButton, viewModel.CanOpenSettings);
             SetButton(quitButton, viewModel.CanQuit);
-            UguiViewText.Set(startButton != null ? startButton.GetComponentInChildren<Text>() : null, viewModel.StartTarget == MainMenuStartTarget.Race ? "Start Race" : "Select Vehicle");
+            if (navigationController != null)
+            {
+                navigationController.RefreshNavigation();
+            }
+
+            RenderMenuText(viewModel);
             if (loadingBlocker != null)
             {
                 loadingBlocker.SetActive(viewModel.IsTransitioning);
             }
 
             UguiViewText.Set(errorText, viewModel.Failure == PresentationFailure.None ? StatusText(viewModel.MessageKey) : StatusText(viewModel.MessageKey));
+        }
+
+        private void RenderMenuText(MainMenuViewModel viewModel)
+        {
+            UguiViewText.Set(startButtonPrimaryText, "PLAY");
+            UguiViewText.Set(startButtonDescriptionText, "Start Race");
+            UguiViewText.Set(garageButtonPrimaryText, "GARAGE");
+            UguiViewText.Set(garageButtonDescriptionText, "Vehicle Upgrades");
+            UguiViewText.Set(settingsButtonPrimaryText, "SETTINGS");
+            UguiViewText.Set(settingsButtonDescriptionText, "Game Settings");
+            UguiViewText.Set(quitButtonPrimaryText, "EXIT");
+            UguiViewText.Set(quitButtonDescriptionText, "Exit Game");
+
+            if (startButtonPrimaryText == null && startButtonDescriptionText == null)
+            {
+                UguiViewText.Set(startButton != null ? startButton.GetComponentInChildren<Text>() : null, viewModel.StartTarget == MainMenuStartTarget.Race ? "Start Race" : "Select Vehicle");
+            }
         }
 
         private void OnEnable()

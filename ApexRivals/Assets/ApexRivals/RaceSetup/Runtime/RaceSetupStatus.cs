@@ -5,6 +5,7 @@ namespace ApexRivals.RaceSetup.Runtime
         Succeeded,
         AlreadySetup,
         InvalidRoster,
+        InvalidStartingGrid,
         MissingSpawnPose,
         MissingVehicleDefinition,
         MissingVehiclePrefab,

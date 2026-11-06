@@ -11,6 +11,7 @@ using ApexRivals.Vehicle.Configuration;
 using ApexRivals.Vehicle.Runtime;
 using ApexRivals.VehicleSelection.Runtime;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace ApexRivals.Tests.EditMode.RaceSetup
@@ -30,6 +31,35 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             Assert.That(result.Output.Participants.Count, Is.EqualTo(2));
             Assert.That(result.Output.DrivingGates.Count, Is.EqualTo(2));
             Assert.That(result.Output.PlayerCameraTarget, Is.Not.Null);
+        }
+
+        [Test]
+        public void SetupRace_OnePlayerAndThreeAi_ProducesFourRegisteredGatedParticipantsInGridOrder()
+        {
+            var context = CreateContext(opponentCount: 3);
+
+            var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
+
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(result.Output.Player.RaceParticipant.RacerId, Is.EqualTo("Player"));
+            Assert.That(result.Output.Opponents.Count, Is.EqualTo(3));
+            Assert.That(result.Output.Participants.Count, Is.EqualTo(4));
+            Assert.That(result.Output.DrivingGates.Count, Is.EqualTo(4));
+            Assert.That(context.Factory.SpawnPoses.Count, Is.EqualTo(4));
+
+            for (var index = 0; index < result.Output.Participants.Count; index++)
+            {
+                Assert.That(result.Output.Participants[index].RacerId, Is.EqualTo(index == 0 ? "Player" : $"AI_{index:00}"));
+                Assert.That(context.Factory.SpawnPoses[index].Position, Is.EqualTo(new Vector3(index * 10f, 0f, 0f)));
+                Assert.That(result.Output.DrivingGates[index].DrivingAllowed, Is.False);
+                Assert.That(context.RaceCoordinator.TryGetProgress(result.Output.Participants[index], out _), Is.True);
+            }
+
+            for (var index = 0; index < result.Output.Opponents.Count; index++)
+            {
+                Assert.That(result.Output.Opponents[index].AiInputProvider, Is.Not.Null);
+                Assert.That(result.Output.Opponents[index].AiInputProvider.Configuration, Is.Not.Null);
+            }
         }
 
         [Test]
@@ -57,6 +87,20 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
         }
 
         [Test]
+        public void SetupRace_DuplicateStartingGridSpawnPoint_FailsBeforeSpawning()
+        {
+            var context = CreateContext();
+            var sharedSpawnPoint = new GameObject("SharedSpawnPoint").transform;
+            context.StartingGrid.Configure(new[] { sharedSpawnPoint, sharedSpawnPoint });
+
+            var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
+
+            Assert.That(result.Status, Is.EqualTo(RaceSetupStatus.InvalidStartingGrid));
+            Assert.That(result.Message, Does.Contain("duplicate spawn point"));
+            Assert.That(context.Factory.SpawnPoses, Is.Empty);
+        }
+
+        [Test]
         public void SetupRace_Failure_DoesNotStartRace()
         {
             var context = CreateContext();
@@ -75,9 +119,9 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
 
             var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
 
-            var stats = result.Output.Player.VehicleController.EffectiveStats;
-            Assert.That(stats.ForwardAcceleration, Is.EqualTo(15f));
-            Assert.That(stats.SteeringStrength, Is.EqualTo(42f));
+            var stats = result.Output.Player.VehicleRuntime.CurrentPerformanceStats;
+            Assert.That(stats.Acceleration, Is.EqualTo(15f));
+            Assert.That(stats.Steering, Is.EqualTo(42f));
         }
 
         [Test]
@@ -89,8 +133,8 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             var firstResult = first.Service.SetupRace(first.Roster, first.StartingGrid, first.RaceCoordinator, first.RacingLine);
             var secondResult = second.Service.SetupRace(second.Roster, second.StartingGrid, second.RaceCoordinator, second.RacingLine);
 
-            Assert.That(secondResult.Output.Player.VehicleController.EffectiveStats.ForwardAcceleration, Is.EqualTo(firstResult.Output.Player.VehicleController.EffectiveStats.ForwardAcceleration));
-            Assert.That(secondResult.Output.Player.VehicleController.EffectiveStats.SteeringStrength, Is.EqualTo(firstResult.Output.Player.VehicleController.EffectiveStats.SteeringStrength));
+            Assert.That(secondResult.Output.Player.VehicleRuntime.CurrentPerformanceStats.Acceleration, Is.EqualTo(firstResult.Output.Player.VehicleRuntime.CurrentPerformanceStats.Acceleration));
+            Assert.That(secondResult.Output.Player.VehicleRuntime.CurrentPerformanceStats.Steering, Is.EqualTo(firstResult.Output.Player.VehicleRuntime.CurrentPerformanceStats.Steering));
         }
 
         [Test]
@@ -100,9 +144,9 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
 
             var result = context.Service.SetupRace(context.Roster, context.StartingGrid, context.RaceCoordinator, context.RacingLine);
 
-            var aiStats = result.Output.Opponents[0].VehicleController.EffectiveStats;
-            Assert.That(aiStats.ForwardAcceleration, Is.EqualTo(10f));
-            Assert.That(aiStats.SteeringStrength, Is.EqualTo(30f));
+            var aiStats = result.Output.Opponents[0].VehicleRuntime.CurrentPerformanceStats;
+            Assert.That(aiStats.Acceleration, Is.EqualTo(10f));
+            Assert.That(aiStats.Steering, Is.EqualTo(30f));
         }
 
         [Test]
@@ -164,10 +208,10 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             progression.SetUpgradeLevel(UpgradeType.Engine, engineLevel);
             progression.SetUpgradeLevel(UpgradeType.Handling, handlingLevel);
 
-            var vehicleConfiguration = ScriptableObject.CreateInstance<ArcadeVehicleConfiguration>();
-            vehicleConfiguration.forwardAcceleration = 10f;
-            vehicleConfiguration.maximumForwardSpeed = 20f;
-            vehicleConfiguration.steeringStrength = 30f;
+            var vehicleConfiguration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
+            vehicleConfiguration.performanceAcceleration = 10f;
+            vehicleConfiguration.performanceTopSpeed = 20f;
+            vehicleConfiguration.performanceSteering = 30f;
 
             var prefab = new GameObject("VehiclePrefab");
             var catalog = new VehicleCatalog(new[]
@@ -175,7 +219,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 new VehicleDefinitionData("starter", "Starter", string.Empty, vehicleConfiguration, prefab, null, true)
             }, "starter");
 
-            var factory = new FakeRaceVehicleFactory();
+            var factory = new FakeRaceVehicleFactory(vehicleConfiguration.CreatePerformanceStats());
             var service = new RaceSetupService(
                 catalog,
                 progression,
@@ -191,6 +235,7 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
             for (var i = 0; i < spawnPoints.Length; i++)
             {
                 spawnPoints[i] = new GameObject($"Spawn{i}").transform;
+                spawnPoints[i].position = new Vector3(i * 10f, 0f, 0f);
             }
 
             startingGrid.Configure(spawnPoints);
@@ -254,10 +299,17 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
 
         private sealed class FakeRaceVehicleFactory : IRaceVehicleFactory
         {
+            private readonly VehiclePerformanceStats _prefabBaseStats;
             private int _createCount;
+
+            public FakeRaceVehicleFactory(VehiclePerformanceStats prefabBaseStats)
+            {
+                _prefabBaseStats = prefabBaseStats;
+            }
 
             public int FailOnCreateNumber { get; set; }
             public int DestroyedCount { get; private set; }
+            public List<SpawnPose> SpawnPoses { get; } = new List<SpawnPose>();
 
             public bool TryCreate(GameObject prefab, SpawnPose pose, out RaceVehicleComposition composition, out string message)
             {
@@ -269,7 +321,8 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                     return false;
                 }
 
-                composition = CreateComposition();
+                SpawnPoses.Add(pose);
+                composition = CreateComposition(_prefabBaseStats);
                 message = string.Empty;
                 return true;
             }
@@ -283,27 +336,23 @@ namespace ApexRivals.Tests.EditMode.RaceSetup
                 }
             }
 
-            private static RaceVehicleComposition CreateComposition()
+            private static RaceVehicleComposition CreateComposition(VehiclePerformanceStats prefabBaseStats)
             {
                 var root = new GameObject("RaceVehicle");
-                var controller = root.AddComponent<ArcadeVehicleController>();
+                root.AddComponent<Rigidbody>();
+                var controller = root.AddComponent<WheelArcadeVehicleController>();
+                controller.ApplyPerformanceStats(prefabBaseStats);
                 var resetter = root.AddComponent<VehicleResetter>();
+                var resetterSerializedObject = new SerializedObject(resetter);
+                resetterSerializedObject.FindProperty("vehicleRigidbody").objectReferenceValue = root.GetComponent<Rigidbody>();
+                resetterSerializedObject.ApplyModifiedPropertiesWithoutUndo();
                 var participant = root.AddComponent<RaceParticipant>();
                 var gate = root.AddComponent<DrivingInputGate>();
-                var playerInput = root.AddComponent<FakeInputProvider>();
+                var playerInput = root.AddComponent<PlayerDrivingInput>();
                 var aiInput = root.AddComponent<AiDrivingInputProvider>();
                 var composition = root.AddComponent<RaceVehicleComposition>();
                 composition.ConfigureReferences(controller, resetter, participant, gate, playerInput, aiInput, root.transform, root.transform, root.transform, null);
                 return composition;
-            }
-        }
-
-        private sealed class FakeInputProvider : MonoBehaviour, IDrivingInputProvider
-        {
-            public DrivingInput CurrentInput => DrivingInput.Neutral;
-
-            public void ConsumeResetRequest()
-            {
             }
         }
 

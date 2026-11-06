@@ -16,8 +16,10 @@ namespace ApexRivals.Input.Runtime
         private InputAction _steeringAction;
         private InputAction _driftAction;
         private InputAction _resetAction;
+        private InputAction _recoverVehicleAction;
         private DrivingInput _currentInput;
         private bool _resetRequested;
+        private RecoveryInputSource _recoveryInputSource;
         private bool _isSubscribed;
 
         public DrivingInput CurrentInput => new DrivingInput(
@@ -25,7 +27,8 @@ namespace ApexRivals.Input.Runtime
             _currentInput.Brake,
             _currentInput.Steering,
             _currentInput.Drift,
-            _resetRequested);
+            _resetRequested,
+            _recoveryInputSource);
 
         private void Awake()
         {
@@ -51,7 +54,8 @@ namespace ApexRivals.Input.Runtime
                 _brakeAction.ReadValue<float>(),
                 steering,
                 _driftAction.IsPressed(),
-                _resetRequested);
+                _resetRequested,
+                _recoveryInputSource);
         }
 
         private void OnDisable()
@@ -60,6 +64,7 @@ namespace ApexRivals.Input.Runtime
             Unsubscribe();
             _currentInput = DrivingInput.Neutral;
             _resetRequested = false;
+            _recoveryInputSource = RecoveryInputSource.None;
         }
 
         private void OnDestroy()
@@ -71,6 +76,12 @@ namespace ApexRivals.Input.Runtime
         {
             _resetRequested = false;
             _currentInput = _currentInput.WithoutResetRequest();
+        }
+
+        public void ConsumeRecoveryRequest()
+        {
+            _recoveryInputSource = RecoveryInputSource.None;
+            _currentInput = _currentInput.WithoutRecoveryRequest();
         }
 
         private void CreateDrivingActions()
@@ -103,6 +114,12 @@ namespace ApexRivals.Input.Runtime
             _resetAction = _drivingActions.AddAction("Reset", InputActionType.Button, expectedControlLayout: "Button");
             _resetAction.AddBinding("<Keyboard>/r");
             _resetAction.AddBinding("<Gamepad>/buttonNorth");
+
+            _recoverVehicleAction = _drivingActions.AddAction("RecoverVehicle", InputActionType.Button, expectedControlLayout: "Button");
+            _recoverVehicleAction.AddBinding("<Keyboard>/e");
+            // The common Gamepad "select" control maps Xbox View (historically Back/Select),
+            // not the Xbox Menu/Start button.
+            _recoverVehicleAction.AddBinding("<Gamepad>/select");
         }
 
         private void Subscribe()
@@ -113,6 +130,7 @@ namespace ApexRivals.Input.Runtime
             }
 
             _resetAction.performed += OnResetPerformed;
+            _recoverVehicleAction.performed += OnRecoverVehiclePerformed;
             _isSubscribed = true;
         }
 
@@ -124,12 +142,20 @@ namespace ApexRivals.Input.Runtime
             }
 
             _resetAction.performed -= OnResetPerformed;
+            _recoverVehicleAction.performed -= OnRecoverVehiclePerformed;
             _isSubscribed = false;
         }
 
         private void OnResetPerformed(InputAction.CallbackContext context)
         {
             _resetRequested = true;
+        }
+
+        private void OnRecoverVehiclePerformed(InputAction.CallbackContext context)
+        {
+            _recoveryInputSource = context.control.device is Gamepad
+                ? RecoveryInputSource.GamepadView
+                : RecoveryInputSource.KeyboardE;
         }
     }
 }

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8584fa6ad11f13544ab4c72036d9ebbd, type: 3}
   m_Name: RaceRewardDefinition
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   rewards:
   - position: 1
     currencyReward: 500

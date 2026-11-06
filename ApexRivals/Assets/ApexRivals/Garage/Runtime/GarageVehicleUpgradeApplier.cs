@@ -8,10 +8,11 @@ namespace ApexRivals.Garage.Runtime
     public sealed class GarageVehicleUpgradeApplier : MonoBehaviour
     {
         [SerializeField]
-        private ArcadeVehicleController vehicleController;
+        private MonoBehaviour vehicleController;
 
         private GarageService _garageService;
         private PlayerProgressionState _progressionState;
+        private IVehicleRuntime _vehicleRuntime;
 
         public void Initialize(GarageService garageService, PlayerProgressionState progressionState)
         {
@@ -29,9 +30,9 @@ namespace ApexRivals.Garage.Runtime
 
         private void Awake()
         {
-            if (vehicleController == null)
+            if (!TryValidateVehicleRuntime(out var message))
             {
-                vehicleController = GetComponent<ArcadeVehicleController>();
+                Debug.LogError(message, this);
             }
         }
 
@@ -47,12 +48,12 @@ namespace ApexRivals.Garage.Runtime
 
         private void ApplyCurrentStats()
         {
-            if (vehicleController == null || _garageService == null)
+            if (_vehicleRuntime == null || _garageService == null)
             {
                 return;
             }
 
-            vehicleController.ApplyEffectiveStats(_garageService.CalculateEffectiveStats());
+            _vehicleRuntime.ApplyPerformanceStats(_garageService.CalculateEffectiveStats());
         }
 
         private void Unsubscribe()
@@ -61,6 +62,19 @@ namespace ApexRivals.Garage.Runtime
             {
                 _progressionState.Changed -= OnProgressionChanged;
             }
+        }
+
+        public bool TryValidateVehicleRuntime(out string message)
+        {
+            if (!VehicleRuntimeResolver.TryResolveExactlyOne(this, vehicleController, out var runtime, out message))
+            {
+                _vehicleRuntime = null;
+                return false;
+            }
+
+            _vehicleRuntime = runtime;
+            vehicleController = runtime as MonoBehaviour;
+            return true;
         }
     }
 }

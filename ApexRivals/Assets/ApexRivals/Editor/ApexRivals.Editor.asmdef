@@ -3,7 +3,9 @@
     "rootNamespace": "",
     "references": [
         "ApexRivals.Runtime",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.ProBuilder",
+        "Unity.ProBuilder.Editor"
     ],
     "includePlatforms": [
         "Editor"

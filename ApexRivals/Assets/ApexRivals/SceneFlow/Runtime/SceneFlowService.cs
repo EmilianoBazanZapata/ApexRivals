@@ -54,6 +54,11 @@ namespace ApexRivals.SceneFlow.Runtime
             return NavigateAsync(ContentSceneId.MainMenu, ApplicationState.MainMenu, State == ApplicationState.Race, false, true);
         }
 
+        public Task<SceneTransitionResult> ForceReturnToMainMenu()
+        {
+            return NavigateAsync(ContentSceneId.MainMenu, ApplicationState.MainMenu, true, false, ShouldSaveBeforeLeavingCurrentState());
+        }
+
         public Task<SceneTransitionResult> RetryRace()
         {
             return NavigateAsync(ContentSceneId.Race, ApplicationState.Race, State == ApplicationState.Race, true, true);

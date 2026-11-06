@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9033c24b29e723341a1e6294204c16b7, type: 3}
   m_Name: StarterVehicleDefinition
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   stableId: starter
   displayName: Starter
   description: Initial demo vehicle.
-  baseConfiguration: {fileID: 11400000, guid: 5f86f7c3fa23419ea38dabcf194e157c, type: 2}
+  baseConfiguration: {fileID: 11400000, guid: bc7156db47fb4eafad2c5091f879b23d, type: 2}
   vehiclePrefab: {fileID: 0}
   previewSprite: {fileID: 0}
   availableInDemo: 1

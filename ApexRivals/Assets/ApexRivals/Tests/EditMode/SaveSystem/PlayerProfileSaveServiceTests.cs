@@ -52,6 +52,32 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         }
 
         [Test]
+        public void Save_UsesTheEstablishedCurrentSchemaJsonContract()
+        {
+            var storage = new MemoryProfileSaveStorage();
+            var service = CreateService(
+                CreateProgression(275, 1, 2, 4),
+                new SelectedVehicleState("sport", true),
+                storage);
+
+            var result = service.Save();
+
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileSaveStatus.Saved));
+            Assert.That(storage.SavePayload, Does.Contain("\"schemaVersion\""));
+            Assert.That(storage.SavePayload, Does.Contain("\"currency\""));
+            Assert.That(storage.SavePayload, Does.Contain("\"engineUpgradeLevel\""));
+            Assert.That(storage.SavePayload, Does.Contain("\"handlingUpgradeLevel\""));
+            Assert.That(storage.SavePayload, Does.Contain("\"completedRaceCount\""));
+            Assert.That(storage.SavePayload, Does.Contain("\"selectedVehicleId\""));
+            Assert.That(storage.SavePayload, Does.Contain("\"vehicleSelectionCommitted\""));
+
+            var deserializationResult = new PlayerProfileJsonSerializer().Deserialize(storage.SavePayload);
+            Assert.That(deserializationResult.Succeeded, Is.True);
+            Assert.That(deserializationResult.SaveData.schemaVersion, Is.EqualTo(PlayerProfileSaveData.CurrentSchemaVersion));
+            Assert.That(deserializationResult.SaveData.selectedVehicleId, Is.EqualTo("sport"));
+        }
+
+        [Test]
         public void LoadOrCreateDefault_NegativeCurrency_FailsWithoutMutation()
         {
             var storage = new MemoryProfileSaveStorage
@@ -189,6 +215,36 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         }
 
         [Test]
+        public void LoadOrCreateDefault_PrimaryReadFailureBackupValid_RecoversFromBackup()
+        {
+            var storage = new MemoryProfileSaveStorage
+            {
+                SavePayload = "unreadable primary payload",
+                SaveReadError = "Primary save could not be read.",
+                BackupPayload = Serialize(new PlayerProfileSaveData
+                {
+                    schemaVersion = PlayerProfileSaveData.CurrentSchemaVersion,
+                    currency = 90,
+                    engineUpgradeLevel = 1,
+                    handlingUpgradeLevel = 0,
+                    completedRaceCount = 3,
+                    selectedVehicleId = "sport",
+                    vehicleSelectionCommitted = true
+                })
+            };
+            var progression = new PlayerProgressionState();
+            var selectedVehicle = new SelectedVehicleState();
+            var service = CreateService(progression, selectedVehicle, storage);
+
+            var result = service.LoadOrCreateDefault();
+
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.RecoveredFromBackup));
+            Assert.That(result.Message, Is.EqualTo("Primary save could not be read."));
+            Assert.That(progression.Currency, Is.EqualTo(90));
+            Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("sport"));
+        }
+
+        [Test]
         public void LoadOrCreateDefault_BothPrimaryAndBackupInvalid_FailsWithoutAwardingProgress()
         {
             var storage = new MemoryProfileSaveStorage
@@ -221,14 +277,47 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
             var result = service.LoadOrCreateDefault();
 
             Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Failed));
+            Assert.That(result.Message, Is.EqualTo("Save schema version is unsupported."));
         }
 
         [Test]
-        public void LoadOrCreateDefault_OlderSchemaFixture_MigratesSequentially()
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public void LoadOrCreateDefault_LegacySchemaVersion_FailsWithoutMigrating(int schemaVersion)
         {
             var storage = new MemoryProfileSaveStorage
             {
-                SavePayload = "{ \"schemaVersion\": 0, \"currency\": 125, \"engineUpgradeLevel\": 2, \"handlingUpgradeLevel\": 1, \"selectedVehicleStableId\": \"sport\" }"
+                SavePayload = $"{{ \"schemaVersion\": {schemaVersion}, \"currency\": 125, \"engineUpgradeLevel\": 2, \"handlingUpgradeLevel\": 1, \"completedRaceCount\": 3, \"selectedVehicleId\": \"sport\", \"vehicleSelectionCommitted\": true }}"
+            };
+            var progression = CreateProgression(25, 0, 0, 1);
+            var selectedVehicle = new SelectedVehicleState("starter", true);
+            var service = CreateService(progression, selectedVehicle, storage);
+
+            var result = service.LoadOrCreateDefault();
+
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Failed));
+            Assert.That(result.Message, Is.EqualTo("Save schema version is unsupported."));
+            Assert.That(progression.Currency, Is.EqualTo(25));
+            Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("starter"));
+        }
+
+        [Test]
+        public void LoadOrCreateDefault_LegacyPrimaryCurrentBackup_RecoversFromBackup()
+        {
+            var storage = new MemoryProfileSaveStorage
+            {
+                SavePayload = "{ \"schemaVersion\": 2, \"currency\": 125 }",
+                BackupPayload = Serialize(new PlayerProfileSaveData
+                {
+                    schemaVersion = PlayerProfileSaveData.CurrentSchemaVersion,
+                    currency = 90,
+                    engineUpgradeLevel = 1,
+                    handlingUpgradeLevel = 0,
+                    completedRaceCount = 3,
+                    selectedVehicleId = "sport",
+                    vehicleSelectionCommitted = true
+                })
             };
             var progression = new PlayerProgressionState();
             var selectedVehicle = new SelectedVehicleState();
@@ -236,37 +325,30 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
 
             var result = service.LoadOrCreateDefault();
 
-            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Loaded));
-            Assert.That(result.SaveData.schemaVersion, Is.EqualTo(PlayerProfileSaveData.CurrentSchemaVersion));
-            Assert.That(progression.Currency, Is.EqualTo(125));
-            Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(2));
-            Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(1));
-            Assert.That(progression.CompletedRaceCount, Is.Zero);
-            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.True);
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.RecoveredFromBackup));
+            Assert.That(result.Message, Is.EqualTo("Save schema version is unsupported."));
+            Assert.That(progression.Currency, Is.EqualTo(90));
             Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("sport"));
         }
 
         [Test]
-        public void LoadOrCreateDefault_PreviousSchemaMigratesCompletedRacesToZeroAndPreservesProfile()
+        public void LoadOrCreateDefault_LegacyPrimaryAndBackup_FailsWithoutMutation()
         {
             var storage = new MemoryProfileSaveStorage
             {
-                SavePayload = "{ \"schemaVersion\": 1, \"currency\": 210, \"engineUpgradeLevel\": 2, \"handlingUpgradeLevel\": 1, \"selectedVehicleId\": \"sport\" }"
+                SavePayload = "{ \"schemaVersion\": 2, \"currency\": 125 }",
+                BackupPayload = "{ \"schemaVersion\": 1, \"currency\": 90 }"
             };
-            var progression = new PlayerProgressionState();
-            var selectedVehicle = new SelectedVehicleState();
+            var progression = CreateProgression(25, 1, 1, 2);
+            var selectedVehicle = new SelectedVehicleState("starter", true);
             var service = CreateService(progression, selectedVehicle, storage);
 
             var result = service.LoadOrCreateDefault();
 
-            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Loaded));
-            Assert.That(result.SaveData.schemaVersion, Is.EqualTo(PlayerProfileSaveData.CurrentSchemaVersion));
-            Assert.That(progression.Currency, Is.EqualTo(210));
-            Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(2));
-            Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(1));
-            Assert.That(progression.CompletedRaceCount, Is.Zero);
-            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.True);
-            Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("sport"));
+            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Failed));
+            Assert.That(result.Message, Is.EqualTo("Save schema version is unsupported."));
+            Assert.That(progression.Currency, Is.EqualTo(25));
+            Assert.That(selectedVehicle.SelectedVehicleId, Is.EqualTo("starter"));
         }
 
         [Test]
@@ -366,29 +448,6 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         }
 
         [Test]
-        public void LoadOrCreateDefault_PreviousSchemaWithMissingVehicleId_MigratesAsUncommitted()
-        {
-            var storage = new MemoryProfileSaveStorage
-            {
-                SavePayload = "{ \"schemaVersion\": 2, \"currency\": 210, \"engineUpgradeLevel\": 2, \"handlingUpgradeLevel\": 1, \"completedRaceCount\": 3, \"selectedVehicleId\": \"\" }"
-            };
-            var progression = new PlayerProgressionState();
-            var selectedVehicle = new SelectedVehicleState();
-            var service = CreateService(progression, selectedVehicle, storage);
-
-            var result = service.LoadOrCreateDefault();
-
-            Assert.That(result.Status, Is.EqualTo(PlayerProfileLoadStatus.Loaded));
-            Assert.That(result.SaveData.schemaVersion, Is.EqualTo(PlayerProfileSaveData.CurrentSchemaVersion));
-            Assert.That(progression.Currency, Is.EqualTo(210));
-            Assert.That(progression.GetUpgradeLevel(UpgradeType.Engine), Is.EqualTo(2));
-            Assert.That(progression.GetUpgradeLevel(UpgradeType.Handling), Is.EqualTo(1));
-            Assert.That(progression.CompletedRaceCount, Is.EqualTo(3));
-            Assert.That(selectedVehicle.HasCommittedVehicleSelection, Is.False);
-            Assert.That(selectedVehicle.SelectedVehicleId, Is.Empty);
-        }
-
-        [Test]
         public void ResetProfile_ClearsProgressionAndCommitment()
         {
             var storage = new MemoryProfileSaveStorage { SavePayload = "{}" };
@@ -447,6 +506,7 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
         {
             public string SavePayload { get; set; }
             public string BackupPayload { get; set; }
+            public string SaveReadError { get; set; }
             public bool FailWrites { get; set; }
 
             public bool SaveExists()
@@ -461,6 +521,11 @@ namespace ApexRivals.Tests.EditMode.SaveSystem
 
             public SaveStorageReadResult ReadSave()
             {
+                if (!string.IsNullOrEmpty(SaveReadError))
+                {
+                    return new SaveStorageReadResult(false, string.Empty, SaveReadError);
+                }
+
                 return SaveExists()
                     ? new SaveStorageReadResult(true, SavePayload, string.Empty)
                     : new SaveStorageReadResult(false, string.Empty, "Save file does not exist.");

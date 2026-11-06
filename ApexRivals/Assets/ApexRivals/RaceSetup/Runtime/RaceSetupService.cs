@@ -56,15 +56,21 @@ namespace ApexRivals.RaceSetup.Runtime
                 return Failure(RaceSetupStatus.InvalidRoster, "Race roster is missing.");
             }
 
-            var rosterValidation = roster.Validate(_vehicleCatalog, startingGrid != null ? startingGrid.SpawnPointCount : 0);
-            if (!rosterValidation.Succeeded)
-            {
-                return Failure(RaceSetupStatus.InvalidRoster, rosterValidation.Message);
-            }
-
             if (startingGrid == null)
             {
                 return Failure(RaceSetupStatus.MissingSpawnPose, "Starting grid is missing.");
+            }
+
+            var startingGridValidation = startingGrid.Validate();
+            if (!startingGridValidation.Succeeded)
+            {
+                return Failure(RaceSetupStatus.InvalidStartingGrid, startingGridValidation.Message);
+            }
+
+            var rosterValidation = roster.Validate(_vehicleCatalog, startingGrid.SpawnPointCount);
+            if (!rosterValidation.Succeeded)
+            {
+                return Failure(RaceSetupStatus.InvalidRoster, rosterValidation.Message);
             }
 
             if (raceCoordinator == null)
@@ -153,17 +159,17 @@ namespace ApexRivals.RaceSetup.Runtime
 
             if (entry.IsPlayer)
             {
-                if (!composition.CanConfigurePlayer)
+                if (!composition.TryValidatePlayer(out var playerValidationMessage))
                 {
-                    return Failure(RaceSetupStatus.MissingVehicleComposition, "The player vehicle composition is missing required references.");
+                    return Failure(RaceSetupStatus.MissingVehicleComposition, playerValidationMessage);
                 }
 
                 var effectiveStats = VehicleUpgradeStatCalculator.Calculate(
-                    vehicleLookup.Vehicle.BaseStats,
+                    vehicleLookup.Vehicle.BasePerformanceStats,
                     _progressionState,
                     _engineDefinition,
                     _handlingDefinition);
-                composition.ConfigurePlayer(raceCoordinator, entry.ParticipantId, vehicleLookup.Vehicle.BaseConfiguration, effectiveStats);
+                composition.ConfigurePlayer(raceCoordinator, entry.ParticipantId, effectiveStats);
                 return Success(new RaceSetupOutput(composition, Array.Empty<RaceVehicleComposition>(), new[] { composition.RaceParticipant }, composition.CameraTarget, new[] { composition.DrivingInputGate }));
             }
 
@@ -179,12 +185,12 @@ namespace ApexRivals.RaceSetup.Runtime
                     aiMessage);
             }
 
-            if (!composition.CanConfigureAI)
+            if (!composition.TryValidateAI(out var aiValidationMessage))
             {
-                return Failure(RaceSetupStatus.MissingVehicleComposition, "The AI vehicle composition is missing required references.");
+                return Failure(RaceSetupStatus.MissingVehicleComposition, aiValidationMessage);
             }
 
-            composition.ConfigureAI(raceCoordinator, entry.ParticipantId, vehicleLookup.Vehicle.BaseConfiguration, aiConfiguration, racingLine);
+            composition.ConfigureAI(raceCoordinator, entry.ParticipantId, aiConfiguration, racingLine);
             return Success(new RaceSetupOutput(null, new[] { composition }, new[] { composition.RaceParticipant }, null, new[] { composition.DrivingInputGate }));
         }
 

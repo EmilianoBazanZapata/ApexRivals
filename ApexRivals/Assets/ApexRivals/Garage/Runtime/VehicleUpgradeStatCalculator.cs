@@ -5,8 +5,8 @@ namespace ApexRivals.Garage.Runtime
 {
     public static class VehicleUpgradeStatCalculator
     {
-        public static ArcadeVehicleStats Calculate(
-            ArcadeVehicleStats baseStats,
+        public static VehiclePerformanceStats Calculate(
+            VehiclePerformanceStats baseStats,
             PlayerProgressionState progressionState,
             UpgradeDefinitionData engineDefinition,
             UpgradeDefinitionData handlingDefinition)

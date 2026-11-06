@@ -8,7 +8,7 @@ namespace ApexRivals.Garage.Runtime
             int currency,
             GarageUpgradeState engine,
             GarageUpgradeState handling,
-            ArcadeVehicleStats effectiveStats)
+            VehiclePerformanceStats effectiveStats)
         {
             Currency = currency;
             Engine = engine;
@@ -19,6 +19,6 @@ namespace ApexRivals.Garage.Runtime
         public int Currency { get; }
         public GarageUpgradeState Engine { get; }
         public GarageUpgradeState Handling { get; }
-        public ArcadeVehicleStats EffectiveStats { get; }
+        public VehiclePerformanceStats EffectiveStats { get; }
     }
 }

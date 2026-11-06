@@ -14,7 +14,7 @@ namespace ApexRivals.Tests.EditMode.SceneFlow
         public async Task SuccessfulProfileLoadNavigatesToMainMenu()
         {
             var storage = new MemoryStorage();
-            storage.WriteSave("{\"schemaVersion\":1,\"currency\":50,\"engineUpgradeLevel\":1,\"handlingUpgradeLevel\":0,\"selectedVehicleId\":\"starter\"}");
+            storage.WriteSave($"{{\"schemaVersion\":{PlayerProfileSaveData.CurrentSchemaVersion},\"currency\":50,\"engineUpgradeLevel\":1,\"handlingUpgradeLevel\":0,\"completedRaceCount\":0,\"selectedVehicleId\":\"starter\",\"vehicleSelectionCommitted\":true}}");
             var context = CreateBootstrapContext(storage);
 
             var result = await context.BootstrapService.StartAsync();

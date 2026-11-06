@@ -15,6 +15,11 @@ namespace ApexRivals.Race.Runtime
         [SerializeField]
         private RaceCheckpoint[] orderedCheckpoints = Array.Empty<RaceCheckpoint>();
 
+        [Header("Start Progress")]
+        [SerializeField, Min(-1)]
+        [Tooltip("Checkpoint already satisfied when every racer spawns on the start/finish area. Set to -1 for tracks whose grid is elsewhere.")]
+        private int initiallyConsumedCheckpointIndex = 0;
+
         [SerializeField]
         private DrivingInputGate[] drivingGates = Array.Empty<DrivingInputGate>();
 
@@ -63,6 +68,17 @@ namespace ApexRivals.Race.Runtime
         public float CountdownRemaining => countdownRemaining;
         public float ElapsedRaceTime => elapsedRaceTime;
         public IReadOnlyList<RaceResult> Results => _results;
+
+        // The race-completion participant is configured as the human player (see
+        // ConfigureSession / RaceCoordinatorSessionAdapter). Exposed read-only so
+        // presentation-only systems (e.g. checkpoint visuals) can identify the
+        // player's progress without a second, duplicate notion of "who is the player".
+        public RaceParticipant PlayerParticipant => raceCompletionParticipant;
+
+        // Read-only view of the authoritative ordered checkpoint list, for
+        // presentation systems that need to map a checkpoint index to its
+        // GameObject without maintaining their own duplicate array.
+        public IReadOnlyList<RaceCheckpoint> OrderedCheckpoints => orderedCheckpoints;
 
         public int TotalLaps => raceDefinition != null ? raceDefinition.TotalLaps : 3;
         private float CountdownDuration => raceDefinition != null ? raceDefinition.CountdownDuration : 3f;
@@ -172,7 +188,10 @@ namespace ApexRivals.Race.Runtime
                 return;
             }
 
-            var progress = new RacerProgress(participant.RacerId);
+            var progress = new RacerProgress(
+                participant.RacerId,
+                orderedCheckpoints.Length,
+                GetInitiallyConsumedCheckpointIndex());
             _progressByParticipant.Add(participant, progress);
             _participants.Add(participant);
             RecalculatePositions();
@@ -297,6 +316,13 @@ namespace ApexRivals.Race.Runtime
             }
 
             return RaceRules.IsCheckpointSequenceValid(checkpointIndices);
+        }
+
+        private int GetInitiallyConsumedCheckpointIndex()
+        {
+            return initiallyConsumedCheckpointIndex >= 0 && initiallyConsumedCheckpointIndex < orderedCheckpoints.Length
+                ? initiallyConsumedCheckpointIndex
+                : -1;
         }
 
         private void CacheCheckpointPositions()

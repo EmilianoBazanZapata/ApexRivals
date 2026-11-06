@@ -65,9 +65,9 @@ namespace ApexRivals.Tests.EditMode.Garage
             garage.Purchase(UpgradeType.Engine);
             var stats = garage.CalculateEffectiveStats();
 
-            Assert.That(stats.ForwardAcceleration, Is.EqualTo(50f).Within(0.0001f));
-            Assert.That(stats.MaximumForwardSpeed, Is.EqualTo(33f).Within(0.0001f));
-            Assert.That(stats.SteeringStrength, Is.EqualTo(90f).Within(0.0001f));
+            Assert.That(stats.Acceleration, Is.EqualTo(50f).Within(0.0001f));
+            Assert.That(stats.TopSpeed, Is.EqualTo(33f).Within(0.0001f));
+            Assert.That(stats.Steering, Is.EqualTo(90f).Within(0.0001f));
         }
 
         [Test]
@@ -79,9 +79,9 @@ namespace ApexRivals.Tests.EditMode.Garage
             garage.Purchase(UpgradeType.Handling);
             var stats = garage.CalculateEffectiveStats();
 
-            Assert.That(stats.ForwardAcceleration, Is.EqualTo(40f).Within(0.0001f));
-            Assert.That(stats.SteeringStrength, Is.EqualTo(108f).Within(0.0001f));
-            Assert.That(stats.NormalLateralGrip, Is.EqualTo(0.85f).Within(0.0001f));
+            Assert.That(stats.Acceleration, Is.EqualTo(40f).Within(0.0001f));
+            Assert.That(stats.Steering, Is.EqualTo(108f).Within(0.0001f));
+            Assert.That(stats.Handling, Is.EqualTo(0.85f).Within(0.0001f));
         }
 
         [Test]
@@ -94,8 +94,8 @@ namespace ApexRivals.Tests.EditMode.Garage
             var first = garage.CalculateEffectiveStats();
             var second = garage.CalculateEffectiveStats();
 
-            Assert.That(second.ForwardAcceleration, Is.EqualTo(first.ForwardAcceleration));
-            Assert.That(second.MaximumForwardSpeed, Is.EqualTo(first.MaximumForwardSpeed));
+            Assert.That(second.Acceleration, Is.EqualTo(first.Acceleration));
+            Assert.That(second.TopSpeed, Is.EqualTo(first.TopSpeed));
         }
 
         [Test]
@@ -116,7 +116,34 @@ namespace ApexRivals.Tests.EditMode.Garage
             Assert.That(after.Currency, Is.EqualTo(100));
             Assert.That(after.Engine.CurrentLevel, Is.EqualTo(1));
             Assert.That(after.Engine.NextPrice, Is.EqualTo(150));
-            Assert.That(after.EffectiveStats.ForwardAcceleration, Is.EqualTo(50f));
+            Assert.That(after.EffectiveStats.Acceleration, Is.EqualTo(50f));
+        }
+
+        [Test]
+        public void GetState_BeforeAndAfterPurchase_ExposesUpcomingBenefitModifier()
+        {
+            var state = new PlayerProgressionState(200);
+            var garage = CreateGarage(state);
+
+            var before = garage.GetState();
+            garage.Purchase(UpgradeType.Engine);
+            var after = garage.GetState();
+
+            Assert.That(before.Engine.BenefitModifier.MaximumSpeedMultiplier, Is.EqualTo(1.1f).Within(0.0001f));
+            Assert.That(after.Engine.BenefitModifier.MaximumSpeedMultiplier, Is.EqualTo(1.2f).Within(0.0001f));
+        }
+
+        [Test]
+        public void GetState_UpgradeAtMaximumLevel_ExposesCurrentBenefitModifier()
+        {
+            var state = new PlayerProgressionState(1000);
+            state.SetUpgradeLevel(UpgradeType.Engine, 2);
+            var garage = CreateGarage(state);
+
+            var maxed = garage.GetState();
+
+            Assert.That(maxed.Engine.IsAtMaximum, Is.True);
+            Assert.That(maxed.Engine.BenefitModifier.MaximumSpeedMultiplier, Is.EqualTo(1.2f).Within(0.0001f));
         }
 
         private static GarageService CreateGarage(PlayerProgressionState state)
@@ -146,24 +173,14 @@ namespace ApexRivals.Tests.EditMode.Garage
                 });
         }
 
-        private static ArcadeVehicleStats CreateBaseStats()
+        private static VehiclePerformanceStats CreateBaseStats()
         {
-            return new ArcadeVehicleStats(
+            return new VehiclePerformanceStats(
                 40f,
-                20f,
-                60f,
                 30f,
-                10f,
                 90f,
-                0.2f,
-                1.2f,
                 0.8f,
-                0.4f,
-                30f,
-                0.75f,
-                -1,
-                0.75f,
-                0.5f);
+                0.4f);
         }
     }
 }

@@ -73,6 +73,7 @@ namespace ApexRivals.SaveSystem.Runtime
 
                 if (File.Exists(_savePath))
                 {
+                    TryDeletePath(_backupPath);
                     File.Replace(_temporaryPath, _savePath, _backupPath, true);
                     return new SaveStorageWriteResult(true, string.Empty);
                 }

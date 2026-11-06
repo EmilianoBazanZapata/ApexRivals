@@ -41,6 +41,7 @@ namespace ApexRivals.Input.Runtime
             if (!drivingAllowed)
             {
                 _source?.ConsumeResetRequest();
+                _source?.ConsumeRecoveryRequest();
             }
         }
 
@@ -54,6 +55,11 @@ namespace ApexRivals.Input.Runtime
         public void ConsumeResetRequest()
         {
             _source?.ConsumeResetRequest();
+        }
+
+        public void ConsumeRecoveryRequest()
+        {
+            _source?.ConsumeRecoveryRequest();
         }
     }
 }

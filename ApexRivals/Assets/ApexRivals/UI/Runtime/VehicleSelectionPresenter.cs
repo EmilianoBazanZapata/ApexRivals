@@ -11,18 +11,20 @@ namespace ApexRivals.UI.Runtime
         private readonly IVehicleSelectionView _view;
         private readonly VehicleSelectionService _selectionService;
         private readonly SceneFlowService _sceneFlow;
+        private readonly IPresentationScreenNavigator _screenNavigator;
         private bool _saving;
         private PresentationFailure _failure;
         private string _messageKey = string.Empty;
 
-        public VehicleSelectionPresenter(IVehicleSelectionView view, VehicleSelectionService selectionService, SceneFlowService sceneFlow)
+        public VehicleSelectionPresenter(IVehicleSelectionView view, VehicleSelectionService selectionService, SceneFlowService sceneFlow, IPresentationScreenNavigator screenNavigator = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _selectionService = selectionService ?? throw new ArgumentNullException(nameof(selectionService));
             _sceneFlow = sceneFlow ?? throw new ArgumentNullException(nameof(sceneFlow));
+            _screenNavigator = screenNavigator;
         }
 
-        public bool HasCommittedVehicleSelection => _selectionService.HasCommittedVehicleSelection;
+        public bool HasCommittedVehicleSelection => _selectionService.HasValidCommittedVehicleSelection;
         public VehicleSelectionViewModel Current { get; private set; }
 
         public void Present()
@@ -108,14 +110,14 @@ namespace ApexRivals.UI.Runtime
 
         public async Task Continue()
         {
-            if (_saving || !_selectionService.HasCommittedVehicleSelection)
+            if (_saving || !_selectionService.HasValidCommittedVehicleSelection)
             {
                 return;
             }
 
             _saving = true;
             Present();
-            var result = await _sceneFlow.OpenGarage();
+            var result = await _sceneFlow.StartRace();
             _saving = false;
 
             if (!result.Succeeded)
@@ -125,6 +127,19 @@ namespace ApexRivals.UI.Runtime
             }
 
             Present();
+        }
+
+        public void Cancel()
+        {
+            if (_saving)
+            {
+                return;
+            }
+
+            _selectionService.CancelPreview();
+            _failure = PresentationFailure.None;
+            _messageKey = string.Empty;
+            _screenNavigator?.Show(PresentationScreenState.Main);
         }
 
         private VehicleSelectionViewModel CreateModel()
@@ -162,7 +177,7 @@ namespace ApexRivals.UI.Runtime
                 selectedIndex > 0 && !_saving,
                 selectedIndex >= 0 && selectedIndex < vehicles.Count - 1 && !_saving,
                 selectedIndex >= 0 && !_saving,
-                _selectionService.HasCommittedVehicleSelection && !_saving,
+                _selectionService.HasValidCommittedVehicleSelection && !_saving,
                 state.HasCommittedVehicleSelection,
                 _saving,
                 _failure,

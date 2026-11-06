@@ -1,4 +1,3 @@
-using ApexRivals.Vehicle.Configuration;
 using UnityEngine;
 
 namespace ApexRivals.Vehicle.Runtime
@@ -11,9 +10,6 @@ namespace ApexRivals.Vehicle.Runtime
 
         [SerializeField]
         private Transform initialResetPose;
-
-        [SerializeField]
-        private ArcadeVehicleConfiguration configuration;
 
         private Vector3 _latestValidPosition;
         private Quaternion _latestValidRotation;
@@ -64,13 +60,31 @@ namespace ApexRivals.Vehicle.Runtime
                 return;
             }
 
-            var heightOffset = configuration != null ? configuration.resetHeightOffset : 0.75f;
-            vehicleRigidbody.position = _latestValidPosition + Vector3.up * heightOffset;
+            // Clear the interpolation history around a teleport. Otherwise an interpolated
+            // Rigidbody may render one or more frames between the pre-reset crash pose and
+            // the reset pose.
+            var interpolation = vehicleRigidbody.interpolation;
+            vehicleRigidbody.interpolation = RigidbodyInterpolation.None;
+            vehicleRigidbody.position = _latestValidPosition;
             vehicleRigidbody.rotation = _latestValidRotation;
             vehicleRigidbody.linearVelocity = Vector3.zero;
             vehicleRigidbody.angularVelocity = Vector3.zero;
             vehicleRigidbody.Sleep();
             vehicleRigidbody.WakeUp();
+            Physics.SyncTransforms();
+            vehicleRigidbody.interpolation = interpolation;
+        }
+
+        public bool TryValidateConfiguration(out string message)
+        {
+            if (vehicleRigidbody == null)
+            {
+                message = $"VehicleResetter on '{gameObject.name}' requires a Rigidbody.";
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
         }
     }
 }

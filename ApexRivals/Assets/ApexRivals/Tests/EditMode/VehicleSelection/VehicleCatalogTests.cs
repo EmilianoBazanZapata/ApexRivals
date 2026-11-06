@@ -86,7 +86,7 @@ namespace ApexRivals.Tests.EditMode.VehicleSelection
 
         private static VehicleDefinitionData CreateVehicle(string id, bool available)
         {
-            var configuration = ScriptableObject.CreateInstance<ArcadeVehicleConfiguration>();
+            var configuration = ScriptableObject.CreateInstance<WheelVehicleConfiguration>();
             return new VehicleDefinitionData(id, id == "sport" ? "Sport" : id, string.Empty, configuration, new GameObject($"{id}Prefab"), null, available);
         }
     }

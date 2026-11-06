@@ -24,6 +24,7 @@ namespace ApexRivals.RaceSession.Runtime
         private bool _finishProcessed;
         private bool _resultsEmitted;
         private bool _subscriptionsActive;
+        private RaceSessionLifecycleState _stateBeforePause = RaceSessionLifecycleState.Racing;
         private string _playerParticipantId = string.Empty;
         private int _participantCount;
         private RaceSessionResultsSnapshot _lastResults;
@@ -53,6 +54,8 @@ namespace ApexRivals.RaceSession.Runtime
 
         public event Action<RaceSessionLifecycleState, RaceSessionLifecycleState> StateChanged;
 
+        public event Action<PositionChangedEvent> PositionChanged;
+
         public event Action<RaceSessionResultsSnapshot> ResultsReady;
 
         public RaceSessionLifecycleState State { get; private set; }
@@ -61,6 +64,9 @@ namespace ApexRivals.RaceSession.Runtime
         public RaceHudSnapshot Hud => _raceController.CreateHudSnapshot(_playerParticipantId);
         public RacePauseSnapshot PauseState => new RacePauseSnapshot(State == RaceSessionLifecycleState.Paused, State == RaceSessionLifecycleState.Racing || State == RaceSessionLifecycleState.Paused, State == RaceSessionLifecycleState.Racing || State == RaceSessionLifecycleState.Paused || State == RaceSessionLifecycleState.ShowingResults);
         public UnityEngine.Transform PlayerCameraTarget => _raceController.PlayerCameraTarget;
+        public UnityEngine.Rigidbody PlayerVehicleRigidbody => _raceController.PlayerVehicleRigidbody;
+        public ApexRivals.Vehicle.Runtime.IDrivingInputProvider PlayerInputProvider => _raceController.PlayerInputProvider;
+        public ApexRivals.Vehicle.Runtime.IVehicleTelemetry PlayerVehicleTelemetry => _raceController.PlayerVehicleTelemetry;
 
         public RaceSessionCommandResult Prepare()
         {
@@ -170,14 +176,15 @@ namespace ApexRivals.RaceSession.Runtime
                 return RaceSessionCommandResult.Success();
             }
 
-            if (State != RaceSessionLifecycleState.Racing)
+            if (State != RaceSessionLifecycleState.Racing && State != RaceSessionLifecycleState.Starting)
             {
-                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.InvalidState, "Race can only be paused while racing.");
+                return RaceSessionCommandResult.Failure(RaceSessionCommandStatus.InvalidState, "Race can only be paused while racing or starting.");
             }
 
             _raceController.BlockDriving();
             _timeScale.Pause();
             _navigation.PauseRace();
+            _stateBeforePause = State;
             SetState(RaceSessionLifecycleState.Paused);
             return RaceSessionCommandResult.Success();
         }
@@ -196,7 +203,15 @@ namespace ApexRivals.RaceSession.Runtime
 
             _timeScale.Resume();
             _navigation.ResumeRace();
-            SetState(RaceSessionLifecycleState.Racing);
+            var resumedState = _stateBeforePause == RaceSessionLifecycleState.Starting
+                ? RaceSessionLifecycleState.Starting
+                : RaceSessionLifecycleState.Racing;
+            if (resumedState == RaceSessionLifecycleState.Racing)
+            {
+                _raceController.AllowDriving();
+            }
+
+            SetState(resumedState);
             return RaceSessionCommandResult.Success();
         }
 
@@ -363,6 +378,14 @@ namespace ApexRivals.RaceSession.Runtime
             }
         }
 
+        private void HandlePositionChanged(PositionChangedEvent positionChanged)
+        {
+            if (string.Equals(positionChanged.RacerId, _playerParticipantId, StringComparison.Ordinal))
+            {
+                PositionChanged?.Invoke(positionChanged);
+            }
+        }
+
         private void Subscribe()
         {
             if (_subscriptionsActive)
@@ -371,6 +394,7 @@ namespace ApexRivals.RaceSession.Runtime
             }
 
             _raceController.RaceStarted += HandleRaceStarted;
+            _raceController.PositionChanged += HandlePositionChanged;
             _raceController.RacerFinished += HandleRacerFinished;
             _subscriptionsActive = true;
         }
@@ -383,6 +407,7 @@ namespace ApexRivals.RaceSession.Runtime
             }
 
             _raceController.RaceStarted -= HandleRaceStarted;
+            _raceController.PositionChanged -= HandlePositionChanged;
             _raceController.RacerFinished -= HandleRacerFinished;
             _subscriptionsActive = false;
         }

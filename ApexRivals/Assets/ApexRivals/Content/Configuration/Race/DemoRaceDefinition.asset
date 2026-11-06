@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0fd75569a1133df428c2ee109566d456, type: 3}
   m_Name: DemoRaceDefinition
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   displayName: Demo Race
-  totalLaps: 3
+  totalLaps: 1
   countdownDuration: 3

@@ -7,6 +7,7 @@ using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSetup.Runtime;
 using ApexRivals.RaceSession.Runtime;
 using ApexRivals.SceneFlow.Runtime;
+using ApexRivals.Vehicle.Runtime;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -105,6 +106,30 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             var result = context.Session.Prepare();
 
             Assert.That(result.Status, Is.EqualTo(RaceSessionCommandStatus.Disposed));
+        }
+
+        [Test]
+        public void PlayerVehicleTelemetry_DelegatesToRaceController()
+        {
+            var context = CreateContext();
+            var telemetry = new FakeVehicleTelemetry { SpeedKph = 55f, CurrentGear = 2, EngineRpm = 3000f };
+            context.RaceController.PlayerVehicleTelemetry = telemetry;
+
+            Assert.That(context.Session.PlayerVehicleTelemetry, Is.SameAs(telemetry));
+        }
+
+        [Test]
+        public void PlayerPositionChangesAreForwardedToTheHudPipeline()
+        {
+            var context = CreateContext();
+            var receivedPosition = 0;
+            context.Session.PositionChanged += positionChanged => receivedPosition = positionChanged.Position;
+            context.Session.Prepare();
+
+            context.RaceController.RaisePositionChanged("AI_01", 1);
+            context.RaceController.RaisePositionChanged("Player", 2);
+
+            Assert.That(receivedPosition, Is.EqualTo(2));
         }
 
         [Test]
@@ -481,15 +506,27 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             }
         }
 
+        private sealed class FakeVehicleTelemetry : IVehicleTelemetry
+        {
+            public float SpeedKph { get; set; }
+            public int CurrentGear { get; set; }
+            public float EngineRpm { get; set; }
+            public bool IsReversing { get; set; }
+        }
+
         private sealed class FakeRaceSessionRaceController : IRaceSessionRaceController
         {
             public event Action<RaceStartedEvent> RaceStarted;
+            public event Action<PositionChangedEvent> PositionChanged;
             public event Action<RacerFinishedEvent> RacerFinished;
 
             public int ConfigureCount { get; private set; }
             public int StartCountdownCount { get; private set; }
             public int BlockDrivingCount { get; private set; }
             public Transform PlayerCameraTarget { get; private set; }
+            public Rigidbody PlayerVehicleRigidbody => null;
+            public IDrivingInputProvider PlayerInputProvider => null;
+            public IVehicleTelemetry PlayerVehicleTelemetry { get; set; }
 
             public bool ConfigureForSession(RaceSetupOutput setupOutput, string playerParticipantId, out string message)
             {
@@ -510,6 +547,10 @@ namespace ApexRivals.Tests.EditMode.RaceSession
                 BlockDrivingCount++;
             }
 
+            public void AllowDriving()
+            {
+            }
+
             public RaceHudSnapshot CreateHudSnapshot(string playerParticipantId)
             {
                 return new RaceHudSnapshot(1, 3, 1, 2, 0f, 12f);
@@ -518,6 +559,11 @@ namespace ApexRivals.Tests.EditMode.RaceSession
             public void RaiseRaceStarted()
             {
                 RaceStarted?.Invoke(new RaceStartedEvent(0f));
+            }
+
+            public void RaisePositionChanged(string racerId, int position)
+            {
+                PositionChanged?.Invoke(new PositionChangedEvent(racerId, position));
             }
 
             public void RaiseRacerFinished(RaceResult result)

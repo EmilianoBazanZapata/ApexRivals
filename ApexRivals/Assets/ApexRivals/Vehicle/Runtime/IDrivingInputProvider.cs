@@ -5,5 +5,7 @@ namespace ApexRivals.Vehicle.Runtime
         DrivingInput CurrentInput { get; }
 
         void ConsumeResetRequest();
+
+        void ConsumeRecoveryRequest();
     }
 }

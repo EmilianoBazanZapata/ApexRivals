@@ -92,7 +92,10 @@ namespace ApexRivals.RaceSetup.Runtime
 
             if (availableSpawnPointCount.HasValue && _entries.Count > availableSpawnPointCount.Value)
             {
-                return new RaceRosterValidationResult(RaceRosterValidationStatus.InsufficientSpawnPoints, "The race roster contains more entries than available spawn points.");
+                var opponentCount = _entries.Count - playerCount;
+                return new RaceRosterValidationResult(
+                    RaceRosterValidationStatus.InsufficientSpawnPoints,
+                    $"Race requires {_entries.Count} grid slots for {playerCount} player + {opponentCount} AI opponents, but StartingGrid contains {availableSpawnPointCount.Value}.");
             }
 
             return new RaceRosterValidationResult(RaceRosterValidationStatus.Succeeded, string.Empty);

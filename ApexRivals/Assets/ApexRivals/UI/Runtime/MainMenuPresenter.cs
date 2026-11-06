@@ -46,10 +46,7 @@ namespace ApexRivals.UI.Runtime
 
             if (!_selectionProgress.HasCommittedVehicleSelection)
             {
-                _failure = PresentationFailure.None;
-                _messageKey = string.Empty;
-                _screenNavigator.Show(PresentationScreenState.VehicleSelection);
-                Present();
+                await RunTransition(_sceneFlow.OpenGarage, "ui.main.openGarageFailed");
                 return;
             }
 
@@ -58,7 +55,7 @@ namespace ApexRivals.UI.Runtime
 
         public Task OpenGarage()
         {
-            return CanRunCommand() && _selectionProgress.HasCommittedVehicleSelection
+            return CanRunCommand()
                 ? RunTransition(_sceneFlow.OpenGarage, "ui.main.openGarageFailed")
                 : Task.CompletedTask;
         }

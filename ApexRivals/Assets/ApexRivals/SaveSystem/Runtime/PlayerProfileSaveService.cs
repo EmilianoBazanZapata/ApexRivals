@@ -92,11 +92,7 @@ namespace ApexRivals.SaveSystem.Runtime
                 return new PlayerProfileSaveResult(PlayerProfileSaveStatus.StorageFailed, deleteResult.Error);
             }
 
-            _progressionState.SetCurrency(0);
-            _progressionState.SetUpgradeLevel(UpgradeType.Engine, 0);
-            _progressionState.SetUpgradeLevel(UpgradeType.Handling, 0);
-            _progressionState.SetCompletedRaceCount(0);
-            _selectedVehicleState.ClearCommitment();
+            Restore(PlayerProfileSaveData.CreateDefault());
             return new PlayerProfileSaveResult(PlayerProfileSaveStatus.Deleted, string.Empty);
         }
 

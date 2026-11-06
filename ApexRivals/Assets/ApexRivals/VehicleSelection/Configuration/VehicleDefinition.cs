@@ -1,4 +1,4 @@
-using ApexRivals.Vehicle.Configuration;
+using ApexRivals.Vehicle.Runtime;
 using ApexRivals.VehicleSelection.Runtime;
 using UnityEngine;
 
@@ -10,7 +10,7 @@ namespace ApexRivals.VehicleSelection.Configuration
         [SerializeField] private string stableId = "starter";
         [SerializeField] private string displayName = "Starter";
         [SerializeField] private string description;
-        [SerializeField] private ArcadeVehicleConfiguration baseConfiguration;
+        [SerializeField] private ScriptableObject baseConfiguration;
         [SerializeField] private GameObject vehiclePrefab;
         [SerializeField] private Sprite previewSprite;
         [SerializeField] private bool availableInDemo = true;
@@ -26,6 +26,7 @@ namespace ApexRivals.VehicleSelection.Configuration
                 displayName,
                 description,
                 baseConfiguration,
+                baseConfiguration as IVehiclePerformanceStatsSource,
                 vehiclePrefab,
                 previewSprite,
                 availableInDemo);

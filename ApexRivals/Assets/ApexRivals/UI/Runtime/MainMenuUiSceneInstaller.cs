@@ -1,4 +1,5 @@
 using ApexRivals.Bootstrap.Runtime;
+using ApexRivals.VehicleSelection.Runtime;
 using UnityEngine;
 
 namespace ApexRivals.UI.Runtime
@@ -14,6 +15,7 @@ namespace ApexRivals.UI.Runtime
         private MainMenuPresenter _mainMenuPresenter;
         private VehicleSelectionPresenter _vehicleSelectionPresenter;
         private SettingsPresenter _settingsPresenter;
+        private VehicleSelectionService _vehicleSelectionService;
 
         public void Install(ApplicationContext context)
         {
@@ -29,9 +31,11 @@ namespace ApexRivals.UI.Runtime
                 return;
             }
 
-            _vehicleSelectionPresenter = new VehicleSelectionPresenter(vehicleSelectionView, context.VehicleSelectionService, context.Navigation);
+            _vehicleSelectionPresenter = new VehicleSelectionPresenter(vehicleSelectionView, context.VehicleSelectionService, context.Navigation, screenNavigator);
             _settingsPresenter = new SettingsPresenter(settingsView, context.SettingsService);
             _mainMenuPresenter = new MainMenuPresenter(mainMenuView, context.Navigation, _vehicleSelectionPresenter, screenNavigator, new UguiApplicationExit());
+            _vehicleSelectionService = context.VehicleSelectionService;
+            _vehicleSelectionService.VehicleSelectionCommitted += OnVehicleSelectionCommitted;
 
             vehicleSelectionView.Bind(_vehicleSelectionPresenter);
             settingsView.Bind(_settingsPresenter, screenNavigator, PresentationScreenState.Main);
@@ -45,9 +49,20 @@ namespace ApexRivals.UI.Runtime
 
         public void Uninstall()
         {
+            if (_vehicleSelectionService != null)
+            {
+                _vehicleSelectionService.VehicleSelectionCommitted -= OnVehicleSelectionCommitted;
+                _vehicleSelectionService = null;
+            }
+
             _mainMenuPresenter = null;
             _vehicleSelectionPresenter = null;
             _settingsPresenter = null;
+        }
+
+        private void OnVehicleSelectionCommitted(VehicleSelectionCommittedEvent committed)
+        {
+            _mainMenuPresenter?.Present();
         }
     }
 }

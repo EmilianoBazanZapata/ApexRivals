@@ -26,24 +26,14 @@ namespace ApexRivals.Garage.Runtime
 
         public static UpgradeStatModifier Identity => new UpgradeStatModifier(1f, 1f, 1f, 0f, 0f);
 
-        public ArcadeVehicleStats ApplyTo(ArcadeVehicleStats baseStats)
+        public VehiclePerformanceStats ApplyTo(VehiclePerformanceStats baseStats)
         {
-            return new ArcadeVehicleStats(
-                baseStats.ForwardAcceleration * AccelerationMultiplier,
-                baseStats.ReverseAcceleration,
-                baseStats.BrakeForce,
-                baseStats.MaximumForwardSpeed * MaximumSpeedMultiplier,
-                baseStats.MaximumReverseSpeed,
-                baseStats.SteeringStrength * SteeringMultiplier,
-                baseStats.MinimumSteeringResponse,
-                baseStats.DriftSteeringMultiplier,
-                UnityEngine.Mathf.Clamp01(baseStats.NormalLateralGrip + NormalGripBonus),
-                UnityEngine.Mathf.Clamp01(baseStats.DriftLateralGrip + DriftGripBonus),
-                baseStats.Downforce,
-                baseStats.GroundCheckDistance,
-                baseStats.GroundLayerMask,
-                baseStats.ResetHeightOffset,
-                baseStats.ReverseEntrySpeed);
+            return new VehiclePerformanceStats(
+                baseStats.Acceleration * AccelerationMultiplier,
+                baseStats.TopSpeed * MaximumSpeedMultiplier,
+                baseStats.Steering * SteeringMultiplier,
+                UnityEngine.Mathf.Max(0f, baseStats.Handling + NormalGripBonus),
+                UnityEngine.Mathf.Max(0f, baseStats.DriftHandling + DriftGripBonus));
         }
     }
 }

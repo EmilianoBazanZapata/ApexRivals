@@ -1,4 +1,3 @@
-using ApexRivals.Vehicle.Configuration;
 using ApexRivals.Vehicle.Runtime;
 using UnityEngine;
 
@@ -10,7 +9,28 @@ namespace ApexRivals.VehicleSelection.Runtime
             string stableId,
             string displayName,
             string description,
-            ArcadeVehicleConfiguration baseConfiguration,
+            ScriptableObject baseConfiguration,
+            GameObject vehiclePrefab,
+            Sprite previewSprite,
+            bool availableInDemo)
+            : this(
+                stableId,
+                displayName,
+                description,
+                baseConfiguration,
+                baseConfiguration as IVehiclePerformanceStatsSource,
+                vehiclePrefab,
+                previewSprite,
+                availableInDemo)
+        {
+        }
+
+        public VehicleDefinitionData(
+            string stableId,
+            string displayName,
+            string description,
+            ScriptableObject baseConfiguration,
+            IVehiclePerformanceStatsSource performanceStatsSource,
             GameObject vehiclePrefab,
             Sprite previewSprite,
             bool availableInDemo)
@@ -19,6 +39,7 @@ namespace ApexRivals.VehicleSelection.Runtime
             DisplayName = displayName;
             Description = description;
             BaseConfiguration = baseConfiguration;
+            _performanceStatsSource = performanceStatsSource;
             VehiclePrefab = vehiclePrefab;
             PreviewSprite = previewSprite;
             AvailableInDemo = availableInDemo;
@@ -27,11 +48,15 @@ namespace ApexRivals.VehicleSelection.Runtime
         public string StableId { get; }
         public string DisplayName { get; }
         public string Description { get; }
-        public ArcadeVehicleConfiguration BaseConfiguration { get; }
+        private readonly IVehiclePerformanceStatsSource _performanceStatsSource;
+
+        public ScriptableObject BaseConfiguration { get; }
         public GameObject VehiclePrefab { get; }
         public Sprite PreviewSprite { get; }
         public bool AvailableInDemo { get; }
-        public ArcadeVehicleStats BaseStats => BaseConfiguration != null ? BaseConfiguration.CreateStats() : default;
+        public VehiclePerformanceStats BasePerformanceStats => _performanceStatsSource != null
+            ? _performanceStatsSource.CreatePerformanceStats()
+            : default;
         public bool HasValidId => !string.IsNullOrWhiteSpace(StableId);
     }
 }

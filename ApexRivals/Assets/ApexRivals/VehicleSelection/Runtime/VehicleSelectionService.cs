@@ -39,10 +39,11 @@ namespace ApexRivals.VehicleSelection.Runtime
         public string CurrentSelectedVehicleId => _selectedVehicleState.HasCommittedVehicleSelection ? _selectedVehicleState.SelectedVehicleId : _candidateVehicleId;
         public string CurrentCandidateVehicleId => _candidateVehicleId;
         public bool HasCommittedVehicleSelection => _selectedVehicleState.HasCommittedVehicleSelection;
+        public bool HasValidCommittedVehicleSelection => GetCommittedVehicleDefinition() != null;
         public VehicleDefinitionData CurrentSelectedDefinition => _selectedVehicleState.HasCommittedVehicleSelection
             ? GetCommittedVehicleDefinition()
             : GetCandidateVehicleDefinition();
-        public IReadOnlyList<VehicleDefinitionData> AvailableVehicles => _catalog.GetSelectableDemoVehicles();
+        public IReadOnlyList<VehicleDefinitionData> AvailableVehicles => GetRaceReadyVehicles();
 
         public VehicleLookupResult EnsurePersistedSelectionIsValid()
         {
@@ -53,7 +54,7 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var lookup = _catalog.FindById(_selectedVehicleState.SelectedVehicleId);
-            if (!lookup.Succeeded || !lookup.Vehicle.AvailableInDemo)
+            if (!IsRaceReady(lookup.Vehicle))
             {
                 _selectedVehicleState.ClearCommitment();
                 _candidateVehicleId = CreateInitialCandidateVehicleId();
@@ -69,14 +70,14 @@ namespace ApexRivals.VehicleSelection.Runtime
             var selectedId = CurrentSelectedVehicleId;
             var items = new List<VehicleSelectionItemState>();
 
-            foreach (var vehicle in _catalog.Vehicles)
+            foreach (var vehicle in AvailableVehicles)
             {
-                if (vehicle == null || !vehicle.HasValidId)
+                if (!IsRaceReady(vehicle))
                 {
                     continue;
                 }
 
-                var baseStats = vehicle.BaseStats;
+                var baseStats = vehicle.BasePerformanceStats;
                 var effectiveStats = CreateEffectiveStats(baseStats);
                 items.Add(new VehicleSelectionItemState(
                     vehicle.StableId,
@@ -102,22 +103,13 @@ namespace ApexRivals.VehicleSelection.Runtime
 
         public VehicleSelectionResult Select(string vehicleId)
         {
-            if (_selectedVehicleState.HasCommittedVehicleSelection)
-            {
-                var committedId = _selectedVehicleState.SelectedVehicleId;
-                var requestedId = string.IsNullOrWhiteSpace(vehicleId) ? string.Empty : vehicleId.Trim();
-                return requestedId == committedId
-                    ? new VehicleSelectionResult(VehicleSelectionStatus.Succeeded, committedId, committedId, string.Empty)
-                    : new VehicleSelectionResult(VehicleSelectionStatus.SelectionLocked, committedId, committedId, "The vehicle selection is already committed for this profile.");
-            }
-
             var lookup = _catalog.FindById(vehicleId);
             if (!lookup.Succeeded)
             {
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnknownVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, lookup.Message);
             }
 
-            if (!lookup.Vehicle.AvailableInDemo)
+            if (!IsRaceReady(lookup.Vehicle))
             {
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnavailableVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, "The selected vehicle is not available in the demo.");
             }
@@ -146,19 +138,18 @@ namespace ApexRivals.VehicleSelection.Runtime
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnknownVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, lookup.Message);
             }
 
-            if (!lookup.Vehicle.AvailableInDemo)
+            if (!IsRaceReady(lookup.Vehicle))
             {
                 return new VehicleSelectionResult(VehicleSelectionStatus.UnavailableVehicle, CurrentSelectedVehicleId, CurrentSelectedVehicleId, "The selected vehicle is not available in the demo.");
             }
 
-            if (_selectedVehicleState.HasCommittedVehicleSelection)
+            var previousVehicleId = _selectedVehicleState.SelectedVehicleId;
+            var previousCommitted = _selectedVehicleState.HasCommittedVehicleSelection;
+            if (previousCommitted && previousVehicleId == lookup.Vehicle.StableId)
             {
-                return _selectedVehicleState.SelectedVehicleId == lookup.Vehicle.StableId
-                    ? new VehicleSelectionResult(VehicleSelectionStatus.Succeeded, lookup.Vehicle.StableId, lookup.Vehicle.StableId, string.Empty)
-                    : new VehicleSelectionResult(VehicleSelectionStatus.SelectionLocked, _selectedVehicleState.SelectedVehicleId, _selectedVehicleState.SelectedVehicleId, "The vehicle selection is already committed for this profile.");
+                return new VehicleSelectionResult(VehicleSelectionStatus.Succeeded, previousVehicleId, lookup.Vehicle.StableId, string.Empty);
             }
 
-            var previousVehicleId = _selectedVehicleState.SelectedVehicleId;
             _selectedVehicleState.Commit(lookup.Vehicle.StableId);
 
             if (_saveCheckpoint != null)
@@ -166,7 +157,15 @@ namespace ApexRivals.VehicleSelection.Runtime
                 var saveResult = _saveCheckpoint.Save();
                 if (!saveResult.Succeeded)
                 {
-                    _selectedVehicleState.ClearCommitment();
+                    if (previousCommitted)
+                    {
+                        _selectedVehicleState.Restore(previousVehicleId, true);
+                    }
+                    else
+                    {
+                        _selectedVehicleState.ClearCommitment();
+                    }
+
                     return new VehicleSelectionResult(VehicleSelectionStatus.SaveFailed, previousVehicleId, previousVehicleId, saveResult.Message);
                 }
             }
@@ -190,13 +189,13 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var lookup = _catalog.FindById(_selectedVehicleState.SelectedVehicleId);
-            return lookup.Succeeded && lookup.Vehicle.AvailableInDemo ? lookup.Vehicle : null;
+            return lookup.Succeeded && IsRaceReady(lookup.Vehicle) ? lookup.Vehicle : null;
         }
 
         private VehicleDefinitionData GetCandidateVehicleDefinition()
         {
             var lookup = _catalog.FindById(_candidateVehicleId);
-            return lookup.Succeeded && lookup.Vehicle.AvailableInDemo ? lookup.Vehicle : null;
+            return lookup.Succeeded && IsRaceReady(lookup.Vehicle) ? lookup.Vehicle : null;
         }
 
         private string CreateInitialCandidateVehicleId()
@@ -207,7 +206,7 @@ namespace ApexRivals.VehicleSelection.Runtime
             }
 
             var defaultLookup = _catalog.FindById(_catalog.DefaultVehicleId);
-            if (defaultLookup.Succeeded && defaultLookup.Vehicle.AvailableInDemo)
+            if (defaultLookup.Succeeded && IsRaceReady(defaultLookup.Vehicle))
             {
                 return defaultLookup.Vehicle.StableId;
             }
@@ -216,7 +215,30 @@ namespace ApexRivals.VehicleSelection.Runtime
             return vehicles.Count > 0 ? vehicles[0].StableId : string.Empty;
         }
 
-        private ArcadeVehicleStats CreateEffectiveStats(ArcadeVehicleStats baseStats)
+        private IReadOnlyList<VehicleDefinitionData> GetRaceReadyVehicles()
+        {
+            var vehicles = new List<VehicleDefinitionData>();
+            foreach (var vehicle in _catalog.Vehicles)
+            {
+                if (IsRaceReady(vehicle))
+                {
+                    vehicles.Add(vehicle);
+                }
+            }
+
+            return vehicles;
+        }
+
+        private static bool IsRaceReady(VehicleDefinitionData vehicle)
+        {
+            return vehicle != null
+                && vehicle.HasValidId
+                && vehicle.AvailableInDemo
+                && vehicle.VehiclePrefab != null
+                && !string.Equals(vehicle.StableId, SelectedVehicleState.DefaultVehicleId, StringComparison.Ordinal);
+        }
+
+        private VehiclePerformanceStats CreateEffectiveStats(VehiclePerformanceStats baseStats)
         {
             if (_progressionState == null || _engineDefinition == null || _handlingDefinition == null)
             {

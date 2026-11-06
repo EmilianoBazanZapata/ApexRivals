@@ -1,6 +1,7 @@
 using System;
 using ApexRivals.Race.Runtime;
 using ApexRivals.RaceSetup.Runtime;
+using ApexRivals.Vehicle.Runtime;
 using UnityEngine;
 
 namespace ApexRivals.RaceSession.Runtime
@@ -22,6 +23,12 @@ namespace ApexRivals.RaceSession.Runtime
             remove => _raceCoordinator.RaceStarted -= value;
         }
 
+        public event Action<PositionChangedEvent> PositionChanged
+        {
+            add => _raceCoordinator.PositionChanged += value;
+            remove => _raceCoordinator.PositionChanged -= value;
+        }
+
         public event Action<RacerFinishedEvent> RacerFinished
         {
             add => _raceCoordinator.RacerFinished += value;
@@ -29,6 +36,15 @@ namespace ApexRivals.RaceSession.Runtime
         }
 
         public Transform PlayerCameraTarget => _setupOutput != null ? _setupOutput.PlayerCameraTarget : null;
+        public Rigidbody PlayerVehicleRigidbody => _setupOutput != null && _setupOutput.Player != null
+            ? _setupOutput.Player.VehicleRigidbody
+            : null;
+        public IDrivingInputProvider PlayerInputProvider => _setupOutput != null && _setupOutput.Player != null
+            ? _setupOutput.Player.DrivingInputGate
+            : null;
+        public IVehicleTelemetry PlayerVehicleTelemetry => _setupOutput != null && _setupOutput.Player != null
+            ? _setupOutput.Player.VehicleTelemetry
+            : null;
 
         public bool ConfigureForSession(RaceSetupOutput setupOutput, string playerParticipantId, out string message)
         {
@@ -73,6 +89,11 @@ namespace ApexRivals.RaceSession.Runtime
         public void BlockDriving()
         {
             _raceCoordinator.SetSessionDrivingAllowed(false);
+        }
+
+        public void AllowDriving()
+        {
+            _raceCoordinator.SetSessionDrivingAllowed(true);
         }
 
         public RaceHudSnapshot CreateHudSnapshot(string playerParticipantId)

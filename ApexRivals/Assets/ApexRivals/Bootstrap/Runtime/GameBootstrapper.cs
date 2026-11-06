@@ -25,6 +25,7 @@ namespace ApexRivals.Bootstrap.Runtime
         [SerializeField] private string[] knownVehicleIds = { SelectedVehicleState.DefaultVehicleId };
 
         private IContentSceneInstaller[] _activeSceneInstallers = System.Array.Empty<IContentSceneInstaller>();
+        private Scene _activeInstallerScene;
 
         public ApplicationContext Context { get; private set; }
         public BootstrapStartupStatus StartupStatus { get; private set; } = BootstrapStartupStatus.NotStarted;
@@ -78,7 +79,7 @@ namespace ApexRivals.Bootstrap.Runtime
 
             var progressionState = new PlayerProgressionState();
             var selectedVehicleState = new SelectedVehicleState();
-            var storage = new PlayerProfileFileStorage(Application.persistentDataPath);
+            var storage = new PlayerProfileFileStorage(Application.persistentDataPath, PlayerProfileFileStorage.DefaultFileName);
             var saveService = new PlayerProfileSaveService(progressionState, selectedVehicleState, storage, CreateKnownVehicleIds(vehicleCatalog));
             var settingsService = new SettingsService(new PlayerPrefsSettingsStorage(), new UnityDisplaySettingsAdapter());
             var saveCheckpoint = new PlayerProfileSaveCheckpoint(saveService);
@@ -148,6 +149,8 @@ namespace ApexRivals.Bootstrap.Runtime
             }
             else
             {
+                EnsureCurrentContentSceneInstalled();
+
                 var selectionResult = vehicleSelectionService.EnsurePersistedSelectionIsValid();
                 if (!selectionResult.Succeeded)
                 {
@@ -155,6 +158,7 @@ namespace ApexRivals.Bootstrap.Runtime
                     Context.Navigation.MarkFailed();
                     return new BootstrapStartupResult(BootstrapStartupStatus.Failed, selectionResult.Message);
                 }
+
             }
 
             return result;
@@ -192,7 +196,7 @@ namespace ApexRivals.Bootstrap.Runtime
                 progressionState,
                 engineUpgradeDefinition.CreateData(),
                 handlingUpgradeDefinition.CreateData(),
-                () => vehicleSelectionService.CurrentSelectedDefinition?.BaseStats ?? defaultVehicle.BaseStats);
+                () => vehicleSelectionService.CurrentSelectedDefinition?.BasePerformanceStats ?? defaultVehicle.BasePerformanceStats);
         }
 
         private RaceProgressionService CreateRaceProgressionService(PlayerProgressionState progressionState)
@@ -210,14 +214,56 @@ namespace ApexRivals.Bootstrap.Runtime
 
         private void OnContentSceneUnloading(Scene scene)
         {
-            UninstallActiveContentScene();
+            if (!_activeInstallerScene.IsValid() || _activeInstallerScene.handle == scene.handle)
+            {
+                UninstallActiveContentScene();
+            }
         }
 
         private void OnContentSceneLoaded(Scene scene)
         {
+            InstallContentScene(scene);
+        }
+
+        private void EnsureCurrentContentSceneInstalled()
+        {
+            if (_activeSceneInstallers.Length > 0 || Context == null || sceneLoader == null)
+            {
+                return;
+            }
+
+            var contentSceneName = sceneLoader.CurrentContentSceneName;
+            if (string.IsNullOrWhiteSpace(contentSceneName))
+            {
+                return;
+            }
+
+            for (var index = 0; index < SceneManager.sceneCount; index++)
+            {
+                var scene = SceneManager.GetSceneAt(index);
+                if (scene.IsValid() && scene.isLoaded && scene.name == contentSceneName)
+                {
+                    InstallContentScene(scene);
+                    return;
+                }
+            }
+        }
+
+        private void InstallContentScene(Scene scene)
+        {
             if (Context == null || !scene.IsValid() || !scene.isLoaded)
             {
                 return;
+            }
+
+            if (_activeInstallerScene.IsValid() && _activeInstallerScene.handle == scene.handle && _activeSceneInstallers.Length > 0)
+            {
+                return;
+            }
+
+            if (_activeSceneInstallers.Length > 0)
+            {
+                UninstallActiveContentScene();
             }
 
             var roots = scene.GetRootGameObjects();
@@ -242,6 +288,8 @@ namespace ApexRivals.Bootstrap.Runtime
             {
                 _activeSceneInstallers[index].Install(Context);
             }
+
+            _activeInstallerScene = scene;
         }
 
         private void UninstallActiveContentScene()
@@ -252,6 +300,7 @@ namespace ApexRivals.Bootstrap.Runtime
             }
 
             _activeSceneInstallers = System.Array.Empty<IContentSceneInstaller>();
+            _activeInstallerScene = default;
         }
 
         private static int CompareInstallers(IContentSceneInstaller left, IContentSceneInstaller right)

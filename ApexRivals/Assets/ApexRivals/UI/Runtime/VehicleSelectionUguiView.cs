@@ -1,11 +1,12 @@
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ApexRivals.UI.Runtime
 {
     [DisallowMultipleComponent]
-    public sealed class VehicleSelectionUguiView : MonoBehaviour, IVehicleSelectionView
+    public sealed class VehicleSelectionUguiView : MonoBehaviour, IVehicleSelectionView, ICancelHandler
     {
         [SerializeField] private Text vehicleNameText;
         [SerializeField] private Text statsText;
@@ -131,6 +132,12 @@ namespace ApexRivals.UI.Runtime
             }
 
             _presenter.ConfirmSelection();
+        }
+
+        public void OnCancel(BaseEventData eventData)
+        {
+            eventData?.Use();
+            _presenter?.Cancel();
         }
 
         private static async Task Run(Task task)
